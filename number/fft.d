@@ -338,8 +338,7 @@ unittest {
 unittest {
 import std.stdio;
   // X^k mod X^3 - 3 X^2 + 2
-  // enum m = (1L << 31) - 2;
-enum m=1;
+  enum m = (1L << 31) - 2;
   enum len = 100;
   auto a = new long[len];
   a[0] = 1 % m;
