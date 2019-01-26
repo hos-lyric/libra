@@ -35,8 +35,8 @@ $|t_2| < |t_3| < \dots < |t_{k-1}| < |t_k| = \dfrac{\lvert a \rvert}{\gcd(a, b)}
 正の奇数 $M$ に対し，$M < 2^k$ として，$M' \equiv -M^{-1} \pmod{2^k}$ をとっておく．
 
 整数 $a$ に対し，
-$2^{-k} a \equiv \dfrac{a + (a M' \bmod 2^k) M}{2^k}$ (分子が $\equiv 0 \pmod{2^k}$ かつ $\equiv a \pmod{M}$ なので)，
-$0 \le a < M$ なら右辺は $0$ 以上 $2 M$ 未満．
+$2^{-k} a \equiv \dfrac{a + (a M' \bmod 2^k) M}{2^k}$ である (分子が $\equiv 0 \pmod{2^k}$ かつ $\equiv a \pmod{M}$ なので)．
+$0 \le a < 2^k M$ なら右辺は $0$ 以上 $2 M$ 未満．
 
 $\Mod M$ で加減乗をたくさん行うとき，$f(a) = 2^k a \bmod M$ で変換してから行う．$f(a b) \equiv 2^{-k} f(a) f(b) \pmod{M}$．
 $2$ 冪以外での除算は $f$ の適用時のみになる．
