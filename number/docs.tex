@@ -1,5 +1,5 @@
 \documentclass{jsarticle}
-\usepackage{amsmath}
+\usepackage{amsmath,amssymb}
 
 \DeclareMathOperator{\Mod}{mod}
 \DeclareMathOperator{\xor}{xor}
@@ -12,12 +12,14 @@
 
 $\div$ は整数除算 (剰余の符号を被除数に合わせる)．
 
+
 \section{mod 逆元 (2 冪)}
 奇数 $a$ に対し，$a \times (3a \xor 2) \equiv 1 \pmod{2^5}$ (黒魔術)．
 
 $a b \equiv 1 \pmod{2^k}$ のとき，$a \times b (2 - a b) \equiv 1 \pmod{2^{2k}}$ ($1 - a b (2 - a b) = (1 - a b)^2$ より)．
 
 $a b \equiv -1 \pmod{2^k}$ のとき，$a \times b (2 + a b) \equiv -1 \pmod{2^{2k}}$ ($1 + a b (2 + a b) = (1 + a b)^2$ より)．
+
 
 \section{mod 逆元 (一般)}
 $(r_0, s_0, t_0) = (a, 1, 0)$, 
@@ -31,6 +33,17 @@ $k \ge 3$ なら，
 $|s_2| < |s_3| < \dots < |s_{k-1}| < |s_k| = \dfrac{\lvert b \rvert}{\gcd(a, b)}$, 
 $|t_2| < |t_3| < \dots < |t_{k-1}| < |t_k| = \dfrac{\lvert a \rvert}{\gcd(a, b)}$．
 
+
+\section{連立合同式}
+$t \equiv B \pmod{M}$ かつ $a t \equiv b \pmod{m}$ なる $t$ を求める．
+$t = B + M z$ として，$a M z \equiv b - a B \pmod{m}$ が条件．
+$g = \gcd(a M, m)$ とおいて，$g \nmid b - a B$ なら解なし．
+そうでないとき，
+$x \equiv \left( \dfrac{a M}{g} \right)^{-1} \pmod{\dfrac{m}{g}}$ として (互除法で $a M x + m y = g$ なる $(x, y)$ も求まっている)，
+$z \equiv x \dfrac{b - a B}{g} \pmod{\dfrac{m}{g}}$．
+$t$ は $\Mod \dfrac{M m}{g}$ で一意．
+
+
 \section{Montgomery reduction}
 正の奇数 $M$ に対し，$M < 2^k$ として，$M' \equiv -M^{-1} \pmod{2^k}$ をとっておく．
 
@@ -40,6 +53,7 @@ $0 \le a < 2^k M$ なら右辺は $0$ 以上 $2 M$ 未満．
 
 $\Mod M$ で加減乗をたくさん行うとき，$f(a) = 2^k a \bmod M$ で変換してから行う．$f(a b) \equiv 2^{-k} f(a) f(b) \pmod{M}$．
 $2$ 冪以外での除算は $f$ の適用時のみになる．
+
 
 \section{多項式除算}
 除算 $e(t) = f(t) q(t) + r(t)$ ($\deg e = m$, $\deg f = n$, $m \ge n$, $\deg q = m - n$, $\deg r < n$) の
@@ -54,7 +68,6 @@ $\Mod f(t)$ を常にとりながら加減乗を行うとき，被除数は次�
 $F'$ は $\Mod T^{n-1}$ で $1$ 回求めておけばよい．
 $F'$ は $F'(T) = 1$ から $F' \mapsto F' (2 - F F')$ を $\lceil \log_2 (n - 1) \rceil$ 回繰り返せば求まる．
 $O(n (\log n)^2)$ 時間だが，FFT の配列の長さをちゃんとやると $O(n \log n)$ 時間にできる．
-
 
 
 \end{document}
