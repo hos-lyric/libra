@@ -80,8 +80,11 @@ do {
     long x = 2, y = 2, d;
     do {
       x = multiply(x, x, n) + c;
+      if (x >= n) x -= n;
       y = multiply(y, y, n) + c;
+      if (y >= n) y -= n;
       y = multiply(y, y, n) + c;
+      if (y >= n) y -= n;
       d = gcd(abs(x - y), n);
     } while (d == 1);
     if (d < n) {
@@ -124,12 +127,23 @@ unittest {
 
 // factorize
 unittest {
+  assert(factorize(1) == []);
+  assert(factorize(2) == [2]);
+  assert(factorize(3) == [3]);
+  assert(factorize(4) == [2, 2]);
+  assert(factorize(5) == [5]);
+  assert(factorize(6) == [2, 3]);
+  assert(factorize(7) == [7]);
+  assert(factorize(8) == [2, 2, 2]);
+  assert(factorize(9) == [3, 3]);
   assert(factorize(2^^4 * 3^^3 * 5^^2 * 7) == [2, 2, 2, 2, 3, 3, 3, 5, 5, 7]);
-  assert(factorize(4294967297UL) == [641UL, 6700417UL]);
+  assert(factorize(4294967297UL) == [641, 6700417]);
   assert(factorize(1_000_000_016_000_000_063UL) ==
-         [1_000_000_007UL, 1_000_000_009UL]);
+         [1_000_000_007, 1_000_000_009]);
   assert(factorize(3141592653589793238UL) ==
          [2, 3, 11, 10513, 311743, 14523877]);
+  assert(factorize(997748200186314745UL) ==
+         [5, 7, 17, 17, 17581, 5610628223UL]);
 }
 
 void main() {
