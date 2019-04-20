@@ -63,6 +63,33 @@ do {
   return true;
 }
 
+// Factorize n using Pollard's rho algorithm
+ulong[] factorize(ulong n)
+in {
+  assert(n < 1UL << 63, "factorize: n < 2^63 must hold");
+}
+do {
+  import std.algorithm.sorting : merge;
+  import std.array : array;
+  import std.math : abs;
+  import std.numeric : gcd;
+  if (n <= 1) return [];
+  if (isPrime(n)) return [n];
+  if (n % 2 == 0) return [2UL] ~ factorize(n / 2);
+  for (ulong c = 1; ; ++c) {
+    long x = 2, y = 2, d;
+    do {
+      x = multiply(x, x, n) + c;
+      y = multiply(y, y, n) + c;
+      y = multiply(y, y, n) + c;
+      d = gcd(abs(x - y), n);
+    } while (d == 1);
+    if (d < n) {
+      return merge(factorize(d), factorize(n / d)).array;
+    }
+  }
+}
+
 // multiply
 unittest {
   enum a = 9123456789123456789UL;
@@ -93,6 +120,16 @@ unittest {
   }
   assert(isPrime(9223372036854775783UL));
   assert(!isPrime(7156857700403137441UL));
+}
+
+// factorize
+unittest {
+  assert(factorize(2^^4 * 3^^3 * 5^^2 * 7) == [2, 2, 2, 2, 3, 3, 3, 5, 5, 7]);
+  assert(factorize(4294967297UL) == [641UL, 6700417UL]);
+  assert(factorize(1_000_000_016_000_000_063UL) ==
+         [1_000_000_007UL, 1_000_000_009UL]);
+  assert(factorize(3141592653589793238UL) ==
+         [2, 3, 11, 10513, 311743, 14523877]);
 }
 
 void main() {
