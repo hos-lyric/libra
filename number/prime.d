@@ -39,7 +39,6 @@ in {
   assert(n < 1UL << 63, "isPrime: n < 2^63 must hold");
 }
 do {
-import std.stdio;
   import core.bitop : bsf;
   // http://miller-rabin.appspot.com/
   enum ulong[] BASES = [2, 325, 9375, 28178, 450775, 9780504, 1795265022];
