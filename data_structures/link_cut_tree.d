@@ -76,6 +76,7 @@ class Tree {
     return tuple(pathT, pathU);
   }
 }
+
 void print(in Tree[] nodes) {
   import std.stdio : write, writeln;
   import std.string : format;
