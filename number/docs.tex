@@ -3,6 +3,7 @@
 
 \DeclareMathOperator{\Mod}{mod}
 \DeclareMathOperator{\xor}{xor}
+\newcommand{\F}{\mathbb{F}}
 
 \title{メモ (整数論)}
 \author{hos}
@@ -32,6 +33,19 @@ $r_k = 0$ になったとき，$\lvert r_{k-1} \rvert = \gcd(a, b)$ なので，
 $k \ge 3$ なら，
 $|s_2| < |s_3| < \dots < |s_{k-1}| < |s_k| = \dfrac{\lvert b \rvert}{\gcd(a, b)}$, 
 $|t_2| < |t_3| < \dots < |t_{k-1}| < |t_k| = \dfrac{\lvert a \rvert}{\gcd(a, b)}$．
+
+
+\section{mod 平方根 (素数)}
+$p$ を奇素数とする．
+平方剰余 $a \in \F_p^\times$ に対し，
+$b^2 - a$ が平方非剰余となる $b \in \F_p$ は $\dfrac{p - 1}{2}$ 個ある ($b^2 - a = c^2$ の解は
+$(b + c) (b - c) = a$ より $(b, c) = \left(\dfrac{t + a t^{-1}}{2}, \dfrac{t - a t^{-1}}{2}\right)$ と書ける $p - 1$ 個で，
+$c$ を $-c$ にしても同じ $b$ が対応して，$c = 0$ は解でないので)．
+よってそのような $b$ は期待値約 $2$ 回の乱択で見つかる．
+
+$2$ 次体 $\F_p(\sqrt{b^2 - a})$ を考えて，$x = \left(b + \sqrt{b^2 - a}\right)^{\frac{p+1}{2}}$ とすると，
+Frobenius 準同型の性質より $x^2 = \left(b + \sqrt{b^2 - a}\right) \left(b + \sqrt{b^2 - a}\right)^p = \left(b + \sqrt{b^2 - a}\right) \left(b - \sqrt{b^2 - a}\right) = a$．
+$x^2 = a$ の解は $\F_p(\sqrt{b^2 - a})$ においても $2$ 個しかないので，$x \in \F_p$ である．
 
 
 \section{連立合同式}
