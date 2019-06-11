@@ -22,43 +22,52 @@ do {
 }
 
 // min pos s.t. pred(sum of [0, pos))
-int bBinarySearch(alias pred, T)(T[] bit)
-in {
-  assert(!(bit.length & (bit.length - 1)),
-         "bBinarySearch: |bit| must be a power of 2");
-}
-do {
+//   assume pred(sum of [0, pos)) is non-decreasing
+int bBinarySearch(alias pred, T)(T[] bit) {
+  import core.bitop : bsr;
   import std.functional : unaryFun;
   alias predFun = unaryFun!pred;
   if (predFun(0)) return 0;
-  if (!predFun(bit[$ - 1])) return cast(int)(bit.length) + 1;
-  int lo = 0, hi = cast(int)(bit.length);
+  int pos = 0;
   T sum = 0;
-  for (; lo + 1 < hi; ) {
-    const mid = (lo + hi) >> 1;
-    if (predFun(sum + bit[mid - 1])) {
-      hi = mid;
-    } else {
-      lo = mid;
-      sum += bit[mid - 1];
+  foreach_reverse (e; 0 .. bsr(bit.length) + 1) {
+    const x = (pos | 1 << e) - 1;
+    if (x < bit.length && !predFun(sum + bit[x])) {
+      pos |= 1 << e;
+      sum += bit[x];
     }
   }
-  return hi;
+  return pos + 1;
 }
 
 unittest {
-  auto bit = new long[8];
-  foreach (i; 0 .. 8) {
-    bit.bAdd(i, 10^^i);
+  {
+    auto bit = new long[5];
+    bit.bAdd(0, 3);
+    bit.bAdd(2, 1);
+    bit.bAdd(4, 4);
+    assert(bit.bSum(3) == 4);
+    bit.bAdd(1, 1);
+    bit.bAdd(3, 5);
+    assert(bit.bSum(3) == 5);
+    assert(bit.bBinarySearch!"a * a > 20" == 3);
   }
-  foreach (i; 0 .. 8 + 1) {
-    assert(bit.bSum(i) == (10^^i - 1) / 9);
+  foreach (n; 0 .. 16 + 1) {
+    auto bit = new long[n];
+    foreach (i; 0 .. n) {
+      bit.bAdd(i, 10L^^i);
+    }
+    foreach (i; 0 .. n + 1) {
+      assert(bit.bSum(i) == (10L^^i - 1) / 9);
+    }
+    assert(bit.bBinarySearch!"a >= 0" == 0);
+    assert(bit.bBinarySearch!"a < 0" == n + 1);
+    foreach (i; 0 .. n + 1) {
+      const sum = (10L^^i - 1) / 9;
+      assert(bit.bBinarySearch!(a => (a >= sum)) == i);
+      assert(bit.bBinarySearch!(a => (a > sum)) == i + 1);
+    }
   }
-  assert(bit.bBinarySearch!"a >= 0" == 0);
-  assert(bit.bBinarySearch!"a < 0" == 9);
-  const x = 11111;
-  assert(bit.bBinarySearch!(a => (a >= x)) == 5);
-  assert(bit.bBinarySearch!(a => (a > x)) == 6);
 }
 
 void main() {
