@@ -22,7 +22,7 @@ do {
 }
 
 // min pos s.t. pred(sum of [0, pos))
-T bBinarySearch(alias pred, T)(T[] bit)
+int bBinarySearch(alias pred, T)(T[] bit)
 in {
   assert(!(bit.length & (bit.length - 1)),
          "bBinarySearch: |bit| must be a power of 2");
@@ -54,10 +54,11 @@ unittest {
   foreach (i; 0 .. 8 + 1) {
     assert(bit.bSum(i) == (10^^i - 1) / 9);
   }
-  assert(bit.bBinarySearch!"a >= 11111" == 5);
-  assert(bit.bBinarySearch!"a > 11111" == 6);
   assert(bit.bBinarySearch!"a >= 0" == 0);
   assert(bit.bBinarySearch!"a < 0" == 9);
+  const x = 11111;
+  assert(bit.bBinarySearch!(a => (a >= x)) == 5);
+  assert(bit.bBinarySearch!(a => (a > x)) == 6);
 }
 
 void main() {
