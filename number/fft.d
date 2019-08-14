@@ -20,23 +20,17 @@ in {
 do {
   long b = m, x = 1, y = 0, t;
   for (; ; ) {
-    t = a / b;
-    a -= t * b;
+    t = a / b; a -= t * b;
     if (a == 0) {
       assert(b == 1 || b == -1, "modInv: gcd(a, m) != 1");
-      if (b == -1) {
-        y = -y;
-      }
+      if (b == -1) y = -y;
       return (y < 0) ? (y + m) : y;
     }
     x -= t * y;
-    t = b / a;
-    b -= t * a;
+    t = b / a; b -= t * a;
     if (b == 0) {
       assert(a == 1 || a == -1, "modInv: gcd(a, m) != 1");
-      if (a == -1) {
-        x = -x;
-      }
+      if (a == -1) x = -x;
       return (x < 0) ? (x + m) : x;
     }
     y -= t * x;
