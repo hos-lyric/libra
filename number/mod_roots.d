@@ -340,6 +340,45 @@ unittest {
   }
 }
 
+// jacobi
+unittest {
+  foreach (p; [3, 5, 7, 11, 13, 17, 19, 23, 29]) {
+    foreach (a; -2 * p .. 2 * p) {
+      int s = -1;
+      foreach (x; 0 .. p) {
+        if ((x * x - a) % p == 0) {
+          ++s;
+        }
+      }
+      assert(s == jacobi(a, p));
+    }
+  }
+  foreach (a; 10L^^18 .. 10L^^18 + 100) {
+    assert(jacobi(a, 31) * jacobi(a, 37)^^2 * jacobi(a, 41)^^3 ==
+           jacobi(a, 31L * 37L^^2 * 41L^^3));
+  }
+}
+
+// modSqrt
+unittest {
+  foreach (p; [2, 3, 5, 7, 11, 13, 17, 19, 23, 29]) {
+    int numRoots;
+    foreach (a; 0 .. p) {
+      foreach (x; modSqrt(a, p)) {
+        assert(0 <= x && x < p);
+        assert((x * x) % p == a);
+        ++numRoots;
+      }
+      assert(modSqrt(a, p) == modSqrt(a - p, p));
+      assert(modSqrt(a, p) == modSqrt(a + p, p));
+    }
+    assert(numRoots == p);
+  }
+  assert(modSqrt(123_456_789, 10^^9 + 7) == [151347102, 848652905]);
+  assert(modSqrt(123_456_798, 10^^9 + 7) == []);
+  assert(modSqrt((2L^^31 - 1)^^2 - 3, 2L^^31 - 1) == [879471824, 1268011823]);
+}
+
 // modRoots2
 unittest {
   assert(modRoots2(1, 4, 5) == []);
