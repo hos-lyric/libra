@@ -94,14 +94,14 @@ do {
     if (d < 0) d += p;
     if (jacobi(d, p) == -1) break;
   }
-  long[2] multiply(in long[2] x, in long[2] y) {
+  long[2] mul(in long[2] x, in long[2] y) {
     return [(x[0] * y[0] + d * ((x[1] * y[1]) % p)) % p,
             (x[0] * y[1] + x[1] * y[0]) % p];
   }
   long[2] f = [b, 1], g = [1, 0];
   for (long e = (p + 1) >> 1; e; e >>= 1) {
-    if (e & 1) g = multiply(g, f);
-    f = multiply(f, f);
+    if (e & 1) g = mul(g, f);
+    f = mul(f, f);
   }
   assert(g[1] == 0);
   return (g[0] < p - g[0]) ? [g[0], p - g[0]] : [p - g[0], g[0]];
