@@ -4,6 +4,7 @@
 \DeclareMathOperator{\Mod}{mod}
 \DeclareMathOperator{\xor}{xor}
 \newcommand{\F}{\mathbb{F}}
+\newcommand{\tr}{\mathrm{tr}}
 
 \title{メモ (整数論)}
 \author{hos}
@@ -44,8 +45,48 @@ $c$ を $-c$ にしても同じ $b$ が対応して，$c = 0$ は解でないの
 よってそのような $b$ は期待値約 $2$ 回の乱択で見つかる．
 
 $2$ 次体 $\F_p(\sqrt{b^2 - a})$ を考えて，$x = \left(b + \sqrt{b^2 - a}\right)^{\frac{p+1}{2}}$ とすると，
-Frobenius 準同型の性質より $x^2 = \left(b + \sqrt{b^2 - a}\right) \left(b + \sqrt{b^2 - a}\right)^p = \left(b + \sqrt{b^2 - a}\right) \left(b - \sqrt{b^2 - a}\right) = a$．
+Frobenius 準同型の性質より $x^2 = \left(b + \sqrt{b^2 - a}\right) \left(b + \sqrt{b^2 - a}\right)^p = \left(b + \sqrt{b^2 - a}\right) \left(b - \sqrt{b^2 - a}\right) = a$ となる．
 $x^2 = a$ の解は $\F_p(\sqrt{b^2 - a})$ においても $2$ 個しかないので，$x \in \F_p$ である．
+
+
+\section{有限体上の多項式の因数分解}
+$p$ を素数，$q = p^e$ とする．
+以下の $3$ ステップを行う．
+
+\subsection{square-free factorization}
+$f \in \F_q[T]$ を $f = f_1^1 f_2^2 \cdots$ ($f_i$ は square-free) の形にする．
+
+$\gcd(f, f') = \displaystyle\prod_{p \nmid i} f_i^{i-1} \displaystyle\prod_{p \mid i} f_i^i$ なので，
+除算と $\gcd$ で $f_1$ から順に $f_i$ ($p \nmid i$) が求まる．
+残りは $p$ 乗根をとって (指数を $p$ で割って係数に Frobenius 準同型の逆をかける) 再帰的に処理．
+
+\subsection{distinct-degree factorization}
+$f \in \F_q[T]$ を $f = f_1 f_2 \cdots$ ($f_j$ は $j$ 次既約多項式の積) の形にする．
+
+$T^{q^j} - T$ は $\F_q$ 上の次数が $j$ の約数の既約多項式すべての積である ($T^{q^j} - T$ は微分が $-1$ なので square-free．最小分解体は $\F_{q^j}$ で，部分拡大は $\F_{q^{(\text{$j$ の約数})}}$)．
+よって $T^{q^j} - T$ ($j = 1, 2, \ldots$) との $\gcd$ をとって割っていけば $f_1$ から順に求まる．
+
+$\gcd((\text{$f$ の約数}), T^{q^j} - T)$ を求めるために，$(T^{q^j} - T) \mod f$ を計算する．
+$\F_q[T] / (f)$ を $\deg f$ 次線型空間とみて，$q$ 乗は線型写像なので先に行列を求めておけば，$O((\deg f)^2 \log q + (\deg f)^3)$ 回の計算でできる．
+
+\subsection{Cantor--Zassenhaus algorithm}
+$f \in \F_q[T]$ が $j$ 次既約多項式の積のとき，$f$ を因数分解する．
+
+$f = f_1 \cdots f_l$ ($f_k$ は既約) とする．
+中国剰余定理より $\F_q[T] / (f) \cong \F_q[T] / (f_1) \times \cdots \times \F_q[T] / (f_l)$ なので，
+$r \in \F_q[T] / (f)$ を一様ランダムにとるとその $\F_q[T] / (f_k)$ ($k = 1, \ldots, l$) での像は独立に一様ランダムに分布する．
+
+$p = 2$ のとき，$\tr_{(\F_{2^e}/(f_k)) / \F_2}(r) = r + r^2 + r^4 + \cdots + r^{2^{e-1}} \in \F_2$ は
+確率 $\dfrac{1}{2}$ ずつで $0$, $1$ になる (恒等 $0$ ではない線型写像なので)．
+
+$p \ne 2$ のとき，$r^{(q^e - 1) / 2} \in \{ 0, \pm 1 \}$ は
+$f_k \mid r$ のときのみ $0$，
+確率 $\dfrac{(q^e - 1) / 2}{q^e}$ ずつで $\pm 1$ になる (有限体 $\F_q[T] / (f_k)$ の乗法群が巡回群だから)．
+
+よって $\tr_{(\F_{2^e}/(f_k)) / \F_2}(r)$ あるいは $r^{(q^e - 1) / 2} - 1$ と $f$ の $\gcd$ をとれば
+$f_1, \ldots, f_l$ のうち半分ほどが入る．
+
+(TODO: ちゃんと解析する)
 
 
 \section{連立合同式}
