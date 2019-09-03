@@ -43,6 +43,25 @@ class SegmentTree(T, alias op, T ide) {
     }
     return opFun(prodL, prodR);
   }
+
+  // min pos s.t. pred(sum of [0, pos))
+  //   assume pred(sum of [0, pos)) is non-decreasing
+  int binarySearch(alias pred)() const {
+    import std.functional : unaryFun;
+    alias predFun = unaryFun!pred;
+    if (predFun(ide)) return 0;
+    if (!predFun(ts[1])) return n + 1;
+    T prod = ide;
+    int a = 1;
+    for (; a < n; ) {
+      a <<= 1;
+      if (!predFun(opFun(prod, ts[a]))) {
+        prod = opFun(prod, ts[a]);
+        a |= 1;
+      }
+    }
+    return a - n + 1;
+  }
 }
 
 unittest {
@@ -58,6 +77,10 @@ unittest {
   seg.update(21, "V");
   assert(seg.get(17) == "^r");
   assert(seg.rangeProd(15, 21) == "Pq^rst$u");
+  assert(seg.binarySearch!"a == a" == 0);
+  assert(seg.binarySearch!"a.indexOf('q') != -1" == 17);
+  assert(seg.binarySearch!"a.indexOf('^') != -1" == 18);
+  assert(seg.binarySearch!"a.indexOf('?') != -1" == seg.n + 1);
 }
 
 void main() {
