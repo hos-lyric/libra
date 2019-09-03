@@ -1,7 +1,5 @@
 // point update, range product
 //   T: monoid
-//   get a, update a, mulL a, mulR a: 0 <= a < n
-//   rangeProd [a, b): 0 <= a <= b <= n
 class SegmentTree(T, alias op, T ide) {
   import std.functional : binaryFun;
   alias opFun = binaryFun!op;
@@ -20,6 +18,8 @@ class SegmentTree(T, alias op, T ide) {
     ts[n + n_ .. n << 1] = ide;
     foreach_reverse (a; 1 .. n) ts[a] = opFun(ts[a << 1], ts[a << 1 | 1]);
   }
+
+  // 0 <= a < n
   T get(int a) const {
     return ts[a + n];
   }
@@ -33,6 +33,8 @@ class SegmentTree(T, alias op, T ide) {
   void mulR(int a, in T val) {
     update(a, opFun(ts[a + n], val));
   }
+
+  // [a, b) (0 <= a <= b <= n)
   T rangeProd(int a, int b) const {
     T prodL = ide, prodR = ide;
     for (a += n, b += n; a < b; a >>= 1, b >>= 1) {
