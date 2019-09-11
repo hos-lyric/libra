@@ -1,0 +1,84 @@
+\documentclass{jsarticle}
+\usepackage{amsmath,amssymb,amsthm}
+
+\everymath{\displaystyle}
+\newcommand{\N}{\mathbb{N}}
+
+\theoremstyle{definition}
+\newtheorem{thm}{定理}
+\newtheorem*{exm}{例}
+
+\title{メモ (形式的冪級数)}
+\author{hos}
+
+\begin{document}
+\maketitle
+
+収束のことは考えない．
+その代わり，知らない演算をしない．
+
+$\N$ は非負整数全体の集合とする．
+
+\section{形式的冪級数環}
+$R$ を可換環とする．
+
+$X$ を不定元として，
+$R$ の加算個の直積 $R^\N$ の元 $(a_i)_{i\in\N}$ を形式的に
+$\sum_{i\in\N} a_i X^i$ (あるいは $a_0 + a_1 X + a_2 X^2 + \cdots$) と書いたものの集合を $R[[X]]$ とする．
+この元を $a(X)$ のように書くこともある．
+$a_i$ を $a(X)$ の \textbf{$i$ 次の係数}と呼び，$[X^i] a(X)$ のように書く．
+$0$ 次の係数を\textbf{定数項}と呼ぶ．
+
+$\sum_{i\in\N} a_i X^i, \sum_{i\in\N} b_iX^i \in R[[X]]$ に対し，加法と乗法を
+\begin{align*}
+  \sum_{i\in\N} a_i X^i + \sum_{i\in\N} b_i X^i := \sum_{i\in\N} (a_i + b_i) X^i, \\
+  \left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) := \sum_{i\in\N} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) X^k
+\end{align*}
+で定め，
+$r \in R$ と $\sum_{i\in\N} a_i X^i \in R[[X]]$ に対し，定数倍を
+\[
+  r \left(\sum_{i\in\N} a_i X^i\right) := \sum_{i\in\N} (r a_i) X^i
+\]
+で定めると，$R$ 代数 (可換環構造が適切に入る $R$ 加群) になることを示す．
+加法の単位元は $0 = 0 + 0 X + 0 X^2 + \cdots$，
+乗法の単位元は $1 = 1 + 0 X + 0 X^2 + \cdots$．
+乗法の結合法則のみやや非自明で，
+$\left(\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right)\right) \left(\sum_{i\in\N} c_i X^i\right)$ の
+$m$ 次の係数が
+\[
+  \sum_{l,k\in\N,\,l+k=m} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) c_k = \sum_{i,j,k\in\N,\,i+j+k=m} a_i b_j c_k
+\]
+となることから従う．
+
+この $R$ 代数 $R[[X]]$ を，\textbf{$R$ 係数形式的冪級数環}と呼ぶ．
+
+
+\section{乗法の逆元}
+環の単元とは，乗法の逆元をもつ元のこと．可逆元．$1$ の約数．
+
+\begin{thm}
+  $\sum_{i\in\N} a_i X^i \in R[[X]]$ が単元であるための必要十分条件は，$a_0$ が $R$ の単元であること．
+\end{thm}
+\begin{proof}
+  (必要性)
+  $\sum_{i\in\N} b_i X^i \in R[[X]]$ が $\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たすとすると，
+  定数項を比較して，$a_0 b_0 = 1$ である．
+
+  (十分性)
+  $a_0$ が単元のとき，$\sum_{i\in\N} b_i X^i \in R[[X]]$ を
+  \begin{align*}
+    b_0 &= a_0^{-1}, \\
+    b_i &= -a_0^{-1} \sum_{j\in\N,\,1\le j\le i} a_j b_{i-j}
+  \end{align*}
+  として定めると，$\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たす．
+\end{proof}
+
+$a(X) \in R[[X]]$ の乗法の逆元が存在するとき，それは一意なので，
+$a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
+
+\begin{exm}
+  $r \in R$ に対し，$(1 - r X)^{-1} = \sum_{i\in\N} r^i X^i$．
+\end{exm}
+
+
+\end{document}
