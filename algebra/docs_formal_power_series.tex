@@ -1,12 +1,20 @@
 \documentclass{jsarticle}
-\usepackage{amsmath,amssymb,amsthm}
+\usepackage{amsmath,amssymb,amsthm,ascmac,enumerate,framed}
 
 \everymath{\displaystyle}
+\DeclareMathOperator{\Mod}{mod}
 \newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
 
 \theoremstyle{definition}
-\newtheorem{thm}{定理}
-\newtheorem*{exm}{例}
+\newtheorem*{Dfn}{定義}
+\newtheorem*{Exm}{例}
+\newtheorem{Prp}{命題}
+\renewcommand{\proofname}{\textbf{証明}}
+\newenvironment{dfn}{\vspace{1ex}\begin{screen}\begin{Dfn}}{\end{Dfn}\end{screen}\vspace{1ex}}
+\newenvironment{exm}{\begin{leftbar}\begin{Exm}}{\end{Exm}\end{leftbar}}
+\newenvironment{prp}{\vspace{1ex}\begin{screen}\begin{Prp}}{\end{Prp}\end{screen}}
+\newenvironment{prf}{\begin{leftbar}\begin{proof}}{\end{proof}\end{leftbar}}
 
 \title{メモ (形式的冪級数)}
 \author{hos}
@@ -14,32 +22,28 @@
 \begin{document}
 \maketitle
 
+大事なこと：
 収束のことは考えない．
 その代わり，知らない演算をしない．
 
-$\N$ は非負整数全体の集合とする．
+$\N$ は非負整数全体の集合とする\footnote{普段は $\Z_{\ge 0}$ とかを使って $\N$ という記号を避けようと思っているのですが，$\sum$ の下にたくさん書くので仕方なく．}．
 
 \section{形式的冪級数環}
-$R$ を可換環とする．
+$R$ を可換環とする\footnote{環と言ったら乗法の単位元の存在を仮定します．}．
 
 $X$ を不定元として，
-$R$ の加算個の直積 $R^\N$ の元 $(a_i)_{i\in\N}$ を形式的に
+$R$ の加算個の直積 $\prod_{i\in\N} R$ の元 $(a_i)_{i\in\N}$ を形式的に
 $\sum_{i\in\N} a_i X^i$ (あるいは $a_0 + a_1 X + a_2 X^2 + \cdots$) と書いたものの集合を $R[[X]]$ とする．
 この元を $a(X)$ のように書くこともある．
-$a_i$ を $a(X)$ の \textbf{$i$ 次の係数}と呼び，$[X^i] a(X)$ のように書く．
+$a_i$ を $a(X)$ の $i$ 次の\textbf{係数} (あるいは $X^i$ の係数) と呼び，$[X^i] a(X)$ のように書く．
 $0$ 次の係数を\textbf{定数項}と呼ぶ．
 
 $\sum_{i\in\N} a_i X^i, \sum_{i\in\N} b_iX^i \in R[[X]]$ に対し，加法と乗法を
 \begin{align*}
-  \sum_{i\in\N} a_i X^i + \sum_{i\in\N} b_i X^i := \sum_{i\in\N} (a_i + b_i) X^i, \\
-  \left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) := \sum_{i\in\N} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) X^k
+  \sum_{i\in\N} a_i X^i + \sum_{i\in\N} b_i X^i &:= \sum_{i\in\N} (a_i + b_i) X^i, \\
+  \left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) &:= \sum_{i\in\N} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) X^k
 \end{align*}
-で定め，
-$r \in R$ と $\sum_{i\in\N} a_i X^i \in R[[X]]$ に対し，定数倍を
-\[
-  r \left(\sum_{i\in\N} a_i X^i\right) := \sum_{i\in\N} (r a_i) X^i
-\]
-で定めると，$R$ 代数 (可換環構造が適切に入る $R$ 加群) になることを示す．
+で定めると，可換環になることを示す．
 加法の単位元は $0 = 0 + 0 X + 0 X^2 + \cdots$，
 乗法の単位元は $1 = 1 + 0 X + 0 X^2 + \cdots$．
 乗法の結合法則のみやや非自明で，
@@ -49,17 +53,48 @@ $m$ 次の係数が
   \sum_{l,k\in\N,\,l+k=m} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) c_k = \sum_{i,j,k\in\N,\,i+j+k=m} a_i b_j c_k
 \]
 となることから従う．
+この可換環 $R[[X]]$ を，\textbf{$R$ 係数形式的冪級数環}と呼ぶ．
 
-この $R$ 代数 $R[[X]]$ を，\textbf{$R$ 係数形式的冪級数環}と呼ぶ．
+さらに，$r \in R$ はそのまま $r + 0 X + 0 X^2 + \cdots \in R[[X]]$ とみれるので，
+包含 $R \lhook\joinrel\longrightarrow R[[X]]$ により $R[[X]]$ は $R$ 代数でもある．
 
+\begin{exm}
+  $(1 + X) (1 + X + X^2 + X^3 + \cdots) = 1 + 2 X + 2 X^2 + 2 X^3 + \cdots$．
+\end{exm}
+
+$a(X) \in R[[X]]$ に対し，
+集合 $a(X) R[[X]] := \{ a(X) b(X) \mid b(X) \in R[[x]] \} \subseteq R[[X]]$ は
+$R[[X]]$ のイデアルである．
+$b(X), c(X) \in R[[X]]$ が $b(X) - c(X) \in a(X) R[[X]]$ を満たすことを
+$b(X) \equiv c(X) \pmod{a(X)}$ と書く．
+$n \in \N$ に対し，$\Mod X^n$ での合同は，$n$ 次未満の係数が等しいことを表す．
+
+\begin{exm}
+  $0 + 1 X + 2 X^2 + 3 X^3 + 4 X^4 + \cdots \equiv X + 2 X^2 \pmod{X^3}$．
+\end{exm}
+
+次の命題は，突き詰めると環の位相の話になるが，本稿では技術的な補題として用いる．
+
+\begin{prp}
+  \label{prp:mod-limit}
+  $a(X), b(X) \in R[[X]]$ について，
+  $a(X) = b(X)$ である必要十分条件は，任意の $n \in \N$ に対して $a(X) \equiv b(X) \pmod{X^n}$ であること．
+\end{prp}
+\begin{prf}
+  (必要性)
+  明らか．
+
+  (十分性)
+  任意の $i \in \N$ に対し，$n = i + 1$ ととって $a(X) \equiv b(X) \pmod{X^{i+1}}$ なので，$a_i = b_i$ となる．
+\end{prf}
 
 \section{乗法の逆元}
 環の単元とは，乗法の逆元をもつ元のこと．可逆元．$1$ の約数．
 
-\begin{thm}
+\begin{prp}
   $\sum_{i\in\N} a_i X^i \in R[[X]]$ が単元であるための必要十分条件は，$a_0$ が $R$ の単元であること．
-\end{thm}
-\begin{proof}
+\end{prp}
+\begin{prf}
   (必要性)
   $\sum_{i\in\N} b_i X^i \in R[[X]]$ が $\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たすとすると，
   定数項を比較して，$a_0 b_0 = 1$ である．
@@ -68,10 +103,10 @@ $m$ 次の係数が
   $a_0$ が単元のとき，$\sum_{i\in\N} b_i X^i \in R[[X]]$ を
   \begin{align*}
     b_0 &= a_0^{-1}, \\
-    b_i &= -a_0^{-1} \sum_{j\in\N,\,1\le j\le i} a_j b_{i-j}
+    b_i &= -a_0^{-1} \sum_{j\in\N,\,1\le j\le i} a_j b_{i-j} \quad (i \ge 1)
   \end{align*}
   として定めると，$\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たす．
-\end{proof}
+\end{prf}
 
 $a(X) \in R[[X]]$ の乗法の逆元が存在するとき，それは一意なので，
 $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
@@ -79,6 +114,148 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
 \begin{exm}
   $r \in R$ に対し，$(1 - r X)^{-1} = \sum_{i\in\N} r^i X^i$．
 \end{exm}
+
+ここまでで定めた加減乗除については，一般の $R$ 代数で成り立つことを用いて普通の計算ができるし，普通の表記をする．
+
+\begin{exm}
+  $a(X) \in R[[X]]$ に対して，$a(X)^2$ とは $a(X) a(X)$ のことであり，
+  $a(X)^2$ の逆元は $(a(X)^{-1})^2$ であり $a(X)^{-2}$ と書く．
+\end{exm}
+
+\begin{exm}
+  正の整数 $n$ に対し，$(1 - X)^{-n} = \sum_{i\in\N} \binom{i+n-1}{n-1} X^i$．
+\end{exm}
+
+
+\section{合成}
+形式的冪級数の合成は，$X$ の部分に「代入」していいものは定数項が $0$ でなければならないことに注意を要する．
+
+\begin{dfn}
+  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ および
+  $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ に対し，
+  $b(X)$ と $a(X)$ の\textbf{合成} $(b \circ a)(X)$ を
+  \[
+    % (a \circ b)(X) := \sum_{i\in\N} \left(\sum_{j\in\N,\, k_1,\ldots,k_j\in\N,\, k_1,\ldots,k_j\ge 1,\, k_1+\cdots+k_j=i} a_j b_{k_1} \cdots b_{k_j} \right) X^i
+    (b \circ a)(X) := \sum_{i\in\N} \left(\sum_{k\in\N,\, j_1,\ldots,j_k\in\N,\, j_1,\ldots,j_k\ge 1,\, j_1+\cdots+j_k=i} b_k a_{j_1} \cdots a_{j_k} \right) X^i
+  \]
+  で定める．
+  内側の $\sum$ について，$k \le i$ が従うためこれは有限和である．
+  特に，$(b \circ a)(X)$ の定数項は $a_0$ である．
+\end{dfn}
+
+$(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を $k \in \N$ について足したものである．
+つまり，形式的に $(b \circ a)(X) = \sum_{k\in\N} b_k a(X)^k$ と書きたいが，
+右辺は $R[[X]]$ の元の無限和であり定義されておらず，各係数ごとに有限和として定義できるための条件が $a(X)$ の定数項が $0$ であることに他ならない．
+このとき，$k > i$ の項は $i$ 次の係数に影響を与えない．
+言い換えると，
+\begin{prp}
+  \label{prp:composition-mod}
+  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ および
+  $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ に対し，
+  \[
+    (b \circ a)(X) \equiv \sum_{k\in\N,\,k<n} b_k a(X)^k \pmod{X^n}
+  \]
+  が成り立つ．
+\end{prp}
+\begin{prf}
+  $i \in \N$, $i < n$ に対し，$k \le i$ ならば $k < n$ であるから，
+  \begin{align*}
+    % (a \circ b)(X)
+    % &\equiv \sum_{i\in\N,\,i<n} \left(\sum_{j\in\N,\, k_1,\ldots,k_j\in\N,\, k_1,\ldots,k_j\ge 1,\, k_1+\cdots+k_j=i} a_j b_{k_1} \cdots b_{k_j} \right) X^i \\
+    % &= \sum_{i\in\N,\,i<n} \left(\sum_{j\in\N,\, j<n,\, k_1,\ldots,k_j\in\N,\, k_1,\ldots,k_j\ge 1,\, k_1+\cdots+k_j=i} a_j b_{k_1} \cdots b_{k_j} \right) X^i \\
+    % &= \sum_{i\in\N,\,i<n} \left( \sum_{j\in\N,\,j<n} [X^i] a_j b(X)^j \right) X^i \\
+    % &= \sum_{j\in\N,\,j<n} \left( \sum_{i\in\N,\,i<n} [X^i] a_j b(X)^j \right) X^i \\
+    % &\equiv \sum_{j\in\N,\,j<n} a_j b(X)^j \pmod{X^n}
+    (b \circ a)(X)
+    &\equiv \sum_{i\in\N,\,i<n} \left(\sum_{k\in\N,\, j_1,\ldots,j_k\in\N,\, j_1,\ldots,j_k\ge 1,\, j_1+\cdots+j_k=i} b_k a_{j_1} \cdots a_{j_k} \right) X^i \\
+    &= \sum_{i\in\N,\,i<n} \left(\sum_{k\in\N,\, k<n,\, j_1,\ldots,j_k\in\N,\, j_1,\ldots,j_k\ge 1,\, j_1+\cdots+j_k=i} b_k a_{j_1} \cdots a_{j_k} \right) X^i \\
+    &= \sum_{i\in\N,\,i<n} \left( \sum_{k\in\N,\,k<n} [X^i] b_k a(X)^k \right) X^i \\
+    &= \sum_{k\in\N,\,k<n} \left( \sum_{i\in\N,\,i<n} [X^i] b_k a(X)^k \right) X^i \\
+    &\equiv \sum_{k\in\N,\,k<n} b_k a(X)^k \pmod{X^n}
+  \end{align*}
+  である．
+\end{prf}
+
+合成を「代入」と考えたとき成り立ってほしい性質たちを確認していく．
+
+\begin{prp}
+  \label{prp:composition-hom}
+  $a(X) \in X R[[X]]$ は環準同型 $a^*\colon R[[X]] \longrightarrow R[[X]]$; $b(X) \longmapsto (b \circ a)(X)$ を定め，
+  これは $a^*(X) = a(X)$ を満たす．
+  すなわち，$b(X), c(X), d(X) \in R[[X]]$ に対し，
+  \begin{enumerate}[(1)]
+    \item $b(X) + c(X) = d(X)$ ならば $(b \circ a)(X) + (c \circ a)(X) = (d \circ a)(X)$．
+    \item $b(X) c(X) = d(X)$ ならば $(b \circ a)(X) (c \circ a)(X) = (d \circ a)(X)$．
+    \item $b(X) = 1$ ならば $(b \circ a)(X) = 1$．
+    \item $b(X) = X$ ならば $(b \circ a)(X) = a(X)$．
+  \end{enumerate}
+\end{prp}
+
+\begin{prf}
+  \begin{enumerate}[(1)]
+    \item 合成の定義から明らか．
+    \item $a(X) = \sum_{i\in\N} a_i X^i$, $b(X) = \sum_{i\in\N} b_i X^i$, $c(X) = \sum_{i\in\N} c_i X^i$ とする．
+        $n \in \N$ を任意にとる．
+        命題 \ref{prp:composition-mod} より，
+        \begin{align*}
+          (a \circ d)(X) (b \circ d)(X)
+          &\equiv \left( \sum_{i\in\N,\,i<n} a_i d(X)^i \right) \left( \sum_{j\in\N,\,j<n} b_j d(X)^j \right) \\
+          &= \sum_{k\in\N,k<2n} \left( \sum_{i,j\in\N,\,i,j<n,\,i+j=k} a_i b_j \right) d(X)^k \\
+          &\equiv \sum_{k\in\N,k<n} \left( \sum_{i,j\in\N,\,i+j=k} a_i b_j \right) d(X)^k \\
+          &= \sum_{k\in\N,k<n} c_k d(X)^k \\
+          &\equiv (c \circ d)(X) \pmod{X^n}
+        \end{align*}
+        である．
+        よって，命題 \ref{prp:mod-limit} より $(a \circ d)(X) (b \circ d)(X) = (c \circ d)(X)$ が従う．
+    \item $b_0$ のみ $1$ なので，$(b \circ a)(X) = \sum_{i\in\N} \left( \sum_{0=i} 1 \right) X^i = 1$．
+    \item $b_1$ のみ $1$ なので，$(b \circ a)(X) = \sum_{i\in\N} \left( \sum_{k_1\in\N,\,k_1\ge 1,\,k_1=i} a_{k_1} \right) X^i = \sum_{i\in\N} a_i X^i = a(X)$．
+  \end{enumerate}
+\end{prf}
+
+\begin{prp}
+  $a(X), b(X) \in X R[[X]]$ $c(X) \in R[[X]]$ に対し，
+  $(c \circ (b \circ a))(X) = ((c \circ b) \circ a)(X)$．
+\end{prp}
+\begin{prf}
+  $c(X) = X$ のとき，命題 \ref{prp:composition-hom} (4) より，
+  \[
+    (c \circ (b \circ a))(X) = (b \circ a)(X) = ((c \circ b) \circ a)(X)
+  \]
+  である．
+  すなわち $(b \circ a)^*(X) = (a^* \circ b^*)(X)$ である ($(b \circ a)(X)$ は形式的冪級数の合成，$a^* \circ b^*$ は環準同型の合成であることに注意する)．
+
+  $R[[X]]$ は $X$ で生成されるので，環準同型は $X$ の行き先で定まる．
+  よって $(b \circ a)^* = a^* \circ b^*$ であり，
+  任意の $c(X)$ に対し
+  \[
+    (c \circ (b \circ a))(X) = (b \circ a)^*(c(X)) = (a^* \circ b^*)(c(X)) = ((c \circ b) \circ a)(X)
+  \]
+  となる．
+\end{prf}
+
+
+
+これらの理解のもと，$(b \circ a)(X)$ を $b(a(X))$ とも書く．
+とくに，$b(0)$ は $b(X)$ の定数項に等しい．
+
+\begin{exm}
+  $a(X) = \sum_{i\in\N} a_i X^i \in R[[X]]$ と正の整数 $n$ に対し，
+  $a(X^n) = \sum_{i\in\N} a_i X^{ni}$．
+\end{exm}
+
+\begin{exm}
+  $a(X) = \frac{X}{1 - X} = \sum_{i\in\N} X^{i+1} \in R[[X]]$ と $n \in \N$ に対し，
+  $(\underbrace{a \circ \cdots \circ a}_{n})(X) = \frac{X}{1 - n X} = \sum_{i\in\N} n^i X^{i+1}$
+  ($n$ 回合成を $a^n$ と書くと $n$ 乗と紛らわしいため避けている)．
+\end{exm}
+
+
+
+\section{合成逆}
+\section{微分と積分}
+\section{exp}
+\section{log}
+\section{アルゴリズム}
 
 
 \end{document}
