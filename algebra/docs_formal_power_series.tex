@@ -5,6 +5,7 @@
 \DeclareMathOperator{\Mod}{mod}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\Z}{\mathbb{Z}}
+\newcommand{\longto}{\longrightarrow}
 
 \theoremstyle{definition}
 \newtheorem*{Dfn}{定義}
@@ -131,7 +132,7 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
 形式的冪級数の合成は，$X$ の部分に「代入」していいものは定数項が $0$ でなければならないことに注意を要する．
 
 \begin{dfn}
-  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ および
+  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ と
   $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ に対し，
   $b(X)$ と $a(X)$ の\textbf{合成} $(b \circ a)(X)$ を
   \[
@@ -150,7 +151,7 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 言い換えると，
 \begin{prp}
   \label{prp:composition-mod}
-  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ および
+  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ と
   $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ に対し，
   \[
     (b \circ a)(X) \equiv \sum_{k\in\N,\,k<n} b_k a(X)^k \pmod{X^n}
@@ -180,7 +181,7 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 
 \begin{prp}
   \label{prp:composition-hom}
-  $a(X) \in X R[[X]]$ は環準同型 $a^*\colon R[[X]] \longrightarrow R[[X]]$; $b(X) \longmapsto (b \circ a)(X)$ を定め，
+  $a(X) \in X R[[X]]$ は $R$ 代数の準同型 $a^*\colon R[[X]] \longto R[[X]]$; $b(X) \longmapsto (b \circ a)(X)$ を定め，
   これは $a^*(X) = a(X)$ を満たす．
   すなわち，$b(X), c(X), d(X) \in R[[X]]$ に対し，
   \begin{enumerate}[(1)]
@@ -213,7 +214,7 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 \end{prf}
 
 \begin{prp}
-  $a(X), b(X) \in X R[[X]]$ $c(X) \in R[[X]]$ に対し，
+  $a(X), b(X) \in X R[[X]]$ と $c(X) \in R[[X]]$ に対し，
   $(c \circ (b \circ a))(X) = ((c \circ b) \circ a)(X)$．
 \end{prp}
 \begin{prf}
@@ -222,9 +223,9 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
     (c \circ (b \circ a))(X) = (b \circ a)(X) = ((c \circ b) \circ a)(X)
   \]
   である．
-  すなわち $(b \circ a)^*(X) = (a^* \circ b^*)(X)$ である ($(b \circ a)(X)$ は形式的冪級数の合成，$a^* \circ b^*$ は環準同型の合成であることに注意する)．
+  すなわち $(b \circ a)^*(X) = (a^* \circ b^*)(X)$ である ($(b \circ a)(X)$ は形式的冪級数の合成，$a^* \circ b^*$ は $R$ 代数の準同型の合成であることに注意する)．
 
-  $R[[X]]$ は $X$ で生成されるので，環準同型は $X$ の行き先で定まる．
+  $R[[X]]$ は $X$ で生成されるので，準同型は $X$ の行き先で定まる．
   よって $(b \circ a)^* = a^* \circ b^*$ であり，
   任意の $c(X)$ に対し
   \[
@@ -246,16 +247,86 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 \begin{exm}
   $a(X) = \frac{X}{1 - X} = \sum_{i\in\N} X^{i+1} \in R[[X]]$ と $n \in \N$ に対し，
   $(\underbrace{a \circ \cdots \circ a}_{n})(X) = \frac{X}{1 - n X} = \sum_{i\in\N} n^i X^{i+1}$
-  ($n$ 回合成を $a^n$ と書くと $n$ 乗と紛らわしいため避けている)．
+  ($n$ 回合成を $a^n$ と書くと $a^n(X)$ か $a(X)^n$ かかなり紛らわしいため避けている)．
 \end{exm}
 
 
+\section{形式微分}
+多項式の微分を拡張して形式微分が定義できる．
+記法についてはいくつかの流儀・用途がある．
 
-\section{合成逆}
-\section{微分と積分}
+\begin{dfn}
+  $R$ 加群の準同型 $D_X\colon R[[X]] \longto R[[X]]$ を，
+  $a(X) = \sum_{i\in\N} a_i X^i \in R[[X]]$ に対し，
+  \[
+    D_X a(X) = \sum_{i\in\N,\,i\ge 1} i a_i X^{i-1}
+  \]
+  として定める．
+  $D_X a(X)$ を $a'(X)$ とも書く．
+  $D_X$ を $X$ による \textbf{形式微分}と呼ぶ．
+\end{dfn}
+
+$D_X$ は $R$ 加群としては準同型である (線型性を満たす) が
+$R$ 代数の準同型ではない (積は保たない) ことに注意する．
+積に関しては，以下のいわゆる Leibniz rule を満たす．
+
+\begin{prp}
+  \label{prp:leibniz}
+  $a(X), b(X) \in R[[X]]$ に対し，$D_X(a(X) b(X)) = (D_X a(X)) b(X) + a(X) (D_X b(X))$．
+\end{prp}
+\begin{prf}
+  $D_X$ が $R$ 加群の準同型なので，$R$ 加群としての基底についてのみ示せばよい．
+  $a(X) = 1$ または $b(X) = 1$ のときは $D_X(1) = 0$ よりよい．
+  $a(X) = X^m$, $b(X) = X^n$ ($m, n \in \N$, $m, n > 0$) のとき，
+  \[
+    (D_X(X^m)) b(X^n) + X^m (D_X(X^n))
+    = m X^{m-1} \cdot X^m + X^m \cdot n X^{n-1}
+    = (m + n) X^{m+n-1}
+    = D_X(X^{m+n})
+  \]
+  より成り立つ．
+\end{prf}
+
+以下はいわゆる chain rule である．
+
+\begin{prp}
+  $a(X) \in X R[[X]]$ と $b(X) \in R[[X]]$ に対し，
+  $D_X (b \circ a)(X) = b'(a(X)) a'(X)$．
+\end{prp}
+\begin{prf}
+  $D_X$ が $R$ 加群の準同型であることと命題 \ref{prp:composition-hom} より，
+  $b(X) = X^n$ ($n \in \N$) のときについて示せばよい．
+  このとき命題 \ref{prp:composition-hom} より $(b \circ a)(X) = a(X)^n$ である．
+  $n = 0$ のときはよい．
+  $n \ge 1$ のとき，命題 \ref{prp:leibniz} を繰り返し用いて，
+  \[
+    D_X (b \circ a)(X)
+    = D_X(a(X)^n)
+    = n a(X)^{n-1} a'(X)
+    = b'(a(X)) a'(X)
+  \]
+  となりよい．
+\end{prf}
+
+\begin{exm}
+  $a(X) = \sum_{i\in\N} a_i X^i$ に対し，$D_X a(0) = a_1$ である．
+  より一般に，$n$ 階微分を考えると，$D_X^n a(0) = \underbrace{D_X \cdots D_X}_n a(0) = n! a_n$ である．
+\end{exm}
+
+\begin{exm}
+  $(1 - X)^{-1} = \sum_{i\in\N} X^i$ について，
+  $D_X (1 - X)^{-1} = \sum_{i\in\N,\,i\ge 1} i X^{i-1} = (1 - X)^{-2}$．
+\end{exm}
+
+
+\section{形式積分}
 \section{exp}
 \section{log}
+\section{合成逆}
+\section{多変数}
+\section{形式的 Laurent 級数}
 \section{アルゴリズム}
+\section{数え上げ}
 
 
 \end{document}
