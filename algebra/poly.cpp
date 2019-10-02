@@ -76,9 +76,9 @@ template <int M, int G, int K> struct Fft {
     assert(!(n & (n - 1)) && n <= 1 << K);
     for (int l = n; l >>= 1; ) {
       for (int i = 0; i < (n >> 1) / l; ++i) {
-        for (int j = (i << 1) * l; j < ((i << 1) + 1) * l; ++j) {
-          const Mint t = g[i] * x[j | l];
-          x[j | l] = x[j] - t;
+        for (int j = (i << 1) * l; j < (i << 1 | 1) * l; ++j) {
+          const Mint t = g[i] * x[j + l];
+          x[j + l] = x[j] - t;
           x[j] += t;
         }
       }

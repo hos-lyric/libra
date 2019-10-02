@@ -34,9 +34,9 @@ template <int M, int G, int K> struct Fft {
     assert(!(n & (n - 1)) && n <= 1 << K);
     for (int l = n; l >>= 1; ) {
       for (int i = 0; i < (n >> 1) / l; ++i) {
-        for (int j = (i << 1) * l; j < ((i << 1) + 1) * l; ++j) {
-          const int t = (static_cast<long long>(g[i]) * x[j | l]) % M;
-          if ((x[j | l] = x[j] - t) < 0) x[j | l] += M;
+        for (int j = (i << 1) * l; j < (i << 1 | 1) * l; ++j) {
+          const int t = (static_cast<long long>(g[i]) * x[j + l]) % M;
+          if ((x[j + l] = x[j] - t) < 0) x[j + l] += M;
           if ((x[j] += t) >= M) x[j] -= M;
         }
       }
