@@ -49,14 +49,16 @@ template<int M_> struct ModInt {
   friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
 };
 
-// G: principal 2^K-th root of unity
-template<int M, int K, int G> struct Fft {
+// M: prime, G: primitive root
+template <int M, int G, int K> struct Fft {
   using Mint = ModInt<M>;
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
   Mint g[1 << (K - 1)];
   constexpr Fft() : g() {
+    static_assert(K >= 2, "Fft: K >= 2 must hold");
+    static_assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
     g[0] = 1;
-    g[1 << (K - 2)] = G;
+    g[1 << (K - 2)] = Mint(G).pow((M - 1) >> K);
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
       g[l >> 1] = g[l] * g[l];
     }
@@ -70,10 +72,9 @@ template<int M, int K, int G> struct Fft {
   void fft(vector<Mint> &x) const {
     const int n = x.size();
     assert(!(n & (n - 1)) && n <= 1 << K);
-    for (int h = __builtin_ctz(n); h--; ) {
-      const int l = 1 << h;
-      for (int i = 0; i < n >> 1 >> h; ++i) {
-        for (int j = i << 1 << h; j < ((i << 1) + 1) << h; ++j) {
+    for (int l = n; l >>= 1; ) {
+      for (int i = 0; i < (n >> 1) / l; ++i) {
+        for (int j = (i << 1) * l; j < ((i << 1) + 1) * l; ++j) {
           const Mint t = g[i] * x[j | l];
           x[j | l] = x[j] - t;
           x[j] += t;
@@ -103,7 +104,7 @@ template<int M, int K, int G> struct Fft {
 };
 
 constexpr int MO = 998244353;
-const Fft<MO, 23, 31> FFT;
+const Fft<MO, 3, 20> FFT;
 using Mint = ModInt<MO>;
 
 // https://judge.yosupo.jp/problem/convolution_mod

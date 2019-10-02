@@ -5,13 +5,20 @@
 
 using std::vector;
 
-// G: principal 2^K-th root of unity
-template<int M, int K, int G> struct Fft {
+// M: prime, G: primitive root
+template <int M, int G, int K> struct Fft {
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
   int g[1 << (K - 1)];
   constexpr Fft() : g() {
+    static_assert(K >= 2, "Fft: K >= 2 must hold");
+    static_assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
     g[0] = 1;
-    g[1 << (K - 2)] = G;
+    long long g2 = G, gg = 1;
+    for (int e = (M - 1) >> K; e; e >>= 1) {
+      if (e & 1) gg = (gg * g2) % M;
+      g2 = (g2 * g2) % M;
+    }
+    g[1 << (K - 2)] = gg;
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
       g[l >> 1] = (static_cast<long long>(g[l]) * g[l]) % M;
     }
@@ -57,10 +64,10 @@ template<int M, int K, int G> struct Fft {
   }
 };
 
-const Fft<998244353, 23, 31> FFT;
+const Fft<998244353, 3, 20> FFT;
 
 void unittest() {
-  const Fft<97, 5, 28> FFT97;
+  constexpr Fft<97, 5, 5> FFT97;
   const vector<int> a{31, 41, 59, 26, 53};
   const vector<int> b{58, 9, 79, 32, 38, 46};
   const vector<int> c{52, 38, 32, 62, 80, 31, 29, 63, 9, 13};
