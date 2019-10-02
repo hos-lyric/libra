@@ -3,7 +3,9 @@
 
 \everymath{\displaystyle}
 \DeclareMathOperator{\Mod}{mod}
+\DeclareMathOperator{\ord}{ord}
 \newcommand{\N}{\mathbb{N}}
+\newcommand{\Q}{\mathbb{Q}}
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\longto}{\longrightarrow}
 
@@ -89,6 +91,19 @@ $n \in \N$ に対し，$\Mod X^n$ での合同は，$n$ 次未満の係数が等
   任意の $i \in \N$ に対し，$n = i + 1$ ととって $a(X) \equiv b(X) \pmod{X^{i+1}}$ なので，$a_i = b_i$ となる．
 \end{prf}
 
+$S = \{ X^n \mid n \in \N \}$ は $R[[X]]$ の積閉集合であるから，局所化 $R((X)) = S^{-1} R[[X]]$ が考えられる．
+$R((X))$ の元は，形式的に $a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i$ ($N \in \Z$) と表せる．
+$R((X))$ を \textbf{$R$ 係数形式的 Laurent 級数環}という．
+$S$ は零因子を含まないので自然な $R[[X]] \longto R((X))$ は単射であり，$R[[X]] \subseteq R((X))$ とみなせる．
+
+$a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i \in R((X))$ ($N \in \Z$) に対し，$a_i \ne 0$ なる最小の $i \in \Z$ を $\ord(a(X))$ で表す．
+ただし $\ord(0) = \infty$ とする．
+$\ord(a(X))$ 次を\textbf{最低次}と呼ぶ．
+
+$R$ が整域ならば，$R[[X]]$ や $R((X))$ も整域であり (最低次の係数に注目する)，
+$\ord\colon R((X)) \longto \Z \cup \{\infty\}$ は付値を与える．
+
+
 \section{乗法の逆元}
 環の単元とは，乗法の逆元をもつ元のこと．可逆元．$1$ の約数．
 
@@ -125,6 +140,14 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
 
 \begin{exm}
   正の整数 $n$ に対し，$(1 - X)^{-n} = \sum_{i\in\N} \binom{i+n-1}{n-1} X^i$．
+\end{exm}
+
+$R$ が体のとき，$R((X))$ は体である．
+実際，$a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i \in R((X)) \setminus \{0\}$ ($a_N \ne 0$) の逆元は
+$X^{-N} \left(\sum_{i\in\N} a_{i+N} X^i\right)^{-1}$ で与えられる．
+
+\begin{exm}
+  $\Q((X))$ において，$\frac{X}{X^2 + X^3} = X^{-1} - 1 + X - X^2 + X^3 - \cdots$．
 \end{exm}
 
 
@@ -195,16 +218,22 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 \begin{prf}
   \begin{enumerate}[(1)]
     \item 合成の定義から明らか．
-    \item $a(X) = \sum_{i\in\N} a_i X^i$, $b(X) = \sum_{i\in\N} b_i X^i$, $c(X) = \sum_{i\in\N} c_i X^i$ とする．
+    \item $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i$ および $b(X) = \sum_{i\in\N} b_i X^i$, $c(X) = \sum_{i\in\N} c_i X^i$ とする．
         $n \in \N$ を任意にとる．
         命題 \ref{prp:composition-mod} より，
         \begin{align*}
-          (a \circ d)(X) (b \circ d)(X)
-          &\equiv \left( \sum_{i\in\N,\,i<n} a_i d(X)^i \right) \left( \sum_{j\in\N,\,j<n} b_j d(X)^j \right) \\
-          &= \sum_{k\in\N,k<2n} \left( \sum_{i,j\in\N,\,i,j<n,\,i+j=k} a_i b_j \right) d(X)^k \\
-          &\equiv \sum_{k\in\N,k<n} \left( \sum_{i,j\in\N,\,i+j=k} a_i b_j \right) d(X)^k \\
-          &= \sum_{k\in\N,k<n} c_k d(X)^k \\
-          &\equiv (c \circ d)(X) \pmod{X^n}
+          % (a \circ d)(X) (b \circ d)(X)
+          % &\equiv \left( \sum_{i\in\N,\,i<n} a_i d(X)^i \right) \left( \sum_{j\in\N,\,j<n} b_j d(X)^j \right) \\
+          % &= \sum_{k\in\N,k<2n} \left( \sum_{i,j\in\N,\,i,j<n,\,i+j=k} a_i b_j \right) d(X)^k \\
+          % &\equiv \sum_{k\in\N,k<n} \left( \sum_{i,j\in\N,\,i+j=k} a_i b_j \right) d(X)^k \\
+          % &= \sum_{k\in\N,k<n} c_k d(X)^k \\
+          % &\equiv (c \circ d)(X) \pmod{X^n}
+          (b \circ a)(X) (c \circ a)(X)
+          &\equiv \left( \sum_{i\in\N,\,i<n} b_i a(X)^i \right) \left( \sum_{j\in\N,\,j<n} c_j a(X)^j \right) \\
+          &= \sum_{k\in\N,k<2n} \left( \sum_{i,j\in\N,\,i,j<n,\,i+j=k} b_i c_j \right) a(X)^k \\
+          &\equiv \sum_{k\in\N,k<n} \left( \sum_{i,j\in\N,\,i+j=k} b_i c_j \right) a(X)^k \\
+          &= \sum_{k\in\N,k<n} d_k a(X)^k \\
+          &\equiv (d \circ a)(X) \pmod{X^n}
         \end{align*}
         である．
         よって，命題 \ref{prp:mod-limit} より $(a \circ d)(X) (b \circ d)(X) = (c \circ d)(X)$ が従う．
@@ -234,8 +263,6 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
   となる．
 \end{prf}
 
-
-
 これらの理解のもと，$(b \circ a)(X)$ を $b(a(X))$ とも書く．
 とくに，$b(0)$ は $b(X)$ の定数項に等しい．
 
@@ -256,14 +283,14 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 記法についてはいくつかの流儀・用途がある．
 
 \begin{dfn}
-  $R$ 加群の準同型 $D_X\colon R[[X]] \longto R[[X]]$ を，
+  $R$ 加群の準同型 $D\colon R[[X]] \longto R[[X]]$ を，
   $a(X) = \sum_{i\in\N} a_i X^i \in R[[X]]$ に対し，
   \[
-    D_X a(X) = \sum_{i\in\N,\,i\ge 1} i a_i X^{i-1}
+    D(a(X)) = \sum_{i\in\N,\,i\ge 1} i a_i X^{i-1}
   \]
   として定める．
-  $D_X a(X)$ を $a'(X)$ とも書く．
-  $D_X$ を $X$ による \textbf{形式微分}と呼ぶ．
+  $D(a(X))$ を $a'(X)$ とも書く．
+  $D$ を ($X$ による) \textbf{形式微分}と呼ぶ．
 \end{dfn}
 
 $D_X$ は $R$ 加群としては準同型である (線型性を満たす) が
@@ -272,36 +299,36 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
 
 \begin{prp}
   \label{prp:leibniz}
-  $a(X), b(X) \in R[[X]]$ に対し，$D_X(a(X) b(X)) = (D_X a(X)) b(X) + a(X) (D_X b(X))$．
+  $a(X), b(X) \in R[[X]]$ に対し，$D(a(X) b(X)) = D(a(X)) b(X) + a(X) D(b(X))$．
 \end{prp}
 \begin{prf}
-  $D_X$ が $R$ 加群の準同型なので，$R$ 加群としての基底についてのみ示せばよい．
-  $a(X) = 1$ または $b(X) = 1$ のときは $D_X(1) = 0$ よりよい．
+  $D$ が $R$ 加群の準同型なので，$R$ 加群としての基底についてのみ示せばよい．
+  $a(X) = 1$ または $b(X) = 1$ のときは $D(1) = 0$ よりよい．
   $a(X) = X^m$, $b(X) = X^n$ ($m, n \in \N$, $m, n > 0$) のとき，
   \[
-    (D_X(X^m)) b(X^n) + X^m (D_X(X^n))
+    D(X^m) X^n + X^m D(X^n)
     = m X^{m-1} \cdot X^m + X^m \cdot n X^{n-1}
     = (m + n) X^{m+n-1}
-    = D_X(X^{m+n})
+    = D(X^{m+n})
   \]
   より成り立つ．
 \end{prf}
 
-以下はいわゆる chain rule である．
+合成に関しては，以下のいわゆる chain rule を満たす．
 
 \begin{prp}
   $a(X) \in X R[[X]]$ と $b(X) \in R[[X]]$ に対し，
-  $D_X (b \circ a)(X) = b'(a(X)) a'(X)$．
+  $D((b \circ a)(X)) = b'(a(X)) a'(X)$．
 \end{prp}
 \begin{prf}
-  $D_X$ が $R$ 加群の準同型であることと命題 \ref{prp:composition-hom} より，
+  $D$ が $R$ 加群の準同型であることと命題 \ref{prp:composition-hom} より，
   $b(X) = X^n$ ($n \in \N$) のときについて示せばよい．
   このとき命題 \ref{prp:composition-hom} より $(b \circ a)(X) = a(X)^n$ である．
   $n = 0$ のときはよい．
   $n \ge 1$ のとき，命題 \ref{prp:leibniz} を繰り返し用いて，
   \[
-    D_X (b \circ a)(X)
-    = D_X(a(X)^n)
+    D((b \circ a)(X))
+    = D(a(X)^n)
     = n a(X)^{n-1} a'(X)
     = b'(a(X)) a'(X)
   \]
@@ -309,19 +336,21 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
 \end{prf}
 
 \begin{exm}
-  $a(X) = \sum_{i\in\N} a_i X^i$ に対し，$D_X a(0) = a_1$ である．
-  より一般に，$n$ 階微分を考えると，$D_X^n a(0) = \underbrace{D_X \cdots D_X}_n a(0) = n! a_n$ である．
+  $a(X) = \sum_{i\in\N} a_i X^i$ に対し，$a'(0) = a_1$ である．
+  より一般に，$n$ 階微分を考えると，
+  $a^{(n)}(X) = \underbrace{D(\cdots D}_n (a(X)) \cdots)$ として $a^{(n)}(0) = n! a_n$ である．
 \end{exm}
 
 \begin{exm}
   $(1 - X)^{-1} = \sum_{i\in\N} X^i$ について，
-  $D_X (1 - X)^{-1} = \sum_{i\in\N,\,i\ge 1} i X^{i-1} = (1 - X)^{-2}$．
+  $D((1 - X)^{-1}) = \sum_{i\in\N,\,i\ge 1} i X^{i-1} = (1 - X)^{-2}$．
 \end{exm}
 
 
 \section{exp}
+$R$ を標数 $0$ の環とする．
+
 \begin{dfn}
-  $R$ を標数 $0$ の環とする．
   $\exp(X) \in R[[X]]$ を，
   \[
     \exp(X) = \sum_{i\in\N} \frac{1}{i!} X^i
@@ -329,13 +358,34 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
   で定める．
 \end{dfn}
 
+定義から，$D(\exp(X)) = \exp(X)$ がわかる．
+
+$\exp$ を左から合成する写像 $\exp\colon X R[[X]] \longto 1 + X R[[X]]; a(X) \longmapsto \exp(a(X))$ は指数法則を満たす．
+
+\begin{prp}
+  $a(X), b(X) \in X R[[X]]$ に対し，$\exp(a(X) + b(X)) = \exp(a(X)) \exp(b(X))$．
+\end{prp}
+\begin{prf}
+  $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i$, $b(X) = \sum_{i\in\N,\,i\ge 1} b_i X^i$ とする．
+  $n \in \N$ を任意にとる．
+  命題 \ref{prp:composition-mod} より，
+  \begin{align*}
+    \exp(a(X) + b(X))
+    &\equiv \sum_{k\in\N,k<n} \frac{1}{k!} (a(X) + b(X))^k \\
+    &= \sum_{k\in\N,k<n} \sum_{i,j\in\N,\,i+j=k} \frac{1}{i! j!} a(X)^i b(X)^j \\
+    &\equiv \left(\sum_{i\in\N,i<n} \frac{1}{i!} a(X)^i\right) \left(\sum_{j\in\N,j<n} \frac{1}{j!} b(X)^j\right) \\
+    &\equiv \exp(a(X)) \exp(b(X))
+    \pmod{X^n}
+  \end{align*}
+  となる ($2$ つ目の $\equiv$ は $a(X)^i \equiv 0 \pmod{X^i}$, $b(X)^j \equiv 0 \pmod{X^j}$ を用いた)．
+  よって命題 \ref{prp:mod-limit} より $\exp(a(X) + b(X)) = \exp(a(X)) \exp(b(X))$ が従う．
+\end{prf}
 
 
 \section{形式積分}
 \section{log}
 \section{合成逆}
 \section{多変数}
-\section{形式的 Laurent 級数}
 \section{アルゴリズム}
 \section{数え上げ}
 
