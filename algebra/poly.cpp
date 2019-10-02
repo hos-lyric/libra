@@ -4,8 +4,8 @@
 #include <iostream>
 #include <vector>
 
-using std::min;
 using std::max;
+using std::min;
 using std::vector;
 
 template <int M_> struct ModInt {
@@ -51,14 +51,16 @@ template <int M_> struct ModInt {
   friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
 };
 
-// G: principal 2^K-th root of unity
-template <int M, int K, int G> struct Fft {
+// M: prime, G: primitive root
+template <int M, int G, int K> struct Fft {
   using Mint = ModInt<M>;
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
   Mint g[1 << (K - 1)];
   constexpr Fft() : g() {
+    static_assert(K >= 2, "Fft: K >= 2 must hold");
+    static_assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
     g[0] = 1;
-    g[1 << (K - 2)] = G;
+    g[1 << (K - 2)] = Mint(G).pow((M - 1) >> K);
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
       g[l >> 1] = g[l] * g[l];
     }
@@ -72,10 +74,9 @@ template <int M, int K, int G> struct Fft {
   void fft(vector<Mint> &x) const {
     const int n = x.size();
     assert(!(n & (n - 1)) && n <= 1 << K);
-    for (int h = __builtin_ctz(n); h--; ) {
-      const int l = 1 << h;
-      for (int i = 0; i < n >> 1 >> h; ++i) {
-        for (int j = i << 1 << h; j < ((i << 1) + 1) << h; ++j) {
+    for (int l = n; l >>= 1; ) {
+      for (int i = 0; i < (n >> 1) / l; ++i) {
+        for (int j = (i << 1) * l; j < ((i << 1) + 1) * l; ++j) {
           const Mint t = g[i] * x[j | l];
           x[j | l] = x[j] - t;
           x[j] += t;
@@ -90,10 +91,10 @@ template <int M, int K, int G> struct Fft {
 };
 
 constexpr int MO = 998244353;
-const Fft<MO, 23, 31> FFT;
+constexpr int LIM = (1 << 20) + 1;
+const Fft<MO, 3, 20> FFT;
 using Mint = ModInt<MO>;
 
-constexpr int LIM = 1 << 21;
 Mint inv[LIM];
 struct ModIntPreparator {
   ModIntPreparator() {
@@ -129,8 +130,9 @@ struct Poly : public vector<Mint> {
     return *this;
   }
   Poly &operator*=(const Poly &f) {
+    const int nt = size(), nf = f.size();
     int nn;
-    for (nn = 1; nn < size() + f.size() - 1; nn <<= 1) {}
+    for (nn = 1; nn < nt + nf - 1; nn <<= 1) {}
     Poly ff = f;
     resize(nn);
     ff.resize(nn);
@@ -139,7 +141,7 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < nn; ++i) (*this)[i] *= ff[i] * inv[nn];
     std::reverse(begin() + 1, end());
     FFT.fft(*this);
-    resize(size() + f.size() - 1);
+    resize(nt + nf - 1);
     return *this;
   }
   Poly &operator*=(const Mint &a) {
@@ -153,15 +155,16 @@ struct Poly : public vector<Mint> {
   friend Poly operator*(const Mint &a, const Poly &f) { return f * a; }
 
   Poly square(int n) const {
+    const int nt = size();
     int nn;
-    for (nn = 1; nn < size() + size() - 1; nn <<= 1) {}
+    for (nn = 1; nn < nt + nt - 1; nn <<= 1) {}
     Poly f = *this;
     f.resize(nn);
     FFT.fft(f);
     for (int i = 0; i < nn; ++i) f[i] *= f[i] * inv[nn];
     std::reverse(f.begin() + 1, f.end());
     FFT.fft(f);
-    f.resize(nn);
+    f.resize(nt + nt - 1);
     return f;
   }
 
@@ -185,14 +188,37 @@ struct Poly : public vector<Mint> {
       g = g + g - (f * g.square(m)).take(m);
       Poly h = d.take(m - 1);
       h += (g * (f.differential() - f * h)).take(2 * m - 1);
-      f += (f * (*this - h.integral())).take(2 * m);
+      f += (f * (take(2 * m) - h.integral())).take(2 * m);
     }
     return f.take(n);
   }
 };
 
+// !!!Modify LIM and FFT!!!
+
+// https://judge.yosupo.jp/problem/convolution_mod
+void yosupo_convolution_mod() {
+  int L, M;
+  for (; ~scanf("%d%d", &L, &M); ) {
+    Poly A(L), B(M);
+    for (int i = 0; i < L; ++i) {
+      scanf("%d", &A[i].x);
+    }
+    for (int i = 0; i < M; ++i) {
+      scanf("%d", &B[i].x);
+    }
+
+    const Poly ans = A * B;
+    for (int i = 0; i < ans.size(); ++i) {
+      if (i > 0) printf(" ");
+      printf("%d", ans[i].x);
+    }
+    puts("");
+  }
+}
+
 // https://judge.yosupo.jp/problem/exp_of_formal_power_series
-int main() {
+void yosupo_exp_of_formal_power_series() {
   int N;
   for (; ~scanf("%d", &N); ) {
     Poly A(N);
@@ -200,12 +226,17 @@ int main() {
       scanf("%d", &A[i].x);
     }
 
-    const Poly res = A.exp(N);
-    for (int i = 0; i < res.size(); ++i) {
+    const Poly ans = A.exp(N);
+    for (int i = 0; i < ans.size(); ++i) {
       if (i > 0) printf(" ");
-      printf("%d", res[i].x);
+      printf("%d", ans[i].x);
     }
     puts("");
   }
+}
+
+int main() {
+  // yosupo_convolution_mod();
+  yosupo_exp_of_formal_power_series();
   return 0;
 }
