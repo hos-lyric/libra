@@ -32,10 +32,9 @@ template <int M, int G, int K> struct Fft {
   void fft(vector<int> &x) const {
     const int n = x.size();
     assert(!(n & (n - 1)) && n <= 1 << K);
-    for (int h = __builtin_ctz(n); h--; ) {
-      const int l = 1 << h;
-      for (int i = 0; i < n >> 1 >> h; ++i) {
-        for (int j = i << 1 << h; j < ((i << 1) + 1) << h; ++j) {
+    for (int l = n; l >>= 1; ) {
+      for (int i = 0; i < (n >> 1) / l; ++i) {
+        for (int j = (i << 1) * l; j < ((i << 1) + 1) * l; ++j) {
           const int t = (static_cast<long long>(g[i]) * x[j | l]) % M;
           if ((x[j | l] = x[j] - t) < 0) x[j | l] += M;
           if ((x[j] += t) >= M) x[j] -= M;
@@ -67,7 +66,7 @@ template <int M, int G, int K> struct Fft {
 const Fft<998244353, 3, 20> FFT;
 
 void unittest() {
-  constexpr Fft<97, 5, 5> FFT97;
+  constexpr Fft<97, 92, 5> FFT97;
   const vector<int> a{31, 41, 59, 26, 53};
   const vector<int> b{58, 9, 79, 32, 38, 46};
   const vector<int> c{52, 38, 32, 62, 80, 31, 29, 63, 9, 13};
