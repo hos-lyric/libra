@@ -8,6 +8,7 @@
 \newcommand{\Q}{\mathbb{Q}}
 \newcommand{\Z}{\mathbb{Z}}
 \newcommand{\longto}{\longrightarrow}
+\newcommand{\middlemid}{\mathrel{}\middle|\mathrel{}}
 
 \theoremstyle{definition}
 \newtheorem*{Dfn}{定義}
@@ -45,7 +46,7 @@ $0$ 次の係数を\textbf{定数項}と呼ぶ．
 $\sum_{i\in\N} a_i X^i, \sum_{i\in\N} b_iX^i \in R[[X]]$ に対し，加法と乗法を
 \begin{align*}
   \sum_{i\in\N} a_i X^i + \sum_{i\in\N} b_i X^i &:= \sum_{i\in\N} (a_i + b_i) X^i, \\
-  \left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) &:= \sum_{i\in\N} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) X^k
+  \left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) &:= \sum_{k\in\N} \left(\sum_{i,j\in\N,\,i+j=k} a_i b_j\right) X^k
 \end{align*}
 で定めると，可換環になることを示す．
 加法の単位元は $0 = 0 + 0 X + 0 X^2 + \cdots$，
@@ -92,12 +93,27 @@ $n \in \N$ に対し，$\Mod X^n$ での合同は，$n$ 次未満の係数が等
   任意の $i \in \N$ に対し，$n = i + 1$ ととって $a(X) \equiv b(X) \pmod{X^{i+1}}$ なので，$a_i = b_i$ となる．
 \end{prf}
 
-$S = \{ X^n \mid n \in \N \}$ は $R[[X]]$ の積閉集合であるから，局所化 $R((X)) = S^{-1} R[[X]]$ が考えられる．
-$R((X))$ の元は，形式的に $a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i$ ($N \in \Z$) と表せる．
-$R((X))$ を \textbf{$R$ 係数形式的 Laurent 級数環}という．
+
+\section{形式的 Laurent 級数環}
+$S = \{ X^n \mid n \in \N \}$ は $R[[X]]$ の積閉集合であるから，局所化 $S^{-1} R[[X]]$ が考えられる．
+これを $R((X))$ と書き，\textbf{$R$ 係数形式的 Laurent 級数環}という．
 $S$ は零因子を含まないので自然な $R[[X]] \longto R((X))$ は単射であり，$R[[X]] \subseteq R((X))$ とみなせる．
 
-$a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i \in R((X))$ ($N \in \Z$) に対し，$a_i \ne 0$ なる最小の $i \in \Z$ を $\ord(a(X))$ で表す．
+局所化の構成を確認すれば，$R((X))$ の元は形式的に
+$\frac{\sum_{i\in\N} a_i X^i}{X^n} = \sum_{i\in\N} a_i X^{i-n}$ と書いてよく，
+\[
+  R((X)) = \left\{ \sum_{i\in\Z} a_i X^i \middlemid \text{$a_i \ne 0$ なる $i \in \Z_{\le 0}$ は有限個} \right\}
+  = \left\{ \sum_{i\in\Z,\,i\ge m} a_i X^i \middlemid m \in \Z \right\}
+\]
+である\footnote{以降，$\sum_{i\in\Z} a_i X^i \in R((X))$ と書いたら $a_i \ne 0$ なる $i \in \Z_{\le 0}$ は有限個であることも主張する．}．
+環の演算は，$\sum_{i\in\Z,\,i\ge m} a_i X^i, \sum_{i\in\Z,\,i\ge n} b_i X^i \in R((X))$ に対し，
+\begin{align*}
+  \sum_{i\in\Z,\,i\ge m} a_i X^i + \sum_{i\in\Z,\,i\ge n} b_i X^i &= \sum_{i\in\Z,\,i\ge\min\{m,n\}} (a_i + b_i) X^i, \\
+  \left(\sum_{i\in\Z,\,i\ge m} a_i X^i\right) \left(\sum_{i\in\Z,\,i\ge n} b_i X^i\right) &= \sum_{k\in\Z,\,k\ge m+n} \left(\sum_{i,j\in\Z,\,i\ge m,\,j\ge n,\,i+j=k} a_i b_j\right) X^k
+\end{align*}
+となる ($1$ 式目では $i < m$ のとき $a_i = 0$，$i < n$ のとき $b_i = 0$ とする．$2$ 式目では内側の $\sum$ が有限和となる)．
+
+$a(X) = \sum_{i\in\Z} a_i X^i \in R((X))$ に対し，$a_i \ne 0$ なる最小の $i \in \Z$ を $\ord(a(X))$ で表す．
 ただし $\ord(0) = \infty$ とする．
 $\ord(a(X))$ 次を\textbf{最低次}と呼ぶ．
 
@@ -106,6 +122,7 @@ $\ord\colon R((X)) \longto \Z \cup \{\infty\}$ は付値を与える．
 
 
 \section{乗法の逆元}
+% TODO: R((X)) について先にやる？
 環の単元とは，乗法の逆元をもつ元のこと．可逆元．$1$ の約数．
 
 \begin{prp}
@@ -132,10 +149,16 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
   $r \in R$ に対し，$(1 - r X)^{-1} = \sum_{i\in\N} r^i X^i$．
 \end{exm}
 
+$a(X) = \sum_{i\in\Z} a_i X^i \in R((X)) \setminus \{0\}$ が単元であるための必要十分条件は，
+最低次の係数が可逆であることである．
+$m = \ord(a(X))$ として，逆元は $a(X)^{-1} = X^{-m} \left(\sum_{i\in\Z} a_{i} X^{i-m}\right)^{-1}$ で与えられる．
+
+とくに，$R$ が体ならば，$R((X))$ も体である．
+
 ここまでで定めた加減乗除については，一般の $R$ 代数で成り立つことを用いて普通の計算ができるし，普通の表記をする．
 
 \begin{exm}
-  $a(X) \in R[[X]]$ に対して，$a(X)^2$ とは $a(X) a(X)$ のことであり，
+  $a(X) \in R((X))$ に対して，$a(X)^2$ とは $a(X) a(X)$ のことであり，
   $a(X)^2$ の逆元は $(a(X)^{-1})^2$ であり $a(X)^{-2}$ と書く．
 \end{exm}
 
@@ -143,17 +166,13 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
   正の整数 $n$ に対し，$(1 - X)^{-n} = \sum_{i\in\N} \binom{i+n-1}{n-1} X^i$．
 \end{exm}
 
-$R$ が体のとき，$R((X))$ は体である．
-実際，$a(X) = \sum_{i\in\Z,\,i\ge N} a_i X^i \in R((X)) \setminus \{0\}$ ($a_N \ne 0$) の逆元は
-$X^{-N} \left(\sum_{i\in\N} a_{i+N} X^i\right)^{-1}$ で与えられる．
-
 \begin{exm}
   $\Q((X))$ において，$\frac{X}{X^2 + X^3} = X^{-1} - 1 + X - X^2 + X^3 - \cdots$．
 \end{exm}
 
 
 \section{合成}
-形式的冪級数の合成は，$X$ の部分に「代入」していいものは定数項が $0$ でなければならないことに注意を要する．
+形式的冪級数の合成は，$X$ の部分に「代入」していいものは定数項が $0$ でなければならない (すなわち，イデアル $X R[[X]]$ の元である) ことに注意を要する．
 
 \begin{dfn}
   $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i \in X R[[X]]$ と
@@ -284,15 +303,18 @@ $(b \circ a)(X)$ の $i$ 次の係数は，$b_k a(X)^k$ の $i$ 次の係数を 
 記法についてはいくつかの流儀・用途がある．
 
 \begin{dfn}
-  $R$ 加群の準同型 $D\colon R[[X]] \longto R[[X]]$ を，
-  $a(X) = \sum_{i\in\N} a_i X^i \in R[[X]]$ に対し，
+  $R$ 加群の準同型 $D\colon R((X)) \longto R((X))$ を，
+  $a(X) = \sum_{i\in\Z} a_i X^i \in R((X))$ に対し，
   \[
-    D(a(X)) = \sum_{i\in\N,\,i\ge 1} i a_i X^{i-1}
+    D(a(X)) = \sum_{i\in\Z} i a_i X^{i-1}
   \]
   として定める．
   $D(a(X))$ を $a'(X)$ とも書く．
   $D$ を ($X$ による) \textbf{形式微分}と呼ぶ．
 \end{dfn}
+
+$0 a_0 X^{-1} = 0$ なので，$D$ を $R[[X]]$ に制限すると
+$R$ 加群の準同型 $D\colon R[[X]] \longto R[[X]]$ が得られる．
 
 $D$ は $R$ 加群としては準同型である (線型性を満たす) が
 $R$ 代数の準同型ではない (積は保たない) ことに注意する．
@@ -300,18 +322,19 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
 
 \begin{prp}
   \label{prp:leibniz}
-  $a(X), b(X) \in R[[X]]$ に対し，$D(a(X) b(X)) = D(a(X)) b(X) + a(X) D(b(X))$．
+  $a(X), b(X) \in R((X))$ に対し，$D(a(X) b(X)) = D(a(X)) b(X) + a(X) D(b(X))$．
 \end{prp}
 \begin{prf}
-  $D$ が $R$ 加群の準同型なので，$R$ 加群としての基底についてのみ示せばよい．
-  $a(X) = 1$ または $b(X) = 1$ のときは $D(1) = 0$ よりよい．
-  $a(X) = X^m$, $b(X) = X^n$ ($m, n \in \N$, $m, n > 0$) のとき，
-  \[
-    D(X^m) X^n + X^m D(X^n)
-    = m X^{m-1} \cdot X^m + X^m \cdot n X^{n-1}
-    = (m + n) X^{m+n-1}
-    = D(X^{m+n})
-  \]
+  $a(X) = \sum_{i\in\Z,\,i\ge m} a_i X^i$, $b(X) = \sum_{i\in\Z,\,i\ge n} b_i X^i$ ($m, n \in \Z$) とすると，
+  \begin{align*}
+    D(a(X) b(X))
+    &= D\left(\sum_{k\in\Z,\,k\ge m+n} \left(\sum_{i,j\in\Z,\,i\ge m,\,j\ge n,\,i+j=k} a_i b_j\right) X^k\right) \\
+    &= \sum_{k\in\Z,\,k\ge m+n} k \left(\sum_{i,j\in\Z,\,i\ge m,\,j\ge n,\,i+j=k} a_i b_j\right) X^{k-1} \\
+    &= \sum_{k\in\Z,\,k\ge m+n} \left(\sum_{i,j\in\Z,\,i\ge m,\,j\ge n,\,i+j=k} (i a_i b_j + j a_i b_j)\right) X^{k-1} \\
+    &= \left(\sum_{i\in\Z,\,i\ge m} i a_i X^{i-1}\right) \left(\sum_{j\in\Z,\,j\ge n} b_j X^j\right)
+        + \left(\sum_{i\in\Z,\,i\ge m} a_i X^i\right) \left(\sum_{j\in\Z,\,j\ge n} j b_j X^{j-1}\right) \\
+    &= D(a(X)) b(X) + a(X) D(b(X))
+  \end{align*}
   より成り立つ．
 \end{prf}
 
@@ -337,8 +360,8 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
 \end{prf}
 
 \begin{exm}
-  $a(X) = \sum_{i\in\N} a_i X^i$ に対し，$a'(0) = a_1$ である．
-  より一般に，$n$ 階微分を考えると，
+  $a(X) = \sum_{i\in\Z} a_i X^i \in R((X))$ に対し，$a'(0) = a_1$ である．
+  より一般に，$n$ 階微分 ($n \in \Z$) を考えると，
   $a^{(n)}(X) = \underbrace{D(\cdots D}_n (a(X)) \cdots)$ として $a^{(n)}(0) = n! a_n$ である．
 \end{exm}
 
