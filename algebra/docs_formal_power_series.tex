@@ -20,7 +20,7 @@
 \newenvironment{prp}{\vspace{1ex}\begin{screen}\begin{Prp}}{\end{Prp}\end{screen}}
 \newenvironment{prf}{\begin{leftbar}\begin{proof}}{\end{proof}\end{leftbar}}
 
-\title{メモ (形式的冪級数)}
+\title{メモ (形式的冪級数) (書きかけ)}
 \author{hos}
 
 \begin{document}
@@ -318,7 +318,7 @@ $R$ 加群の準同型 $D\colon R[[X]] \longto R[[X]]$ が得られる．
 
 $D$ は $R$ 加群としては準同型である (線型性を満たす) が
 $R$ 代数の準同型ではない (積は保たない) ことに注意する．
-積に関しては，以下のいわゆる Leibniz rule を満たす．
+積に関しては，以下のいわゆる Leibniz rule を満たす：
 
 \begin{prp}
   \label{prp:leibniz}
@@ -338,25 +338,28 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
   より成り立つ．
 \end{prf}
 
-合成に関しては，以下のいわゆる chain rule を満たす\footnote{$b'(a(X))$ が $D(b(X))$ と $a(X)$ の合成であることに注意 (記法があまり綺麗でない)．}．
+合成に関しては，以下のいわゆる chain rule を満たす\footnote{$b'(a(X))$ が $D(b(X))$ と $a(X)$ の合成であることに注意 (記法のせいで $D$ で綺麗に書けない)．}：
 
 \begin{prp}
   $a(X) \in X R[[X]]$ と $b(X) \in R[[X]]$ に対し，
   $D((b \circ a)(X)) = b'(a(X)) a'(X)$．
 \end{prp}
 \begin{prf}
-  $D$ が $R$ 加群の準同型であることと命題 \ref{prp:composition-hom} より，
-  $b(X) = X^n$ ($n \in \N$) のときについて示せばよい．
-  このとき命題 \ref{prp:composition-hom} より $(b \circ a)(X) = a(X)^n$ である．
-  $n = 0$ のときはよい．
-  $n \ge 1$ のとき，命題 \ref{prp:leibniz} を $n - 1$ 回用いて，
-  \[
+  $k \in \N$ に対し，$D(a(X)^k) = k a(X)^{k-1} a'(X)$ である．
+  これは，$k = 0$ のときはよく，$k \ge 1$ のときは命題 \ref{prp:leibniz} を $k - 1$ 回用いる．
+
+  $n \in \N$ を任意にとる．
+  命題 \ref{prp:composition-mod} より，←ちょっとまった！ TODO
+  \begin{align*}
     D((b \circ a)(X))
-    = D(a(X)^n)
-    = n a(X)^{n-1} a'(X)
-    = b'(a(X)) a'(X)
-  \]
-  となりよい．
+    &\equiv D\left(\sum_{k\in\N,\,k<n} b_k a(X)^k\right) \\
+    &= \sum_{k\in\N,\,k<n} b_k D(a(X)^k) \\
+    &= \sum_{k\in\N,\,k<n} b_k \cdot k a(X)^{k-1} a'(X) \\
+    &= \left(\sum_{k\in\N,\,k<n} k b_k a(X)^{k-1}\right) a'(X)
+    \pmod{X^n}
+  \end{align*}
+  となる．
+  よって命題 \ref{prp:mod-limit} より $D((b \circ a)(X)) = b'(a(X)) a'(X)$ が従う．
 \end{prf}
 
 \begin{exm}
@@ -369,6 +372,9 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
   $(1 - X)^{-1} = \sum_{i\in\N} X^i$ について，
   $D((1 - X)^{-1}) = \sum_{i\in\N,\,i\ge 1} i X^{i-1} = (1 - X)^{-2}$．
 \end{exm}
+
+
+\section{形式積分}
 
 
 \section{形式留数}
@@ -387,7 +393,7 @@ TODO
 
 定義から，$D(\exp(X)) = \exp(X)$ がわかる．
 
-$\exp$ を左から合成する写像 $\exp\colon X R[[X]] \longto 1 + X R[[X]]; a(X) \longmapsto \exp(a(X))$ は指数法則を満たす．
+$\exp$ を左から合成する写像 $\exp\colon X R[[X]] \longto 1 + X R[[X]]; a(X) \longmapsto \exp(a(X))$ は指数法則を満たす：
 
 \begin{prp}
   $a(X), b(X) \in X R[[X]]$ に対し，$\exp(a(X) + b(X)) = \exp(a(X)) \exp(b(X))$．
