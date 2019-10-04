@@ -3,6 +3,7 @@
 
 \everymath{\displaystyle}
 \DeclareMathOperator{\Mod}{mod}
+\DeclareMathOperator{\Res}{Res}
 \DeclareMathOperator{\ord}{ord}
 \newcommand{\N}{\mathbb{N}}
 \newcommand{\Q}{\mathbb{Q}}
@@ -349,7 +350,8 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
   これは，$k = 0$ のときはよく，$k \ge 1$ のときは命題 \ref{prp:leibniz} を $k - 1$ 回用いる．
 
   $n \in \N$ を任意にとる．
-  命題 \ref{prp:composition-mod} より，←ちょっとまった！ TODO
+  命題 \ref{prp:composition-mod} より，
+  $(b \circ a)(X) \equiv \sum_{k\in\N,\,k<n} b_k a(X)^k \pmod{X^{n+1}}$ なので，
   \begin{align*}
     D((b \circ a)(X))
     &\equiv D\left(\sum_{k\in\N,\,k<n} b_k a(X)^k\right) \\
@@ -375,13 +377,61 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
 
 
 \section{形式積分}
+この節では $K$ を標数 $0$ の体とする．
 
+微分の「逆操作」として積分を考えることができる．
+
+\begin{dfn}
+  $a(X) = \sum_{i\in\Z} a_i X^i \in K((X))$ が $a_{-1} = 0$ を満たすとき，
+  \[
+    I(a(X)) = \sum_{i\in\Z,\,i\ne -1} \frac{1}{i + 1} a_i X^{i+1}
+  \]
+  と定める．
+  $I(a(X))$ を $\int a(X) dx$ とも書く．
+  $I$ を ($X$ による) \textbf{形式積分}と呼ぶ．
+\end{dfn}
+
+$I$ は部分 $K$ 加群間の準同型
+$\{ a(X) \in K((X)) \mid [X^{-1}] a(X) = 0 \} \longto \{ a(X) \in K((X)) \mid [X^0] a(X) = 0 \}$ を与える．
+また，$I$ を $K[[X]]$ に制限すると
+$K$ 加群の準同型 $I\colon K[[X]] \longto X K[[X]]$ が得られる．
+
+\begin{prp}
+  $a(X) \in K((X))$ に対し，
+  \begin{enumerate}[(1)]
+    \item $I(D(a(X))) = a(X) - a(0)$．
+    \item $[X^{-1}] a(X) = 0$ ならば，$D(I(a(X))) = a(X)$．
+  \end{enumerate}
+\end{prp}
+\begin{prf}
+  定義より明らか．
+\end{prf}
 
 \section{形式留数}
-TODO
+微分で情報が落ちる部分に名前がついている．
+
+\begin{dfn}
+  $a(X) \in R((X))$ に対し，$[X^{-1}] a(X)$ を $\Res(a(X))$ とも書き，
+  $a(X)$ の\textbf{形式留数}という．
+\end{dfn}
+
+$\Res\colon R((X)) \longto R$ は $R$ 準同型である．
+
+\begin{prp}
+  $a(X), b(X) \in X R[[X]]$ が $b(a(X)) = X$, $a(b(X)) = X$ を満たすとき，
+  $m, n \in \N$ に対し，
+  \[
+    m [X^m] b(X)^n = n [X^{-n}] a(X)^{-m}
+  \]
+  が成り立つ．
+\end{prp}
+\begin{prf}
+  waf
+\end{prf}
 
 
-\section{exp}この節では $R$ を標数 $0$ の環とする．
+\section{exp}
+この節では $K$ を標数 $0$ の体とする．
 
 \begin{dfn}
   $\exp(X) \in R[[X]]$ を，
@@ -393,10 +443,10 @@ TODO
 
 定義から，$D(\exp(X)) = \exp(X)$ がわかる．
 
-$\exp$ を左から合成する写像 $\exp\colon X R[[X]] \longto 1 + X R[[X]]; a(X) \longmapsto \exp(a(X))$ は指数法則を満たす：
+$\exp$ を左から合成する写像 $\exp\colon X K[[X]] \longto 1 + X K[[X]]; a(X) \longmapsto \exp(a(X))$ は指数法則を満たす：
 
 \begin{prp}
-  $a(X), b(X) \in X R[[X]]$ に対し，$\exp(a(X) + b(X)) = \exp(a(X)) \exp(b(X))$．
+  $a(X), b(X) \in X K[[X]]$ に対し，$\exp(a(X) + b(X)) = \exp(a(X)) \exp(b(X))$．
 \end{prp}
 \begin{prf}
   $a(X) = \sum_{i\in\N,\,i\ge 1} a_i X^i$, $b(X) = \sum_{i\in\N,\,i\ge 1} b_i X^i$ とする．
