@@ -125,22 +125,25 @@ $\ord\colon R((X)) \longto \Z \cup \{\infty\}$ は付値を与える．
 \section{乗法の逆元}
 % TODO: R((X)) について先にやる？
 環の単元とは，乗法の逆元をもつ元のこと．可逆元．$1$ の約数．
+$R$ の単元全体を $R^\times$ と書く．
 
 \begin{prp}
-  $\sum_{i\in\N} a_i X^i \in R[[X]]$ が単元であるための必要十分条件は，$a_0$ が $R$ の単元であること．
+  $a(X) = \sum_{i\in\N} a_i X^i \in R[[X]]$ について，
+  $a(X) \in R[[X]]^\times \iff a_0 \in R^\times$．
 \end{prp}
 \begin{prf}
-  (必要性)
-  $\sum_{i\in\N} b_i X^i \in R[[X]]$ が $\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たすとすると，
+  ($\Longrightarrow$)
+  $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ が $a(X) b(X) = 1$ を満たすとすると，
   定数項を比較して，$a_0 b_0 = 1$ である．
 
-  (十分性)
-  $a_0$ が単元のとき，$\sum_{i\in\N} b_i X^i \in R[[X]]$ を
+  ($\Longleftarrow$)
+  $a_0 \in R^\times$ のとき，$a_0 r = 1$ なる $r \in R$ をとって，
+  $b(X) = \sum_{i\in\N} b_i X^i \in R[[X]]$ を
   \begin{align*}
-    b_0 &= a_0^{-1}, \\
-    b_i &= -a_0^{-1} \sum_{j\in\N,\,1\le j\le i} a_j b_{i-j} \quad (i \ge 1)
+    b_0 &= r, \\
+    b_i &= -r \sum_{j\in\N,\,1\le j\le i} a_j b_{i-j} \quad (i \ge 1)
   \end{align*}
-  として定めると，$\left(\sum_{i\in\N} a_i X^i\right) \left(\sum_{i\in\N} b_i X^i\right) = 1$ を満たす．
+  として定めると，$a(X) b(X) = 1$ を満たす．
 \end{prf}
 
 $a(X) \in R[[X]]$ の乗法の逆元が存在するとき，それは一意なので，
@@ -150,11 +153,32 @@ $a(X)^{-1}$ や $\frac{1}{a(X)}$ と書く．
   $r \in R$ に対し，$(1 - r X)^{-1} = \sum_{i\in\N} r^i X^i$．
 \end{exm}
 
-$a(X) = \sum_{i\in\Z} a_i X^i \in R((X)) \setminus \{0\}$ が単元であるための必要十分条件は，
-最低次の係数が可逆であることである．
-$m = \ord(a(X))$ として，逆元は $a(X)^{-1} = X^{-m} \left(\sum_{i\in\Z} a_{i} X^{i-m}\right)^{-1}$ で与えられる．
+\begin{prp}
+  $R$ を整域とする．
+  $a(X) = \sum_{i\in\Z} a_i X^i \in R((X)) \setminus \{0\}$ について，
+  $\ord(a(X)) = m$ とすると，
+  $a(X) \in R((X))^\times \iff a_m \in R^\times$．
+\end{prp}
+\begin{prf}
+  ($\Longrightarrow$)
+  $b(X) = \sum_{i\in\Z} b_i X^i \in R((X)) \setminus \{0\}$ が $a(X) b(X) = 1$ を満たすとすると，
+  $\ord(b(X)) = n$ として，
+  $m + n = \ord(a(X) b(X)) = 0$ 次の係数を比較して $a_m b_n = 1$ である．
+
+  ($\Longleftarrow$)
+  $a(X) = X^m c(X)$, $c(X) \in R[[X]]$ と書けて，
+  $[X^0] c(X) = a_m \in R^\times$ より
+  $c(X)$ の $R[[X]]$ における乗法の逆元 $c(X)^{-1} \in R[[X]]$ がとれる．
+  すると，$X^{-m} c(X)^{-1} \in R((X))$ であり，
+  $a(X) (X^{-m} c(X)^{-1}) = 1$ となる．
+\end{prf}
 
 とくに，$R$ が体ならば，$R((X))$ も体である．
+
+\begin{exm}
+  $R$ が整域でないとき，
+  $(\Z/6\Z)((X))$ において $(2 + 3X) (3X^{-1} + 2) = 1$，といった場合がある．
+\end{exm}
 
 ここまでで定めた加減乗除については，一般の $R$ 代数で成り立つことを用いて普通の計算ができるし，普通の表記をする．
 
@@ -403,7 +427,7 @@ $R$ 代数の準同型ではない (積は保たない) ことに注意する．
     I(a(X)) = \sum_{i\in\Z,\,i\ne -1} \frac{1}{i + 1} a_i X^{i+1}
   \]
   と定める．
-  $I(a(X))$ を $\int a(X) dx$ とも書く．
+  $I(a(X))$ を $\int a(X) dX$ とも書く．
   $I$ を ($X$ による) \textbf{形式積分}と呼ぶ．
 \end{dfn}
 
@@ -483,7 +507,6 @@ $\exp$ を左から合成する写像 $\exp\colon X K[[X]] \longto 1 + X K[[X]];
 
 
 
-\section{形式積分}
 \section{log}
 \section{合成逆}
 \section{多変数}
