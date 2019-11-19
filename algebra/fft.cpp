@@ -73,26 +73,64 @@ void unittest() {
   assert(FFT97.convolution(a, b) == c);
 }
 
+
+int readInt() {
+  int c;
+  for (; ; ) {
+    c = getchar();
+    if ('0' <= c && c <= '9') break;
+    if (c == -1) throw -1;
+    if (c == '-') return -readInt();
+  }
+  int x = c - '0';
+  for (; ; ) {
+    c = getchar();
+    if (!('0' <= c && c <= '9')) return x;
+    x = x * 10 + (c - '0');
+  }
+}
+
+char writeIntBuffer[10];
+void writeInt(int x) {
+  if (x < 0) {
+    putchar('-');
+    x = -x;
+  }
+  int i = 0;
+  do {
+    writeIntBuffer[i++] = '0' + (x % 10);
+    x /= 10;
+  } while (x != 0);
+  for (; i > 0; ) {
+    putchar(writeIntBuffer[--i]);
+  }
+}
+
+
 // https://judge.yosupo.jp/problem/convolution_mod
 int main() {
-  unittest();
+  // unittest();
 
-  int L, M;
-  for (; ~scanf("%d%d", &L, &M); ) {
-    vector<int> A(L), B(M);
-    for (int i = 0; i < L; ++i) {
-      scanf("%d", &A[i]);
-    }
-    for (int i = 0; i < M; ++i) {
-      scanf("%d", &B[i]);
-    }
+  try {
+    for (; ; ) {
+      const int L = readInt();
+      const int M = readInt();
+      vector<int> A(L), B(M);
+      for (int i = 0; i < L; ++i) {
+        A[i] = readInt();
+      }
+      for (int i = 0; i < M; ++i) {
+        B[i] = readInt();
+      }
 
-    const vector<int> res = FFT.convolution(A, B);
-    for (int i = 0; i < L + M - 1; ++i) {
-      if (i > 0) printf(" ");
-      printf("%d", res[i]);
+      const vector<int> res = FFT.convolution(A, B);
+      for (int i = 0; i < L + M - 1; ++i) {
+        if (i > 0) putchar(' ');
+        writeInt(res[i]);
+      }
+      putchar('\n');
     }
-    puts("");
+  } catch (int) {
   }
   return 0;
 }
