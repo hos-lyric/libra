@@ -14,12 +14,39 @@ in {
   assert(0 <= pos && pos <= bit.length, "bSum: 0 <= pos <= |bit| must hold");
 }
 do {
-  T sum = 0;
+  T ret = 0;
   for (int x = pos - 1; x >= 0; x = (x & (x + 1)) - 1) {
-    sum += bit[x];
+    ret += bit[x];
   }
-  return sum;
+  return ret;
 }
+
+
+bool chmax(T)(ref T t, in T f) { if (t < f) { t = f; return true; } else { return false; } }
+
+void bChmax(T)(T[] bit, int pos, T val)
+in {
+  assert(0 <= pos && pos < bit.length, "bChmax: 0 <= pos < |bit| must hold");
+}
+do {
+  for (int x = pos; x < bit.length; x |= x + 1) {
+    chmax(bit[x], val);
+  }
+}
+
+// max of [0, pos)
+T bMax(T)(T[] bit, int pos)
+in {
+  assert(0 <= pos && pos <= bit.length, "bMax: 0 <= pos <= |bit| must hold");
+}
+do {
+  T ret = 0;
+  for (int x = pos - 1; x >= 0; x = (x & (x + 1)) - 1) {
+    chmax(ret, bit[x]);
+  }
+  return ret;
+}
+
 
 // min pos s.t. pred(sum of [0, pos))
 //   assume pred(sum of [0, pos)) is non-decreasing
@@ -39,6 +66,7 @@ int bBinarySearch(alias pred, T)(T[] bit) {
   }
   return pos + 1;
 }
+
 
 unittest {
   {
@@ -67,6 +95,24 @@ unittest {
       assert(bit.bBinarySearch!(a => (a >= sum)) == i);
       assert(bit.bBinarySearch!(a => (a > sum)) == i + 1);
     }
+  }
+  {
+    auto bit = new long[5];
+    bit.bChmax(0, 3);
+    bit.bChmax(2, 1);
+    bit.bChmax(4, 4);
+    assert(bit.bMax(1) == 3);
+    assert(bit.bMax(2) == 3);
+    assert(bit.bMax(3) == 3);
+    assert(bit.bMax(4) == 3);
+    assert(bit.bMax(5) == 4);
+    bit.bChmax(1, 1);
+    bit.bChmax(3, 5);
+    assert(bit.bMax(1) == 3);
+    assert(bit.bMax(2) == 3);
+    assert(bit.bMax(3) == 3);
+    assert(bit.bMax(4) == 5);
+    assert(bit.bMax(5) == 5);
   }
 }
 
