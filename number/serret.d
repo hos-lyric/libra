@@ -29,6 +29,7 @@ Tuple!(long, long) serret(long p) {
     }
   }
 }
+
 unittest {
   assert(serret(5) == tuple(2, 1));
   assert(serret(13) == tuple(3, 2));
