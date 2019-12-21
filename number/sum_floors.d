@@ -1,7 +1,6 @@
-// floor(a / m)
-// m > 0
-long floor(long a, long m) {
-  return a / m - ((a % m < 0) ? 1 : 0);
+// floor(a / b)
+Int divFloor(Int)(Int a, Int b) {
+  return a / b - (((a ^ b) < 0 && a % b != 0) ? 1 : 0);
 }
 
 // sum{ floor((a x + b) / m) | l <= x <= r }
@@ -13,10 +12,10 @@ in {
 do {
   long sum;
   for (; l <= r; ) {
-    const q = floor(a, m);
+    const q = divFloor(a, m);
     const aa = a - q * m;
-    const ll = floor(aa * l + b, m) + 1;
-    const rr = floor(aa * r + b, m);
+    const ll = divFloor(aa * l + b, m) + 1;
+    const rr = divFloor(aa * r + b, m);
     sum += q * ((r + 1) * r / 2 - l * (l - 1) / 2) + r * rr - (l - 1) * (ll - 1) + (rr - ll + 1);
     a = m; m = aa; l = -rr; r = -ll;
   }
@@ -37,7 +36,7 @@ unittest {
     foreach (l; -LIM .. LIM) foreach (r; -LIM .. LIM) {
       long sum;
       foreach (x; l .. r + 1) {
-        sum += floor(a * x + b, m);
+        sum += divFloor(a * x + b, m);
       }
       assert(sumFloors(m, a, b, l, r) == sum);
     }
