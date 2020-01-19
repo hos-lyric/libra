@@ -48,7 +48,7 @@ struct ModInt(int M_) {
   string toString() const { return x.to!string; }
 }
 
-enum MO = 100000007;
+enum MO = 998244353;
 alias Mint = ModInt!MO;
 
 // Pretty print (smaller abs)
