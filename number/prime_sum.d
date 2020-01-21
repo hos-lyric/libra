@@ -17,12 +17,11 @@ long floorSqrt(long a) {
 
 // get([N / j]) = 1 + \sum_{p<[N/j]} p^K
 //   O(N^(3/4) / log N) time, O(N^(1/2)) space
-//   for large K, \sum_{i=1}^n i^K = \sum_{j=1}^{K+1} coef[j] n^j
 class PrimeSum(T, int K) {
   long N, sqrtN;
   bool[] isPrime;
   T[] small, large;
-  this(long N, T[] coef = null) {
+  this(long N) {
     this.N = N;
     sqrtN = floorSqrt(N);
     isPrime = new bool[sqrtN + 1];
@@ -46,9 +45,7 @@ class PrimeSum(T, int K) {
         ((n0 % 2 == 0) ? n0 : n1) /= 2;
         return T(n0) * T(n0) * T(n1) * T(n1);
       } else {
-        T y;
-        foreach_reverse (k; 1 .. K + 2) (y += coef[k]) *= n;
-        return y;
+        static assert(false, "K is out of range");
       }
     }
     foreach (n; 1 .. sqrtN + 1) small[n] = powerSum(n);
@@ -73,6 +70,49 @@ class PrimeSum(T, int K) {
     return (n <= sqrtN) ? small[n] : large[N / n];
   }
 }
+
+// get([N / j]) = 1 + \sum_{p<[N/j]} p^K
+//   O(N^(3/4) / log N) time, O(N^(1/2)) space
+//   large K; \sum_{i=1}^n i^K = \sum_{j=1}^{K+1} coef[j] n^j
+class PrimeSum(T) {
+  long N, sqrtN;
+  bool[] isPrime;
+  T[] small, large;
+  this(long N, int K, T[] coef) {
+    this.N = N;
+    sqrtN = floorSqrt(N);
+    isPrime = new bool[sqrtN + 1];
+    small = new T[sqrtN + 1];
+    large = new T[sqrtN + 1];
+    isPrime[2 .. $] = true;
+    T powerSum(long n) {
+      T y;
+      foreach_reverse (k; 1 .. K + 2) (y += coef[k]) *= n;
+      return y;
+    }
+    foreach (n; 1 .. sqrtN + 1) small[n] = powerSum(n);
+    foreach (l; 1 .. sqrtN + 1) large[l] = powerSum(N / l);
+    foreach (p; 2 .. sqrtN + 1) {
+      if (isPrime[p]) {
+        for (long n = p^^2; n <= sqrtN; n += p) isPrime[n] = false;
+        const pk = T(p)^^K, g1 = get(p - 1);
+        foreach (l; 1 .. sqrtN + 1) {
+          const n = N / l;
+          if (n < p^^2) break;
+          large[l] -= pk * (get(n / p) - g1);
+        }
+        foreach_reverse (n; 1 .. sqrtN + 1) {
+          if (n < p^^2) break;
+          small[n] -= pk * (get(n / p) - g1);
+        }
+      }
+    }
+  }
+  T get(long n) {
+    return (n <= sqrtN) ? small[n] : large[N / n];
+  }
+}
+
 
 import std.conv : to;
 struct ModInt(int M_) {
@@ -137,7 +177,7 @@ unittest {
 
   alias Mint = ModInt!998244353;
   assert(new PrimeSum!(Mint, 3)(10L^^5).get(10L^^5).x == 909721510);
-  auto ps4 = new PrimeSum!(Mint, 4)(10L^^5,
+  auto ps4 = new PrimeSum!(Mint)(10L^^5, 4,
       [Mint(0), -Mint(30).inv, Mint(0), Mint(3).inv, Mint(2).inv, Mint(5).inv]);
   assert(ps4.get(10L^^5).x == 172030739);
   assert(ps4.get(33333).x == 796721800);
