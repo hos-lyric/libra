@@ -15,7 +15,7 @@ long floorSqrt(long a) {
   return x;
 }
 
-// get([N / j]) = \sum_{p<=[N/j]} p^K
+// get(floor(N / l)) = \sum_{p<=floor(N/l)} p^K
 //   O(N^(3/4) / log N) time, O(N^(1/2)) space
 class PrimeSum(T, int K) {
   long N, sqrtN;
@@ -74,7 +74,7 @@ class PrimeSum(T, int K) {
   }
 }
 
-// get([N / j]) = \sum_{p<=[N/j]} p^K
+// get(floor(N / l)) = \sum_{p<=floor(N/l)} p^K
 //   O(N^(3/4) / log N) time, O(N^(1/2)) space
 //   large K; \sum_{i=1}^n i^K = \sum_{j=1}^{K+1} coef[j] n^j
 class PrimeSum(T) {
@@ -119,7 +119,7 @@ class PrimeSum(T) {
   }
 }
 
-// get([N / j]) = \sum_{n=1}^{[N/j]} f(n)
+// get(floor(N / l)) = \sum_{n=1}^{floor(N/l)} f(n)
 //   O(N^(3/4) / log N) time, O(N^(1/2)) space
 //   f: multiplicative function, f(p): poly in p
 class MultiplicativeSum(T) {
@@ -141,7 +141,7 @@ class MultiplicativeSum(T) {
       }
     }
   }
-  // prepare \sum_{p<=n} f(p) and \sum_{N^(1/2)<p<=[N/j]} f(p)
+  // prepare \sum_{p<=n} f(p) and \sum_{N^(1/2)<p<=floor(N/l)} f(p)
   void add(S)(T coef, S primeSum) {
     assert(N == primeSum.N, "MultiplicativeSum: N must agree");
     foreach (n; 1 .. sqrtN + 1) smallFP[n] += coef * primeSum.small[n];
