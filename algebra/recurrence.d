@@ -48,28 +48,26 @@ struct ModInt(int M_) {
   string toString() const { return x.to!string; }
 }
 
-enum MO = 998244353;
-alias Mint = ModInt!MO;
-
 // Pretty print (smaller abs)
-int[] pretty(Mint[] as) {
+int[] pretty(int M)(ModInt!M[] as) {
   import std.algorithm : map;
   import std.array : array;
-  return as.map!(a => (a.x < MO - a.x) ? a.x : -(MO - a.x)).array;
+  return as.map!(a => (a.x < M - a.x) ? a.x : -(M - a.x)).array;
 }
 
 // Berlekamp-Massey
 //   as[i] + \sum_{j=1}^l cs[j] as[i - j] = 0
-Mint[] findLinearRecurrence(Mint[] as) {
+//   M must be prime
+ModInt!M[] findLinearRecurrence(int M)(ModInt!M[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
   int l, m;
-  auto cs = new Mint[n + 1], bs = new Mint[n];
+  auto cs = new ModInt!M[n + 1], bs = new ModInt!M[n];
   cs[0] = bs[0] = 1;
-  Mint bef = 1;
+  ModInt!M bef = 1;
   foreach (i; 0 .. n) {
     ++m;
-    Mint dif = as[i];
+    ModInt!M dif = as[i];
     foreach (j; 1 .. l + 1) dif += cs[j] * as[i - j];
     if (dif.x != 0) {
       auto csDup = cs.dup;
@@ -86,23 +84,24 @@ Mint[] findLinearRecurrence(Mint[] as) {
   return cs[0 .. l + 1];
 }
 
-Mint[] findLinearRecurrence(long[] as) {
+ModInt!M[] findLinearRecurrence(int M)(long[] as) {
   import std.algorithm : map;
   import std.array : array;
-  return findLinearRecurrence(as.map!(a => Mint(a)).array);
+  return findLinearRecurrence(as.map!(a => ModInt!M(a)).array);
 }
 
 unittest {
-  assert([1, -3, 2] == findLinearRecurrence([3, 4, 6, 10]).pretty);
-  assert([1, -3, 2] == findLinearRecurrence([3, 4, 6, 10, 18, 34]).pretty);
+  enum MO = 998244353;
+  assert([1, -3, 2] == findLinearRecurrence!MO([3, 4, 6, 10]).pretty);
+  assert([1, -3, 2] == findLinearRecurrence!MO([3, 4, 6, 10, 18, 34]).pretty);
   assert([1, 3, 0, -39, 36] ==
-         findLinearRecurrence([3, 4, 6, 10, 18, 36, 66, 144]).pretty);
-  assert([1] == findLinearRecurrence([0]).pretty);
-  assert([1, 0] == findLinearRecurrence([1]).pretty);
+         findLinearRecurrence!MO([3, 4, 6, 10, 18, 36, 66, 144]).pretty);
+  assert([1] == findLinearRecurrence!MO([0]).pretty);
+  assert([1, 0] == findLinearRecurrence!MO([1]).pretty);
   assert([1, 0, 0, 0, 0] ==
-         findLinearRecurrence([1, 2, 4, 8, 0, 0, 0, 0]).pretty);
-  assert([1] == findLinearRecurrence([0, 0, 0, 0, 0]).pretty);
-  assert([1, 0, 0, 0, 0, 0] == findLinearRecurrence([0, 0, 0, 0, 1]).pretty);
+         findLinearRecurrence!MO([1, 2, 4, 8, 0, 0, 0, 0]).pretty);
+  assert([1] == findLinearRecurrence!MO([0, 0, 0, 0, 0]).pretty);
+  assert([1, 0, 0, 0, 0, 0] == findLinearRecurrence!MO([0, 0, 0, 0, 1]).pretty);
 }
 
 void main() {
