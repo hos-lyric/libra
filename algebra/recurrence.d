@@ -64,7 +64,7 @@ Mint[] findLinearRecurrence(Mint[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
   int l, m;
-  auto cs = new Mint[n], bs = new Mint[n];
+  auto cs = new Mint[n + 1], bs = new Mint[n];
   cs[0] = bs[0] = 1;
   Mint bef = 1;
   foreach (i; 0 .. n) {
@@ -83,7 +83,7 @@ Mint[] findLinearRecurrence(Mint[] as) {
       }
     }
   }
-  return cs[0 .. min(l + 1, n)];
+  return cs[0 .. l + 1];
 }
 
 Mint[] findLinearRecurrence(long[] as) {
@@ -98,8 +98,11 @@ unittest {
   assert([1, 3, 0, -39, 36] ==
          findLinearRecurrence([3, 4, 6, 10, 18, 36, 66, 144]).pretty);
   assert([1] == findLinearRecurrence([0]).pretty);
-  assert([1] == findLinearRecurrence([1]).pretty);
-  assert([1, 0, 0, 0, 0] == findLinearRecurrence([0, 0, 0, 0, 1]).pretty);
+  assert([1, 0] == findLinearRecurrence([1]).pretty);
+  assert([1, 0, 0, 0, 0] ==
+         findLinearRecurrence([1, 2, 4, 8, 0, 0, 0, 0]).pretty);
+  assert([1] == findLinearRecurrence([0, 0, 0, 0, 0]).pretty);
+  assert([1, 0, 0, 0, 0, 0] == findLinearRecurrence([0, 0, 0, 0, 1]).pretty);
 }
 
 void main() {
