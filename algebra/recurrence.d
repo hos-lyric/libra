@@ -62,7 +62,7 @@ ModInt!M[] findLinearRecurrence(int M)(ModInt!M[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
   int l, m;
-  auto cs = new ModInt!M[n + 1], bs = new ModInt!M[n];
+  auto cs = new ModInt!M[n + 1], bs = new ModInt!M[n + 1];
   cs[0] = bs[0] = 1;
   ModInt!M bef = 1;
   foreach (i; 0 .. n) {
@@ -96,6 +96,7 @@ unittest {
   assert([1, -3, 2] == findLinearRecurrence!MO([3, 4, 6, 10, 18, 34]).pretty);
   assert([1, 3, 0, -39, 36] ==
          findLinearRecurrence!MO([3, 4, 6, 10, 18, 36, 66, 144]).pretty);
+  assert([1] == findLinearRecurrence!MO(new long[0]).pretty);
   assert([1] == findLinearRecurrence!MO([0]).pretty);
   assert([1, 0] == findLinearRecurrence!MO([1]).pretty);
   assert([1, 0, 0, 0, 0] ==
