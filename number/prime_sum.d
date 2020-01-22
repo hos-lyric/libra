@@ -69,7 +69,7 @@ class PrimeSum(T, int K) {
     small[1 .. $] -= T(1);
     large[1 .. $] -= T(1);
   }
-  T get(long n) {
+  T get(long n) const {
     return (n <= sqrtN) ? small[n] : large[N / n];
   }
 }
@@ -114,7 +114,7 @@ class PrimeSum(T) {
     small[1 .. $] -= T(1);
     large[1 .. $] -= T(1);
   }
-  T get(long n) {
+  T get(long n) const {
     return (n <= sqrtN) ? small[n] : large[N / n];
   }
 }
@@ -157,7 +157,7 @@ class MultiplicativeSum(T) {
     foreach_reverse (p; 2 .. sqrtN + 1) {
       if (isPrime[p]) {
         // added f(p') for p < p' <= min{n, N^(1/2)}
-        T getAdded(long n) {
+        T getAdded(long n) const {
           return (n <= sqrtN) ? (small[n] + smallFP[max(n, p)] - smallFP[p])
                               : (large[N / n] + smallFP[sqrtN] - smallFP[p]);
         }
@@ -192,7 +192,7 @@ class MultiplicativeSum(T) {
     small[] += smallFP[];
     large[1 .. $] += smallFP[sqrtN];
   }
-  T get(long n) {
+  T get(long n) const {
     return (n <= sqrtN) ? small[n] : large[N / n];
   }
 }
