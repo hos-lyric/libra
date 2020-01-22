@@ -90,7 +90,7 @@ class PrimeSum(T) {
     large = new T[sqrtN + 1];
     isPrime[2 .. $] = true;
     T powerSum(long n) {
-      T y;
+      T y = 0;
       foreach_reverse (k; 1 .. K + 2) (y += coef[k]) *= n;
       return y;
     }
@@ -154,7 +154,6 @@ class MultiplicativeSum(T) {
     import std.algorithm : max;
     small[1 .. $] += T(1);
     large[1 .. $] += T(1);
-    long last = N;
     foreach_reverse (p; 2 .. sqrtN + 1) {
       if (isPrime[p]) {
         // added f(p') for p < p' <= min{n, N^(1/2)}
@@ -169,21 +168,25 @@ class MultiplicativeSum(T) {
         for (int e = 1; ; ++e) {
           pes ~= pe;
           fs ~= f(p, e);
-          if ((pe *= p) > N) break;
+          if (pe > N / p) break;
+          pe *= p;
         }
         const limE = cast(int)(pes.length);
         foreach (l; 1 .. sqrtN + 1) {
           const n = N / l;
           if (n < p^^2) break;
-          foreach (e; 1 .. limE) large[l] += fs[e] * getAdded(n / pes[e]);
+          for (int e = 1; e < limE && pes[e] <= n; ++e) {
+            large[l] += fs[e] * getAdded(n / pes[e]);
+          }
           large[l] -= fs[1];
         }
         foreach_reverse (n; 1 .. sqrtN + 1) {
           if (n < p^^2) break;
-          foreach (e; 1 .. limE) small[n] += fs[e] * getAdded(n / pes[e]);
+          for (int e = 1; e < limE && pes[e] <= n; ++e) {
+            small[n] += fs[e] * getAdded(n / pes[e]);
+          }
           small[n] -= fs[1];
         }
-        last = p^^2;
       }
     }
     small[] += smallFP[];
