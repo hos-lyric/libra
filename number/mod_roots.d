@@ -33,7 +33,7 @@ do {
 long div2(long a, long m)
 in {
   assert(1 <= m && m < 1L << 62, "div2: 1 <= m < 2^62 must hold");
-  assert(m % 2 != 0, "div2: m must not be divisibly by 3");
+  assert(m % 2 != 0, "div2: m must not be divisible by 2");
   assert(0 <= a && a < m, "div2: 0 <= a < m must hold");
 }
 do {
@@ -44,7 +44,7 @@ do {
 long div3(long a, long m)
 in {
   assert(1 <= m && m < 1L << 61, "div3: 1 <= m < 2^61 must hold");
-  assert(m % 3 != 0, "div3: m must not be divisibly by 3");
+  assert(m % 3 != 0, "div3: m must not be divisible by 3");
   assert(0 <= a && a < m, "div3: 0 <= a < m must hold");
 }
 do {
