@@ -1,8 +1,10 @@
+// T, S: monoid
 // opTT: T * T -> T
 // opST: S * T * int -> T
 //   (s t_a) ... (s t_{b-1}) = opST(s, t_a ... t_{b-1}, b - a)
 // opSS: S * S -> S
-// query(a, b, s): t_a <- s t_a, ..., t_{b-1} <- s t_{b-1}
+// query(a, b, s): t_a <- s t_a, ..., t_{b-1} <- s t_{b-1};
+//   returns t_a ... t_{b-1}
 class SegmentTree(T, S, alias opTT, alias opST, alias opSS, T idT_, S idS_) {
   import std.functional : binaryFun;
   alias opTTFun = binaryFun!opTT;
