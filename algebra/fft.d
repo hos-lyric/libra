@@ -1,3 +1,6 @@
+// ../number/modint.d
+import modint;
+
 // M: prime, G: primitive root
 class Fft(int M, int G, int K) {
   import std.algorithm : reverse, swap;
@@ -60,6 +63,26 @@ class Fft(int M, int G, int K) {
     fft(xs);
     return xs[0 .. na + nb - 1];
   }
+  ModInt!M[] convolution(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) const {
+    const na = cast(int)(as.length), nb = cast(int)(bs.length);
+    int n, invN = 1;
+    for (n = 1; n < na + nb - 1; n <<= 1) {
+      invN = ((invN & 1) ? (invN + M) : invN) >> 1;
+    }
+    auto xs = new int[n], ys = new int[n];
+    foreach (i; 0 .. na) xs[i] = as[i].x;
+    foreach (i; 0 .. nb) ys[i] = bs[i].x;
+    fft(xs);
+    fft(ys);
+    foreach (i; 0 .. n) {
+      xs[i] = cast(int)((((cast(long)(xs[i]) * ys[i]) % M) * invN) % M);
+    }
+    xs[1 .. n].reverse;
+    fft(xs);
+    auto cs = new ModInt!M[na + nb - 1];
+    foreach (i; 0 .. na + nb - 1) cs[i].x = xs[i];
+    return cs;
+  }
 };
 
 unittest {
@@ -68,6 +91,15 @@ unittest {
   const(int)[] bs = [58, 9, 79, 32, 38, 46];
   const cs = [52, 38, 32, 62, 80, 31, 29, 63, 9, 13];
   assert(fft.convolution(as, bs) == cs);
+}
+
+unittest {
+  enum MO = 998244353;
+  alias Mint = ModInt!MO;
+  auto fft = new Fft!(MO, 3, 20);
+  auto as = [Mint(1), Mint(1)];
+  auto bs = [Mint(-1), Mint(-1), Mint(-1)];
+  assert(fft.convolution(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
 }
 
 void main() {
