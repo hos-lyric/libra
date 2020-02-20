@@ -109,17 +109,20 @@ class Fft(int M_, int G, int K) {
 }
 
 enum FFT_K = 20;
+alias Fft0 = Fft!(1045430273, 3, FFT_K);  // 2^20 997 + 1
+alias Fft1 = Fft!(1051721729, 6, FFT_K);  // 2^20 1003 + 1
+alias Fft2 = Fft!(1053818881, 7, FFT_K);  // 2^20 1005 + 1
 // Fft0.M Fft1.M Fft2.M > 5.95 * 10^25 > 2^85.6
-alias Fft0 = Fft!(167772161, 3, FFT_K);  // 2^25 5 + 1
-alias Fft1 = Fft!(469762049, 3, FFT_K);  // 2^26 7 + 1
-alias Fft2 = Fft!(754974721, 11, FFT_K);  // 2^24 45 + 1
+// enum FFT_K = 24;
+// alias Fft0 = Fft!(167772161, 3, FFT_K);  // 2^25 5 + 1
+// alias Fft1 = Fft!(469762049, 3, FFT_K);  // 2^26 7 + 1
+// alias Fft2 = Fft!(754974721, 11, FFT_K);  // 2^24 45 + 1
 enum long FFT_INV01 = modInv(Fft0.M, Fft1.M);
 enum long FFT_INV012 = modInv(cast(long)(Fft0.M) * Fft1.M, Fft2.M);
 Fft0 FFT0;
 Fft1 FFT1;
 Fft2 FFT2;
 void fftInit() {
-  static assert(2 <= FFT_K && FFT_K <= 24);
   FFT0 = new Fft0;
   FFT1 = new Fft1;
   FFT2 = new Fft2;
