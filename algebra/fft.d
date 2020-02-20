@@ -1,4 +1,4 @@
-// ../number/modint.d
+// dmd -I=../number -O -unittest fft
 import modint;
 
 // M: prime, G: primitive root
@@ -83,7 +83,7 @@ class Fft(int M, int G, int K) {
     foreach (i; 0 .. na + nb - 1) cs[i].x = xs[i];
     return cs;
   }
-};
+}
 
 unittest {
   const fft = new Fft!(97, 92, 5);
