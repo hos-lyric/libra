@@ -5,18 +5,20 @@
 // opSS: S * S -> S
 // query(a, b, s): t_a <- s t_a, ..., t_{b-1} <- s t_{b-1};
 //   returns t_a ... t_{b-1}
-class SegmentTree(T, S, alias opTT, alias opST, alias opSS, T idT_, S idS_) {
+class SegmentTree(T, S, alias opTT, alias opST, alias opSS) {
   import std.functional : binaryFun;
   alias opTTFun = binaryFun!opTT;
   alias opSTFun = opST;
   alias opSSFun = binaryFun!opSS;
-  alias idT = idT_;
-  alias idS = idS_;
+  const(T) idT;
+  const(S) idS;
 
   int n;
   T[] ts;
   S[] ss;
-  this(int n_) {
+  this(int n_, const(T) idT, const(S) idS) {
+    this.idT = idT;
+    this.idS = idS;
     for (n = 1; n < n_; n <<= 1) {}
     ts = new T[n << 1];
     ss = new S[n << 1];
@@ -63,7 +65,7 @@ class SegmentTree(T, S, alias opTT, alias opST, alias opSS, T idT_, S idS_) {
 unittest {
   auto xs = new int[10];
   auto seg = new SegmentTree!(int, int, "a + b", (s, t, sz) => t + s * sz,
-                              "a + b", 0, 0)(10);
+                              "a + b")(10, 0, 0);
   void rangeAdd(int a, int b, int s) {
     int expected;
     foreach (i; a .. b) {

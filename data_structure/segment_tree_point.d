@@ -1,19 +1,21 @@
 // T: monoid
 // op: T * T -> T
 // query(a, b): returns t_a ... t_{b-1}
-class SegmentTree(T, alias op, T idT_) {
+class SegmentTree(T, alias op) {
   import std.functional : binaryFun;
   alias opFun = binaryFun!op;
-  alias idT = idT_;
+  const(T) idT;
 
   int n;
   T[] ts;
-  this(int n_) {
+  this(int n_, const(T) idT) {
+    this.idT = idT;
     for (n = 1; n < n_; n <<= 1) {}
     ts = new T[n << 1];
     ts[] = idT;
   }
-  this(inout(T)[] ts_) {
+  this(inout(T)[] ts_, const(T) idT) {
+    this.idT = idT;
     const n_ = cast(int)(ts_.length);
     for (n = 1; n < n_; n <<= 1) {}
     ts = new T[n << 1];
@@ -102,7 +104,7 @@ unittest {
   foreach (i; 0 .. n) {
     ini[i] = "" ~ cast(char)('a' + i);
   }
-  auto seg = new SegmentTree!(string, "a ~ b", "")(ini);
+  auto seg = new SegmentTree!(string, "a ~ b")(ini, "");
   seg.set(15, "P");
   seg.mulL(17, "^");
   seg.mulR(19, "$");
@@ -115,7 +117,7 @@ unittest {
 unittest {
   import std.algorithm : max, min;
   enum n = 1 << 4;
-  auto seg = new SegmentTree!(int, "a + b", 0)(n);
+  auto seg = new SegmentTree!(int, "a + b")(n, 0);
   foreach (i; 0 .. n) {
     seg.mulR(i, 1);
   }
