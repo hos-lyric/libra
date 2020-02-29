@@ -13,7 +13,8 @@ class SegmentTree(T, alias op, T idT_) {
     ts = new T[n << 1];
     ts[] = idT;
   }
-  this(int n_, inout(T)[] ts_) {
+  this(inout(T)[] ts_) {
+    const n_ = cast(int)(ts_.length);
     for (n = 1; n < n_; n <<= 1) {}
     ts = new T[n << 1];
     ts[0 .. n] = idT;
@@ -101,7 +102,7 @@ unittest {
   foreach (i; 0 .. n) {
     ini[i] = "" ~ cast(char)('a' + i);
   }
-  auto seg = new SegmentTree!(string, "a ~ b", "")(n, ini);
+  auto seg = new SegmentTree!(string, "a ~ b", "")(ini);
   seg.set(15, "P");
   seg.mulL(17, "^");
   seg.mulR(19, "$");
@@ -114,8 +115,7 @@ unittest {
 unittest {
   import std.algorithm : max, min;
   enum n = 1 << 4;
-  const ini = new int[n];
-  auto seg = new SegmentTree!(int, "a + b", 0)(n, ini);
+  auto seg = new SegmentTree!(int, "a + b", 0)(n);
   foreach (i; 0 .. n) {
     seg.mulR(i, 1);
   }
