@@ -50,5 +50,6 @@ struct ModInt(int M_) {
   ModInt opBinaryRight(string op)(long a) const {
     return mixin("ModInt(a) " ~ op ~ "= this");
   }
+  bool opCast(T: bool)() const { return (x != 0); }
   string toString() const { return x.to!string; }
 }

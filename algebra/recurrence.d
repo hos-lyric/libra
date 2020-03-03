@@ -9,18 +9,19 @@ int[] pretty(int M)(ModInt!M[] as) {
 }
 
 // Berlekamp-Massey
+//   F: field
 //   \sum_{j=1}^0 cs[j] as[i - j] = 0 (d <= i < |as|), cs[0] = 1
 //   M must be prime
-ModInt!M[] findLinearRecurrence(int M)(ModInt!M[] as) {
+F[] findLinearRecurrence(F)(F[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
   int d, m;
-  auto cs = new ModInt!M[n + 1], bs = new ModInt!M[n + 1];
+  auto cs = new F[n + 1], bs = new F[n + 1];
   cs[0] = bs[0] = 1;
-  ModInt!M invBef = 1;
+  F invBef = 1;
   foreach (i; 0 .. n) {
     ++m;
-    ModInt!M dif = as[i];
+    F dif = as[i];
     foreach (j; 1 .. d + 1) dif += cs[j] * as[i - j];
     if (dif.x != 0) {
       auto csDup = cs.dup;
