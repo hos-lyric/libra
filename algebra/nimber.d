@@ -1,5 +1,6 @@
 // 2^i \otimes 2^j, a \otimes b
-ulong[][] NIM_MUL_BASE, NIM_MUL_SMALL;
+ulong[][] NIM_MUL_BASE;
+ubyte[][] NIM_MUL_SMALL;
 // (2^8)^i \otimes (2^8)^j \otimes a
 ulong[][][] NIM_MUL_TABLE;
 
@@ -24,9 +25,9 @@ void prepareNimber() {
       }
     }
   }
-  NIM_MUL_SMALL = new ulong[][](256, 256);
+  NIM_MUL_SMALL = new ubyte[][](256, 256);
   foreach (i; 0 .. 8) foreach (j; 0 .. 8) {
-    NIM_MUL_SMALL[1 << i][1 << j] = NIM_MUL_BASE[i][j];
+    NIM_MUL_SMALL[1 << i][1 << j] = cast(ubyte)(NIM_MUL_BASE[i][j]);
   }
   foreach (a; 1 .. 256) foreach (b; 1 .. 256) {
     if (b & b - 1) {
@@ -52,8 +53,8 @@ void prepareNimber() {
 ulong nimMul(ulong a, ulong b) {
   ulong c;
   foreach (i; 0 .. 8) foreach (j; 0 .. 8) {
-    c ^= NIM_MUL_TABLE[i][j][cast(uint)(
-        NIM_MUL_SMALL[(a >> (8 * i)) & 255][(b >> (8 * j)) & 255])];
+    c ^= NIM_MUL_TABLE[i][j][
+        NIM_MUL_SMALL[(a >> (8 * i)) & 255][(b >> (8 * j)) & 255]];
   }
   return c;
 }
