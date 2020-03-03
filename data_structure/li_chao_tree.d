@@ -16,7 +16,7 @@ class LiChaoTree(Func) {
 
   // [L, R)
   this(TX L, TX R) {
-    assert(L <= R, "LiChaoTree: L <= R must hold");
+    assert(L < R, "LiChaoTree: L < R must hold");
     this.L = L;
     this.R = R;
   }
@@ -55,6 +55,7 @@ class LiChaoTree(Func) {
       TY fL = u.f ? u.f(l) : TY.min, fR = u.f ? u.f(r) : TY.min;
       if (fL >= gL && fR >= gR) return u0;
       if (fL <= gL && fR <= gR) { u.f = g; return u0; }
+      if (r - l == 1) { if (fL <= gL) { u.f = g; } return u0; }
       const mid = l + (r - l) / 2;
       TY fMid = u.f(mid), gMid = g(mid);
       if (fMid < gMid) {
