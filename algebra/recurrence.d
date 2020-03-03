@@ -9,32 +9,32 @@ int[] pretty(int M)(ModInt!M[] as) {
 }
 
 // Berlekamp-Massey
-//   as[i] + \sum_{j=1}^l cs[j] as[i - j] = 0
+//   \sum_{j=1}^0 cs[j] as[i - j] = 0 (d <= i < |as|), cs[0] = 1
 //   M must be prime
 ModInt!M[] findLinearRecurrence(int M)(ModInt!M[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
-  int l, m;
+  int d, m;
   auto cs = new ModInt!M[n + 1], bs = new ModInt!M[n + 1];
   cs[0] = bs[0] = 1;
-  ModInt!M bef = 1;
+  ModInt!M invBef = 1;
   foreach (i; 0 .. n) {
     ++m;
     ModInt!M dif = as[i];
-    foreach (j; 1 .. l + 1) dif += cs[j] * as[i - j];
+    foreach (j; 1 .. d + 1) dif += cs[j] * as[i - j];
     if (dif.x != 0) {
       auto csDup = cs.dup;
-      const r = dif / bef;
+      const r = dif * invBef;
       foreach (j; m .. n) cs[j] -= r * bs[j - m];
-      if (2 * l <= i) {
-        l = i + 1 - l;
+      if (2 * d <= i) {
+        d = i + 1 - d;
         m = 0;
         bs = csDup;
-        bef = dif;
+        invBef = dif.inv;
       }
     }
   }
-  return cs[0 .. l + 1];
+  return cs[0 .. d + 1];
 }
 
 ModInt!M[] findLinearRecurrence(int M)(long[] as) {
