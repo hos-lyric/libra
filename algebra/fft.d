@@ -3,7 +3,7 @@ import modint, mod_inv;
 
 // M: prime, G: primitive root
 class Fft(int M_, int G, int K) {
-  import std.algorithm : reverse, swap;
+  import std.algorithm : reverse;
   import std.traits : isIntegral;
   alias M = M_;
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
