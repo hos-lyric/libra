@@ -17,8 +17,9 @@ struct ModInt(int M_) {
   }
   ref ModInt opOpAssign(string op)(long a) {
     static if (op == "^^") {
+      if (a < 0) return (this = inv()^^(-a));
       ModInt t2 = this, te = ModInt(1);
-      for (long e = a; e; e >>= 1) {
+      for (long e = a; e > 0; e >>= 1) {
         if (e & 1) te *= t2;
         t2 *= t2;
       }
@@ -43,7 +44,7 @@ struct ModInt(int M_) {
       z -= t * y;
     }
   }
-  ModInt opUnary(string op)() const if (op == "-") { return ModInt(-x); }
+  ModInt opUnary(string op: "-")() const { return ModInt(-x); }
   ModInt opBinary(string op, T)(T a) const {
     return mixin("ModInt(this) " ~ op ~ "= a");
   }
