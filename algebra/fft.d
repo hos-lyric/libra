@@ -7,24 +7,26 @@ class Fft(int M_, int G, int K) {
   import std.traits : isIntegral;
   alias M = M_;
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
-  int[] g;
+  int[] gs;
   this() {
     static assert(2 <= K && K <= 30, "Fft: 2 <= K <= 30 must hold");
     static assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
-    g = new int[1 << (K - 1)];
-    g[0] = 1;
+    gs = new int[1 << (K - 1)];
+    gs[0] = 1;
     long g2 = G, gg = 1;
     for (int e = (M - 1) >> K; e; e >>= 1) {
       if (e & 1) gg = (gg * g2) % M;
       g2 = (g2 * g2) % M;
     }
-    g[1 << (K - 2)] = cast(int)(gg);
+    gs[1 << (K - 2)] = cast(int)(gg);
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
-      g[l >> 1] = cast(int)((cast(long)(g[l]) * g[l]) % M);
+      gs[l >> 1] = cast(int)((cast(long)(gs[l]) * gs[l]) % M);
     }
-    assert((cast(long)(g[1]) * g[1]) % M == M - 1);
+    assert((cast(long)(gs[1]) * gs[1]) % M == M - 1);
     for (int l = 2; l <= 1 << (K - 2); l <<= 1) {
-      foreach (i; 1 .. l) g[l + i] = cast(int)((cast(long)(g[l]) * g[i]) % M);
+      foreach (i; 1 .. l) {
+        gs[l + i] = cast(int)((cast(long)(gs[l]) * gs[i]) % M);
+      }
     }
   }
   void fft(int[] xs) const {
@@ -33,16 +35,30 @@ class Fft(int M_, int G, int K) {
     assert(n <= 1 << K, "Fft.fft: |xs| <= 2^K must hold");
     for (int l = n; l >>= 1; ) {
       foreach (i; 0 .. (n >> 1) / l) {
+        const(long) g = gs[i];
         foreach (j; (i << 1) * l .. (i << 1 | 1) * l) {
-          const t = cast(int)((cast(long)(g[i]) * xs[j + l]) % M);
+          const t = cast(int)((g * xs[j + l]) % M);
           if ((xs[j + l] = xs[j] - t) < 0) xs[j + l] += M;
           if ((xs[j] += t) >= M) xs[j] -= M;
         }
       }
     }
-    for (int i = 0, j = 0; i < n; ++i) {
-      if (i < j) swap(xs[i], xs[j]);
-      for (int l = n; (l >>= 1) && !((j ^= l) & l); ) {}
+  }
+  void invFft(int[] xs) const {
+    const n = cast(int)(xs.length);
+    assert(!(n & (n - 1)), "Fft.invFft: |xs| must be a power of two");
+    assert(n <= 1 << K, "Fft.invFft: |xs| <= 2^K must hold");
+    for (int l = 1; l < n; l <<= 1) xs[l .. l << 1].reverse;
+    for (int l = 1; l < n; l <<= 1) {
+      foreach (i; 0 .. (n >> 1) / l) {
+        const(long) g = gs[i];
+        foreach (j; (i << 1) * l .. (i << 1 | 1) * l) {
+          int t = cast(int)((g * (xs[j] - xs[j + l])) % M);
+          if (t < 0) t += M;
+          if ((xs[j] += xs[j + l]) >= M) xs[j] -= M;
+          xs[j + l] = t;
+        }
+      }
     }
   }
   T[] convolute(T)(inout(T)[] as, inout(T)[] bs) const if (isIntegral!T) {
@@ -59,8 +75,7 @@ class Fft(int M_, int G, int K) {
     foreach (i; 0 .. n) {
       xs[i] = cast(int)((((cast(long)(xs[i]) * ys[i]) % M) * invN) % M);
     }
-    xs[1 .. n].reverse;
-    fft(xs);
+    invFft(xs);
     auto cs = new T[na + nb - 1];
     foreach (i; 0 .. na + nb - 1) cs[i] = cast(T)(xs[i]);
     return cs;
@@ -79,8 +94,7 @@ class Fft(int M_, int G, int K) {
     foreach (i; 0 .. n) {
       xs[i] = cast(int)((((cast(long)(xs[i]) * ys[i]) % M) * invN) % M);
     }
-    xs[1 .. n].reverse;
-    fft(xs);
+    invFft(xs);
     auto cs = new ModInt!M[na + nb - 1];
     foreach (i; 0 .. na + nb - 1) cs[i].x = xs[i];
     return cs;
@@ -100,8 +114,7 @@ class Fft(int M_, int G, int K) {
     foreach (i; 0 .. n) {
       xs[i] = cast(int)((((cast(long)(xs[i]) * ys[i]) % M) * invN) % M);
     }
-    xs[1 .. n].reverse;
-    fft(xs);
+    invFft(xs);
     return xs[0 .. na + nb - 1];
   }
 }
