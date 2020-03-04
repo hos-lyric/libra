@@ -8,58 +8,77 @@ using std::vector;
 // M: prime, G: primitive root
 template <int M, int G, int K> struct Fft {
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
-  int g[1 << (K - 1)];
-  constexpr Fft() : g() {
-    static_assert(K >= 2, "Fft: K >= 2 must hold");
+  int gs[1 << (K - 1)];
+  constexpr Fft() : gs() {
+    static_assert(2 <= K && K <= 30, "Fft: 2 <= K <= 30 must hold");
     static_assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
-    g[0] = 1;
+    gs[0] = 1;
     long long g2 = G, gg = 1;
     for (int e = (M - 1) >> K; e; e >>= 1) {
       if (e & 1) gg = (gg * g2) % M;
       g2 = (g2 * g2) % M;
     }
-    g[1 << (K - 2)] = gg;
+    gs[1 << (K - 2)] = gg;
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
-      g[l >> 1] = (static_cast<long long>(g[l]) * g[l]) % M;
+      gs[l >> 1] = (static_cast<long long>(gs[l]) * gs[l]) % M;
     }
-    assert((static_cast<long long>(g[1]) * g[1]) % M == M - 1);
+    assert((static_cast<long long>(gs[1]) * gs[1]) % M == M - 1);
     for (int l = 2; l <= 1 << (K - 2); l <<= 1) {
       for (int i = 1; i < l; ++i) {
-        g[l + i] = (static_cast<long long>(g[l]) * g[i]) % M;
+        gs[l + i] = (static_cast<long long>(gs[l]) * gs[i]) % M;
       }
     }
   }
-  void fft(vector<int> &x) const {
-    const int n = x.size();
+  void fft(vector<int> &xs) const {
+    const int n = xs.size();
     assert(!(n & (n - 1)) && n <= 1 << K);
     for (int l = n; l >>= 1; ) {
       for (int i = 0; i < (n >> 1) / l; ++i) {
+        const long long g = gs[i];
         for (int j = (i << 1) * l; j < (i << 1 | 1) * l; ++j) {
-          const int t = (static_cast<long long>(g[i]) * x[j + l]) % M;
-          if ((x[j + l] = x[j] - t) < 0) x[j + l] += M;
-          if ((x[j] += t) >= M) x[j] -= M;
+          const int t = (g * xs[j + l]) % M;
+          if ((xs[j + l] = xs[j] - t) < 0) xs[j + l] += M;
+          if ((xs[j] += t) >= M) xs[j] -= M;
         }
       }
     }
-    for (int i = 0, j = 0; i < n; ++i) {
-      if (i < j) std::swap(x[i], x[j]);
-      for (int l = n; (l >>= 1) && !((j ^= l) & l); ) {}
+  }
+  void invFft(vector<int> &xs) const {
+    const int n = xs.size();
+    assert(!(n & (n - 1)) && n <= 1 << K);
+    for (int l = 1; l < n; l <<= 1) {
+      std::reverse(xs.begin() + l, xs.begin() + (l << 1));
+    }
+    for (int l = 1; l < n; l <<= 1) {
+      for (int i = 0; i < (n >> 1) / l; ++i) {
+        const long long g = gs[i];
+        for (int j = (i << 1) * l; j < (i << 1 | 1) * l; ++j) {
+          int t = (g * (xs[j] - xs[j + l])) % M;
+          if (t < 0) t += M;
+          if ((xs[j] += xs[j + l]) >= M) xs[j] -= M;
+          xs[j + l] = t;
+        }
+      }
     }
   }
-  vector<int> convolution(const vector<int> &a, const vector<int> &b) const {
-    const int na = a.size(), nb = b.size();
+  template<class T>
+  vector<T> convolute(const vector<T> &as, const vector<T> &bs) const {
+    const int na = as.size(), nb = bs.size();
     int n, invN = 1;
-    for (n = 1; n < na + nb - 1; n <<= 1) invN = ((invN & 1) ? (invN + M) : invN) >> 1;
-    vector<int> x(n, 0), y(n, 0);
-    std::copy(a.begin(), a.end(), x.begin());
-    std::copy(b.begin(), b.end(), y.begin());
-    fft(x);
-    fft(y);
-    for (int i = 0; i < n; ++i) x[i] = (((static_cast<long long>(x[i]) * y[i]) % M) * invN) % M;
-    std::reverse(x.begin() + 1, x.end());
-    fft(x);
-    x.resize(na + nb - 1);
-    return x;
+    for (n = 1; n < na + nb - 1; n <<= 1) {
+      invN = ((invN & 1) ? (invN + M) : invN) >> 1;
+    }
+    vector<int> xs(n, 0), ys(n, 0);
+    for (int i = 0; i < na; ++i) if ((xs[i] = as[i] % M) < 0) xs[i] += M;
+    for (int i = 0; i < nb; ++i) if ((ys[i] = bs[i] % M) < 0) ys[i] += M;
+    fft(xs);
+    fft(ys);
+    for (int i = 0; i < n; ++i) {
+      xs[i] = (((static_cast<long long>(xs[i]) * ys[i]) % M) * invN) % M;
+    }
+    invFft(xs);
+    xs.resize(na + nb - 1);
+    return xs;
   }
 };
 
@@ -70,10 +89,11 @@ void unittest() {
   const vector<int> a{31, 41, 59, 26, 53};
   const vector<int> b{58, 9, 79, 32, 38, 46};
   const vector<int> c{52, 38, 32, 62, 80, 31, 29, 63, 9, 13};
-  assert(FFT97.convolution(a, b) == c);
+  assert(FFT97.convolute(a, b) == c);
 }
 
 
+// https://judge.yosupo.jp/problem/convolution_mod
 int readInt() {
   int c;
   for (; ; ) {
@@ -89,7 +109,6 @@ int readInt() {
     x = x * 10 + (c - '0');
   }
 }
-
 char writeIntBuffer[10];
 void writeInt(int x) {
   if (x < 0) {
@@ -106,8 +125,6 @@ void writeInt(int x) {
   }
 }
 
-
-// https://judge.yosupo.jp/problem/convolution_mod
 int main() {
   // unittest();
 
@@ -123,7 +140,7 @@ int main() {
         B[i] = readInt();
       }
 
-      const vector<int> res = FFT.convolution(A, B);
+      const vector<int> res = FFT.convolute(A, B);
       for (int i = 0; i < L + M - 1; ++i) {
         if (i > 0) putchar(' ');
         writeInt(res[i]);
