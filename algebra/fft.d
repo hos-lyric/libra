@@ -9,7 +9,7 @@ class Fft(int M_, int G, int K) {
   // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
   int[] g;
   this() {
-    static assert(K >= 2, "Fft: K >= 2 must hold");
+    static assert(2 <= K && K <= 30, "Fft: 2 <= K <= 30 must hold");
     static assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
     g = new int[1 << (K - 1)];
     g[0] = 1;
@@ -24,9 +24,7 @@ class Fft(int M_, int G, int K) {
     }
     assert((cast(long)(g[1]) * g[1]) % M == M - 1);
     for (int l = 2; l <= 1 << (K - 2); l <<= 1) {
-      foreach (i; 1 .. l) {
-        g[l + i] = cast(int)((cast(long)(g[l]) * g[i]) % M);
-      }
+      foreach (i; 1 .. l) g[l + i] = cast(int)((cast(long)(g[l]) * g[i]) % M);
     }
   }
   void fft(int[] xs) const {
@@ -144,7 +142,8 @@ long[] convolute(inout(long)[] as, inout(long)[] bs) {
     long d0 = cs0[i] % Fft3_0.M;
     long d1 = (FFT_INV01 * (cs1[i] - d0)) % Fft3_1.M;
     if (d1 < 0) d1 += Fft3_1.M;
-    long d2 = (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
+    long d2 =
+        (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
     if (d2 < 0) d2 += Fft3_2.M;
     cs[i] = d0 + Fft3_0.M * d1 + (cast(long)(Fft3_0.M) * Fft3_1.M) * d2;
   }
@@ -159,14 +158,15 @@ long[] convolute(inout(long)[] as, inout(long)[] bs, long m) {
     long d0 = cs0[i] % Fft3_0.M;
     long d1 = (FFT_INV01 * (cs1[i] - d0)) % Fft3_1.M;
     if (d1 < 0) d1 += Fft3_1.M;
-    long d2 = (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
+    long d2 =
+        (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
     if (d2 < 0) d2 += Fft3_2.M;
-    cs[i] = (d0 + Fft3_0.M * d1 + ((cast(long)(Fft3_0.M) * Fft3_1.M) % m) * d2) % m;
+    cs[i] =
+        (d0 + Fft3_0.M * d1 + ((cast(long)(Fft3_0.M) * Fft3_1.M) % m) * d2) % m;
   }
   return cs;
 }
 ModInt!M[] convolute(int M)(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) {
-  auto asInt = new int[as.length], bsInt = new int[bs.length];
   const cs0 = FFT3_0.convolute(as, bs);
   const cs1 = FFT3_1.convolute(as, bs);
   const cs2 = FFT3_2.convolute(as, bs);
@@ -175,9 +175,11 @@ ModInt!M[] convolute(int M)(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) {
     long d0 = cs0[i] % Fft3_0.M;
     long d1 = (FFT_INV01 * (cs1[i] - d0)) % Fft3_1.M;
     if (d1 < 0) d1 += Fft3_1.M;
-    long d2 = (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
+    long d2 =
+        (FFT_INV012 * ((cs2[i] - d0 - Fft3_0.M * d1) % Fft3_2.M)) % Fft3_2.M;
     if (d2 < 0) d2 += Fft3_2.M;
-    cs[i] = (d0 + Fft3_0.M * d1 + ((cast(long)(Fft3_0.M) * Fft3_1.M) % M) * d2) % M;
+    cs[i] =
+        (d0 + Fft3_0.M * d1 + ((cast(long)(Fft3_0.M) * Fft3_1.M) % M) * d2) % M;
   }
   return cs;
 }
@@ -224,5 +226,4 @@ unittest {
   assert(convolute(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
 }
 
-void main() {
-}
+void main() {}
