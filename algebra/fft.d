@@ -22,7 +22,8 @@ class Fft(int M_, int G, int K) {
     for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
       gs[l >> 1] = cast(int)((cast(long)(gs[l]) * gs[l]) % M);
     }
-    assert((cast(long)(gs[1]) * gs[1]) % M == M - 1);
+    assert((cast(long)(gs[1]) * gs[1]) % M == M - 1,
+           "Fft: g^(2^(K-1)) == -1 (mod M) must hold");
     for (int l = 2; l <= 1 << (K - 2); l <<= 1) {
       foreach (i; 1 .. l) {
         gs[l + i] = cast(int)((cast(long)(gs[l]) * gs[i]) % M);
@@ -48,7 +49,7 @@ class Fft(int M_, int G, int K) {
     const n = cast(int)(xs.length);
     assert(!(n & (n - 1)), "Fft.invFft: |xs| must be a power of two");
     assert(n <= 1 << K, "Fft.invFft: |xs| <= 2^K must hold");
-    for (int l = 1; l < n; l <<= 1) xs[l .. l << 1].reverse;
+    for (int l = 1; l < n; l <<= 1) reverse(xs[l .. l << 1]);
     for (int l = 1; l < n; l <<= 1) {
       foreach (i; 0 .. (n >> 1) / l) {
         const(long) g = gs[i];
