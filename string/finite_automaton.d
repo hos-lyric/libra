@@ -45,6 +45,20 @@ class Dfa {
     int nn = 2;
     uss = new int[][n];
     foreach (u; 0 .. n) if (ids[u] == -2) uss[ids[u] = ac[u] ? 1 : 0] ~= u;
+    // empty
+    if (uss[1].length == 0) {
+      auto dfa = new Dfa(1, 0, a);
+      dfa.to[0][] = 0;
+      dfa.ac[0] = false;
+      return dfa;
+    }
+    // all
+    if (uss[0].length == 0) {
+      auto dfa = new Dfa(1, 0, a);
+      dfa.to[0][] = 0;
+      dfa.ac[0] = true;
+      return dfa;
+    }
     qb = qe = 0;
     auto on = new bool[n];
     on[que[qe++] = (uss[1].length <= uss[0].length) ? 1 : 0] = true;
@@ -70,13 +84,13 @@ class Dfa {
     }
     uss.length = nn;
     // make new DFA
-    auto ret = new Dfa(nn, ids[s], a);
+    auto dfa = new Dfa(nn, ids[s], a);
     foreach (x; 0 .. nn) {
       const u = uss[x][0];
-      foreach (e; 0 .. a) ret.to[x][e] = ids[to[u][e]];
-      ret.ac[x] = ac[u];
+      foreach (e; 0 .. a) dfa.to[x][e] = ids[to[u][e]];
+      dfa.ac[x] = ac[u];
     }
-    return ret;
+    return dfa;
   }
 }
 
@@ -209,6 +223,26 @@ unittest {
   dfa1.to = [[1, 2], [3, 0], [0, 3], [3, 3]];
   dfa1.ac[0] = true;
   assert(minDfa.isIsomorphic(dfa1));
+}
+
+// Dfa
+unittest {
+  // empty
+  auto dfa0 = new Dfa(3, 0, 1);
+  dfa0.to = [[1], [2], [0]];
+  dfa0.ac[] = false;
+  dfa0 = dfa0.minimize;
+  assert(dfa0.n == 1);
+  assert(dfa0.to == [[0]]);
+  assert(dfa0.ac == [false]);
+  // all
+  auto dfa1 = new Dfa(3, 0, 1);
+  dfa1.to = [[2], [0], [1]];
+  dfa1.ac[] = true;
+  dfa1 = dfa1.minimize;
+  assert(dfa1.n == 1);
+  assert(dfa1.to == [[0]]);
+  assert(dfa1.ac == [true]);
 }
 
 // Nfa
