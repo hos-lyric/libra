@@ -23,7 +23,9 @@ class Dfa {
   int[][][] revs;
   Dfa minimize() {
     import std.algorithm.mutation : swap;
-    foreach (u; 0 .. n) foreach (e; 0 .. a) assert(to[u][e] != -1);
+    foreach (u; 0 .. n) foreach (e; 0 .. a) {
+      assert(to[u][e] != -1, "Dfa.minimize: to is not total.");
+    }
     auto que = new int[n];
     int qb, qe;
     ids = new int[n];
@@ -60,11 +62,9 @@ class Dfa {
       return dfa;
     }
     qb = qe = 0;
-    auto on = new bool[n];
-    on[que[qe++] = (uss[1].length <= uss[0].length) ? 1 : 0] = true;
+    que[qe++] = (uss[1].length <= uss[0].length) ? 1 : 0;
     for (; qb != qe; ) {
       const x = que[qb++];
-      on[x] = false;
       bool[int] parter;
       foreach (u; uss[x]) parter[u] = true;
       foreach (e; 0 .. a) {
@@ -75,11 +75,11 @@ class Dfa {
           foreach (v; uss[y]) ((to[v][e] in parter) ? vs1 : vs0) ~= v;
           assert(vs1.length > 0);
           if (vs0.length > 0) {
-            if (vs1.length > vs0.length) swap(vs1, vs0);
+            if (vs1.length < vs0.length) swap(vs1, vs0);
             foreach (v; vs0) ids[v] = nn;
+            que[qe++] = nn;
             uss[y] = vs1;
             uss[nn++] = vs0;
-            if (!on[y]) on[que[qe++] = y] = true;
           }
         }
       }
