@@ -65,12 +65,14 @@ class Dfa {
     for (; qb != qe; ) {
       const x = que[qb++];
       on[x] = false;
+      bool[int] parter;
+      foreach (u; uss[x]) parter[u] = true;
       foreach (e; 0 .. a) {
         bool[int] apps;
-        foreach (u; uss[x]) foreach (v; revs[u][e]) apps[ids[v]] = true;
+        foreach (u; parter.keys) foreach (v; revs[u][e]) apps[ids[v]] = true;
         foreach (y; apps.keys) {
           int[] vs1, vs0;
-          foreach (v; uss[y]) ((ids[to[v][e]] == x) ? vs1 : vs0) ~= v;
+          foreach (v; uss[y]) ((to[v][e] in parter) ? vs1 : vs0) ~= v;
           assert(vs1.length > 0);
           if (vs0.length > 0) {
             if (vs1.length > vs0.length) swap(vs1, vs0);
