@@ -11,7 +11,7 @@ class Dfa {
     ac = new bool[n];
   }
   int addState() {
-    const int u = n++;
+    const u = n++;
     to ~= new int[a];
     to[u][] = -1;
     ac ~= false;
@@ -123,7 +123,9 @@ bool isIsomorphic(const(Dfa) dfa0, const(Dfa) dfa1) {
       }
     }
   }
-  foreach (u0; 0 .. n) if (dfa0.ac[u0] != dfa1.ac[f01[u0]]) return false;
+  foreach (u0; 0 .. n) {
+    if (f01[u0] != -1 && dfa0.ac[u0] != dfa1.ac[f01[u0]]) return false;
+  }
   return true;
 }
 
