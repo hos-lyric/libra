@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <map>
 #include <queue>
 #include <set>
 #include <vector>
@@ -126,80 +127,64 @@ bool isIsomorphic(const Dfa &dfa0, const Dfa &dfa1) {
   return true;
 }
 
-/*
-class Nfa {
+struct Nfa {
   int n, s, a;
-  int[][][] to;
-  int[][] eps;
-  bool[] ac;
-  this(int n, int s, int a) {
-    this.n = n;
-    this.s = s;
-    this.a = a;
-    to = new int[][][](n, a);
-    eps = new int[][n];
-    ac = new bool[n];
+  vector<vector<vector<int>>> to;
+  vector<vector<int>> eps;
+  vector<bool> ac;
+  Nfa(int n, int s, int a) : n(n), s(s), a(a) {
+    to.assign(n, vector<vector<int>>(a));
+    eps.assign(n, {});
+    ac.assign(n, false);
   }
   int addState() {
     const int u = n++;
-    to ~= new int[][a];
-    eps ~= [[]];
-    ac ~= false;
+    to.emplace_back(a);
+    eps.emplace_back();
+    ac.push_back(false);
     return u;
   }
   Dfa toDfa() const {
-    import std.bigint : BigInt;
-    import std.container.dlist : DList;
-    DList!int que;
-    auto epsed = new BigInt[n];
-    foreach (u; 0 .. n) {
-      epsed[u] |= BigInt(1) << u;
-      que.insertBack(u);
-      for (; !que.empty; ) {
-        const v = que.front;
-        que.removeFront;
-        foreach (w; eps[v]) {
-          if (!(epsed[u] & BigInt(1) << w)) {
-            epsed[u] |= BigInt(1) << w;
-            que.insertBack(w);
-          }
+    std::queue<int> que;
+    vector<std::set<int>> epsed(n);
+    for (int u = 0; u < n; ++u) {
+      epsed[u].insert(u);
+      que.push(u);
+      for (; !que.empty(); ) {
+        const int v = que.front(); que.pop();
+        for (const int w : eps[v]) if (epsed[u].insert(w).second) que.push(w);
+      }
+    }
+    vector<std::set<int>> ps;
+    std::map<std::set<int>, int> tr;
+    que.push(0);
+    ps.push_back(epsed[s]);
+    tr[epsed[s]] = 0;
+    Dfa dfa(1, 0, a);
+    for (; !que.empty(); ) {
+      const int x = que.front(); que.pop();
+      for (int e = 0; e < a; ++e) {
+        std::set<int> pp;
+        for (const int u : ps[x]) for (const int v : to[u][e]) {
+          for (const int w : epsed[v]) pp.insert(w);
+        }
+        auto it = tr.find(pp);
+        if (it == tr.end()) {
+          que.push(dfa.n);
+          ps.push_back(pp);
+          dfa.to[x][e] = tr[pp] = dfa.n;
+          dfa.addState();
+        } else {
+          dfa.to[x][e] = it->second;
         }
       }
     }
-    auto dfa = new Dfa(1, 0, a);
-    int nn;
-    int[BigInt] tr;
-    BigInt[] ps;
-    que.insertBack(nn);
-    ps ~= epsed[s];
-    tr[epsed[s]] = nn++;
-    for (; !que.empty; ) {
-      const x = que.front;
-      que.removeFront;
-      foreach (e; 0 .. a) {
-        BigInt pp;
-        foreach (u; 0 .. n) {
-          if (ps[x] & BigInt(1) << u) foreach (v; to[u][e]) pp |= epsed[v];
-        }
-        tr.update(pp, {
-          dfa.addState;
-          dfa.to[x][e] = nn;
-          que.insertBack(nn);
-          ps ~= pp;
-          return nn++;
-        }, (ref int y) {
-          dfa.to[x][e] = y;
-          return y;
-        });
-      }
-    }
-    foreach (x; 0 .. nn) foreach (u; 0 .. n) {
-      if (ac[u] && (ps[x] & BigInt(1) << u)) dfa.ac[x] = true;
+    for (int x = 0; x < dfa.n; ++x) for (const int u : ps[x]) {
+      if (ac[u]) dfa.ac[x] = true;
     }
     return dfa;
   }
-}
-*/
+};
 
 // Dfa
 void unittest0() {
@@ -250,28 +235,26 @@ void unittest1() {
 
 // Nfa
 void unittest2() {
-/*
   // 0*10*(10*10*)* (odd number of 1's)
-  auto nfa = new Nfa(6, 0, 2);
-  nfa.to[0][0] ~= 0;
-  nfa.to[0][1] ~= 1;
-  nfa.to[1][0] ~= 1;
-  nfa.to[3][1] ~= 4;
-  nfa.to[4][0] ~= 4;
-  nfa.to[4][1] ~= 5;
-  nfa.to[5][0] ~= 5;
-  nfa.eps[1] ~= 2;
-  nfa.eps[2] ~= 3;
-  nfa.eps[5] ~= 2;
+  Nfa nfa(6, 0, 2);
+  nfa.to[0][0].push_back(0);
+  nfa.to[0][1].push_back(1);
+  nfa.to[1][0].push_back(1);
+  nfa.to[3][1].push_back(4);
+  nfa.to[4][0].push_back(4);
+  nfa.to[4][1].push_back(5);
+  nfa.to[5][0].push_back(5);
+  nfa.eps[1].push_back(2);
+  nfa.eps[2].push_back(3);
+  nfa.eps[5].push_back(2);
   nfa.ac[2] = true;
-  const minDfa = nfa.toDfa.minimize;
-  auto dfa1 = new Dfa(2, 0, 2);
-  dfa1.to = [[0, 1], [1, 0]];
-  dfa1.ac = [false, true];
-  assert(dfa1.isIsomorphic(minDfa));
-  dfa1.ac = [true, false];
-  assert(!dfa1.isIsomorphic(minDfa));
-*/
+  const Dfa minDfa = nfa.toDfa().minimize();
+  Dfa dfa1(2, 0, 2);
+  dfa1.to = {{0, 1}, {1, 0}};
+  dfa1.ac = {false, true};
+  assert(isIsomorphic(dfa1, minDfa));
+  dfa1.ac = {true, false};
+  assert(!isIsomorphic(dfa1, minDfa));
 }
 
 int main() {
