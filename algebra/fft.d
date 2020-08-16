@@ -147,6 +147,8 @@ void initFft3() {
   FFT3_1 = new Fft3_1;
   FFT3_2 = new Fft3_2;
 }
+// for negative result, if (!(0 <= c && c < <bound>)) add MMM:
+//   enum MMM = 1L * Fft3_0.M * Fft3_1.M * Fft3_2.M;
 long[] convolute(inout(long)[] as, inout(long)[] bs) {
   const cs0 = FFT3_0.convolute(as, bs);
   const cs1 = FFT3_1.convolute(as, bs);
