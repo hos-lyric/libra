@@ -35,12 +35,25 @@ constexpr int MO = 998244353;
 using Mint = ModInt<MO>;
 
 void unittest() {
-  vector<vector<Mint>> a{{3, 1, 4}, {1, 5, 9}, {2, 6, 5}};
-  const auto ps = charPoly(a);
-  assert(ps[0].x == 90);
-  assert(ps[1].x == MO - 8);
-  assert(ps[2].x == MO - 13);
-  assert(ps[3].x == 1);
+  {
+    vector<vector<Mint>> a{{3, 1, 4}, {1, 5, 9}, {2, 6, 5}};
+    const auto ps = charPoly(a);
+    assert(ps.size() == 3 + 1);
+    assert(ps[0].x == 90);
+    assert(ps[1].x == MO - 8);
+    assert(ps[2].x == MO - 13);
+    assert(ps[3].x == 1);
+  }
+  {
+    vector<vector<Mint>> a{{3, 5, 8, 9}, {7, 9, 3, 2}, {3, 8, 4, 6}, {2, 6, 4, 3}};
+    const auto ps = charPoly(a);
+    assert(ps.size() == 4 + 1);
+    assert(ps[0].x == MO - 491);
+    assert(ps[1].x == MO - 317);
+    assert(ps[2].x == MO - 14);
+    assert(ps[3].x == MO - 19);
+    assert(ps[4].x == 1);
+  }
 }
 
 int main() {
