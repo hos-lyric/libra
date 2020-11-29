@@ -104,9 +104,19 @@ unittest {
     enum n = 100;
     auto a = new Mint[][](n, n);
     foreach (i; 0 .. n) foreach (j; 0 .. n) {
-      a[i][j] = (i * j) % 97;
+      a[i][j] = (i * j * j) % 199 - 100;
     }
     const ps = charPoly(a);
+    assert(ps.length == n + 1);
+    assert(ps[0].x == 0);
+    assert(ps[1].x == 895461868);
+    assert(ps[2].x == 863013394);
+    assert(ps[49].x == 301922511);
+    assert(ps[50].x == 222844028);
+    assert(ps[51].x == 443314937);
+    assert(ps[98].x == 997237804);
+    assert(ps[99].x == 998243734);
+    assert(ps[100].x == 1);
     assert(ps == charPolyDivFree(a));
   }
 }
