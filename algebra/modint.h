@@ -41,8 +41,11 @@ template<int M_> struct ModInt {
       z -= t * y;
     }
   }
+  explicit operator bool() const { return (x != 0); }
+  bool operator==(const ModInt &a) const { return (x == a.x); }
   friend ModInt operator+(long long a, const ModInt &b) { return (ModInt(a) += b); }
   friend ModInt operator-(long long a, const ModInt &b) { return (ModInt(a) -= b); }
   friend ModInt operator*(long long a, const ModInt &b) { return (ModInt(a) *= b); }
+  friend ModInt operator/(long long a, const ModInt &b) { return (ModInt(a) /= b); }
   friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
 };
