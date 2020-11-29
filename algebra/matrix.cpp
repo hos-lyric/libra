@@ -24,9 +24,6 @@ template <class T> vector<T> charPoly(const vector<vector<T>> &a) {
       ps[i] += sub[i][u] * a[u][h];
     }
   }
-  for (int i = n - 1; i >= 0; i -= 2) {
-    ps[i] *= -1;
-  }
   return ps;
 }
 
@@ -36,23 +33,50 @@ using Mint = ModInt<MO>;
 
 void unittest() {
   {
-    vector<vector<Mint>> a{{3, 1, 4}, {1, 5, 9}, {2, 6, 5}};
+    vector<vector<Mint>> a{
+        {3, 1, 4},
+        {1, 5, 9},
+        {2, 6, 5},
+    };
     const auto ps = charPoly(a);
     assert(ps.size() == 3 + 1);
-    assert(ps[0].x == 90);
+    assert(ps[0].x == MO - 90);
     assert(ps[1].x == MO - 8);
-    assert(ps[2].x == MO - 13);
+    assert(ps[2].x == 13);
     assert(ps[3].x == 1);
   }
   {
-    vector<vector<Mint>> a{{3, 5, 8, 9}, {7, 9, 3, 2}, {3, 8, 4, 6}, {2, 6, 4, 3}};
+    vector<vector<Mint>> a{
+        {3, -5, 8, 9},
+        {-7, 9, -3, 2},
+        {3, 8, -4, -6},
+        {2, -6, 4, 3},
+    };
     const auto ps = charPoly(a);
     assert(ps.size() == 4 + 1);
-    assert(ps[0].x == MO - 491);
-    assert(ps[1].x == MO - 317);
+    assert(ps[0].x == 181);
+    assert(ps[1].x == MO - 171);
     assert(ps[2].x == MO - 14);
-    assert(ps[3].x == MO - 19);
+    assert(ps[3].x == 11);
     assert(ps[4].x == 1);
+  }
+  {
+    constexpr int n = 100;
+    vector<vector<Mint>> a(n, vector<Mint>(n));
+    for (int i = 0; i < n; ++i) for (int j = 0; j < n; ++j) {
+      a[i][j] = (i * j * j) % 199 - 100;
+    }
+    const auto ps = charPoly(a);
+    assert(ps.size() == static_cast<size_t>(n + 1));
+    assert(ps[0].x == 0);
+    assert(ps[1].x == 895461868);
+    assert(ps[2].x == 863013394);
+    assert(ps[49].x == 301922511);
+    assert(ps[50].x == 222844028);
+    assert(ps[51].x == 443314937);
+    assert(ps[98].x == 997237804);
+    assert(ps[99].x == 998243734);
+    assert(ps[100].x == 1);
   }
 }
 
