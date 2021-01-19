@@ -1,7 +1,7 @@
 #include "modint.h"
 
 void unittest() {
-  constexpr int MO = 1'000'000'007;
+  constexpr int MO = 1000000007;
   using Mint = ModInt<MO>;
 
   // this
@@ -19,16 +19,16 @@ void unittest() {
   assert(a.x == 2);
   (a -= Mint(10)) -= Mint(10);
   assert(a.x == MO - 18);
-  a = Mint(100'000);
-  a *= Mint(1'000'000);
-  assert(a.x == 100'000'000'000LL % MO);
+  a = Mint(100000);
+  a *= Mint(1000000);
+  assert(a.x == 100000000000LL % MO);
   a = 2;
   a /= Mint(3);
   static_assert((2 + 2 * MO) % 3 == 0);
   assert(a.x == (2 + 2 * MO) / 3);
   a = 3;
   a = a.pow(20);
-  assert(a.x == 3'486'784'401LL % MO);
+  assert(a.x == 3486784401LL % MO);
   a = 0;
   a = a.pow(0);
   assert(a.x == 1);
@@ -51,9 +51,9 @@ void unittest() {
   assert(a.x == (1 + MO) / 2);
 
   // inv
-  a = 10'000'000;
+  a = 10000000;
   Mint b = a.inv();
-  assert(0 <= b.x && b.x < MO);
+  assert(b.x < MO);
   assert((static_cast<long>(a.x) * b.x) % MO == 1);
 
   // opUnary
