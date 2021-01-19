@@ -1,4 +1,7 @@
 #include <assert.h>
+#include <chrono>
+#include <iostream>
+#include <vector>
 #include "modint.h"
 
 void unittest() {
@@ -111,8 +114,52 @@ void unittestInv() {
   assert(ModInt<998244353>(998244352).inv().x == 998244352);
 }
 
+// https://atcoder.jp/contests/agc045/tasks/agc045_d
+void solve(const int N, const int A, const unsigned expected) {
+  using Mint = ModInt<1000000007>;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  std::vector<Mint> inv(N + 1), fac(N + 1), invFac(N + 1);
+  inv[1] = 1;
+  for (int i = 2; i <= N; ++i) {
+    inv[i] = -Mint(Mint::M / i) * inv[Mint::M % i];
+  }
+  fac[0] = invFac[0] = 1;
+  for (int i = 1; i <= N; ++i) {
+    fac[i] = fac[i - 1] * i;
+    invFac[i] = invFac[i - 1] * inv[i];
+  }
+  Mint ans;
+  for (int i = 0; i <= A; ++i) {
+    for (int j = 0; j < i; ++j) {
+      Mint tmp = ((j & 1) ? -1 : +1) * (fac[i] * invFac[j] * invFac[i - j]);
+      tmp *= fac[i - j];
+      tmp *= invFac[(i - j) - 1] * fac[(i - j) + (N - A) - 1];
+      if (i < A) {
+        tmp *= invFac[(i - j) + (N - A)] * fac[(i - j) + (N - A) + (A - i - 1)];
+      }
+      ans += tmp;
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  std::cerr << "N = " << N << ", A = " << A << ": expected = " << expected
+            << ", actual = " << ans << std::endl;
+  std::cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << std::endl;
+  assert(expected == ans.x);
+}
+void measurement() {
+  solve(3, 1, 2);
+  solve(3, 2, 3);
+  solve(8, 4, 16776);
+  solve(9999999, 4999, 90395416);
+  solve(10000000, 20000, 187146217);
+}
+
 int main() {
   unittest();
   unittestInv();
+  measurement();
   return 0;
 }

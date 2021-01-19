@@ -1,5 +1,5 @@
 #include <assert.h>
-#include <iostream>
+#include <ostream>
 
 template <unsigned M_> struct ModInt {
   static constexpr unsigned M = M_;
