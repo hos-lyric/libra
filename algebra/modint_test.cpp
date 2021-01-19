@@ -1,0 +1,91 @@
+#include "modint.h"
+
+void unittest() {
+  constexpr int MO = 1'000'000'007;
+  using Mint = ModInt<MO>;
+
+  // this
+  assert(Mint(2 * MO + 10).x == 10);
+  assert(Mint(-2 * MO + 10).x == 10);
+  assert(Mint(Mint(2 * MO + 10)).x == 10);
+
+  // opAssign
+  Mint a = Mint(10);
+  (a = 2 * MO + 11) = 2 * MO + 12;
+  assert(a.x == 12);
+
+  // opOpAssign(ModInt)
+  a += Mint(MO - 10);
+  assert(a.x == 2);
+  (a -= Mint(10)) -= Mint(10);
+  assert(a.x == MO - 18);
+  a = Mint(100'000);
+  a *= Mint(1'000'000);
+  assert(a.x == 100'000'000'000LL % MO);
+  a = 2;
+  a /= Mint(3);
+  static_assert((2 + 2 * MO) % 3 == 0);
+  assert(a.x == (2 + 2 * MO) / 3);
+  a = 3;
+  a = a.pow(20);
+  assert(a.x == 3'486'784'401LL % MO);
+  a = 0;
+  a = a.pow(0);
+  assert(a.x == 1);
+  a = 2;
+  a = a.pow(-2);
+  static_assert((1 + MO) % 4 == 0);
+  assert(a.x == (1 + MO) / 4);
+  a = 10;
+  a += (2 * MO + 20);
+  assert(a.x == 30);
+  a = 10;
+  a -= (2 * MO + 20);
+  assert(a.x == MO - 10);
+  a = 10;
+  a *= (2 * MO + 20);
+  assert(a.x == 200);
+  a = 10;
+  a /= (2 * MO + 20);
+  static_assert((1 + MO) % 2 == 0);
+  assert(a.x == (1 + MO) / 2);
+
+  // inv
+  a = 10'000'000;
+  Mint b = a.inv();
+  assert(0 <= b.x && b.x < MO);
+  assert((static_cast<long>(a.x) * b.x) % MO == 1);
+
+  // opUnary
+  a = 0;
+  assert((-a).x == 0);
+  a = MO - 1;
+  assert((-a).x == 1);
+
+  // opBinary
+  assert((Mint(MO - 6) + Mint(MO - 2)).x == MO - 8);
+  assert((Mint(MO - 6) - Mint(MO - 2)).x == MO - 4);
+  assert((Mint(MO - 6) * Mint(MO - 2)).x == 12);
+  assert((Mint(MO - 6) / Mint(MO - 2)).x == 3);
+  assert((Mint(MO - 6) + (11LL * MO - 2)).x == MO - 8);
+  assert((Mint(MO - 6) - (11LL * MO - 2)).x == MO - 4);
+  assert((Mint(MO - 6) * (11LL * MO - 2)).x == 12);
+  assert((Mint(MO - 6) / (11LL * MO - 2)).x == 3);
+
+  // opBinaryRight
+  assert(((11LL * MO - 6) + Mint(MO - 2)).x == MO - 8);
+  assert(((11LL * MO - 6) - Mint(MO - 2)).x == MO - 4);
+  assert(((11LL * MO - 6) * Mint(MO - 2)).x == 12);
+  assert(((11LL * MO - 6) / Mint(MO - 2)).x == 3);
+
+  // opCast
+  a = MO;
+  assert(!a);
+  a = MO + 1;
+  assert(a);
+}
+
+int main() {
+  unittest();
+  return 0;
+}
