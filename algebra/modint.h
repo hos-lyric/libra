@@ -1,4 +1,4 @@
-#include <cassert>
+#include <assert.h>
 #include <iostream>
 
 template <unsigned M_> struct ModInt {

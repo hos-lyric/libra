@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "modint.h"
 
 void unittest() {
@@ -58,8 +59,10 @@ void unittest() {
 
   // opUnary
   a = 0;
+  assert((+a).x == 0);
   assert((-a).x == 0);
   a = MO - 1;
+  assert((+a).x == MO - 1);
   assert((-a).x == 1);
 
   // opBinary
@@ -83,9 +86,33 @@ void unittest() {
   assert(!a);
   a = MO + 1;
   assert(a);
+
+  // opEquals
+  a = 2;
+  b = MO + 2;
+  assert(a == b);
+  b = MO - 2;
+  assert(a != b);
+}
+
+// ModInt::inv
+void unittestInv() {
+  assert(ModInt<1>(0).inv().x == 0);
+  assert(ModInt<2>(1).inv().x == 1);
+  assert(ModInt<3>(1).inv().x == 1);
+  assert(ModInt<3>(2).inv().x == 2);
+  assert(ModInt<4>(1).inv().x == 1);
+  assert(ModInt<4>(3).inv().x == 3);
+  assert(ModInt<10>(1).inv().x == 1);
+  assert(ModInt<10>(3).inv().x == 7);
+  assert(ModInt<10>(7).inv().x == 3);
+  assert(ModInt<10>(9).inv().x == 9);
+  assert(ModInt<998244353>(499122177).inv().x == 2);
+  assert(ModInt<998244353>(998244352).inv().x == 998244352);
 }
 
 int main() {
   unittest();
+  unittestInv();
   return 0;
 }
