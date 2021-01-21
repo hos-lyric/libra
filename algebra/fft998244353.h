@@ -22,8 +22,8 @@ void fft(Mint *as, int n) {
   if (m >>= 1) {
     for (int i = 0; i < m; ++i) {
       const unsigned x = as[i + m].x;  // < MO
-      as[i + m].x = as[i].x + MO - x;  // < 2 * MO
-      as[i].x += x;  // < 2 * MO
+      as[i + m].x = as[i].x + MO - x;  // < 2 MO
+      as[i].x += x;  // < 2 MO
     }
   }
   if (m >>= 1) {
@@ -31,8 +31,8 @@ void fft(Mint *as, int n) {
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + m; ++i) {
         const unsigned x = (prod * as[i + m]).x;  // < MO
-        as[i + m].x = as[i].x + MO - x;  // < 3 * MO
-        as[i].x += x;  // < 3 * MO
+        as[i + m].x = as[i].x + MO - x;  // < 3 MO
+        as[i].x += x;  // < 3 MO
       }
       prod *= FFT_RATIOS[__builtin_ctz(++h)];
     }
@@ -43,8 +43,8 @@ void fft(Mint *as, int n) {
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned x = (prod * as[i + m]).x;  // < MO
-          as[i + m].x = as[i].x + MO - x;  // < 4 * MO
-          as[i].x += x;  // < 4 * MO
+          as[i + m].x = as[i].x + MO - x;  // < 4 MO
+          as[i].x += x;  // < 4 MO
         }
         prod *= FFT_RATIOS[__builtin_ctz(++h)];
       }
@@ -54,16 +54,16 @@ void fft(Mint *as, int n) {
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned x = (prod * as[i + m]).x;  // < MO
-          as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 * MO
-          as[i + m].x = as[i].x + MO - x;  // < 3 * MO
-          as[i].x += x;  // < 3 * MO
+          as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
+          as[i + m].x = as[i].x + MO - x;  // < 3 MO
+          as[i].x += x;  // < 3 MO
         }
         prod *= FFT_RATIOS[__builtin_ctz(++h)];
       }
     }
   }
   for (int i = 0; i < n; ++i) {
-    as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 * MO
+    as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
     as[i].x = (as[i].x >= MO) ? (as[i].x - MO) : as[i].x;  // < MO
   }
 }
@@ -76,8 +76,8 @@ void invFft(Mint *as, int n) {
     Mint prod = 1;
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + m; ++i) {
-        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 * MO
-        as[i].x += as[i + m].x;  // < 2 * MO
+        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 MO
+        as[i].x += as[i + m].x;  // < 2 MO
         as[i + m].x = (prod.x * y) % MO;  // < MO
       }
       prod *= INV_FFT_RATIOS[__builtin_ctz(++h)];
@@ -88,14 +88,14 @@ void invFft(Mint *as, int n) {
     Mint prod = 1;
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + (m >> 1); ++i) {
-        const unsigned long long y = as[i].x + MO2 - as[i + m].x;  // < 4 * MO
-        as[i].x += as[i + m].x;  // < 4 * MO
-        as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 * MO
+        const unsigned long long y = as[i].x + MO2 - as[i + m].x;  // < 4 MO
+        as[i].x += as[i + m].x;  // < 4 MO
+        as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
         as[i + m].x = (prod.x * y) % MO;  // < MO
       }
       for (int i = i0 + (m >> 1); i < i0 + m; ++i) {
-        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 * MO
-        as[i].x += as[i + m].x;  // < 2 * MO
+        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 MO
+        as[i].x += as[i + m].x;  // < 2 MO
         as[i + m].x = (prod.x * y) % MO;  // < MO
       }
       prod *= INV_FFT_RATIOS[__builtin_ctz(++h)];
@@ -103,9 +103,9 @@ void invFft(Mint *as, int n) {
   }
   if (m < n) {
     for (int i = 0; i < m; ++i) {
-      const unsigned y = as[i].x + MO2 - as[i + m].x;  // < 4 * MO
-      as[i].x += as[i + m].x;  // < 4 * MO
-      as[i + m].x = y;  // < 4 * MO
+      const unsigned y = as[i].x + MO2 - as[i + m].x;  // < 4 MO
+      as[i].x += as[i + m].x;  // < 4 MO
+      as[i + m].x = y;  // < 4 MO
     }
   }
   const Mint invN = Mint(n).inv();
