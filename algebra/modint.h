@@ -9,8 +9,8 @@ template <unsigned M_> struct ModInt {
   constexpr ModInt(unsigned long long x_) : x(x_ % M) {}
   constexpr ModInt(int x_) : x(((x_ %= static_cast<int>(M)) < 0) ? (x_ + static_cast<int>(M)) : x_) {}
   constexpr ModInt(long long x_) : x(((x_ %= static_cast<long long>(M)) < 0) ? (x_ + static_cast<long long>(M)) : x_) {}
-  ModInt &operator+=(const ModInt &a) { if ((x += a.x) >= M) x -= M; return *this; }
-  ModInt &operator-=(const ModInt &a) { if ((x -= a.x) >= M) x += M; return *this; }
+  ModInt &operator+=(const ModInt &a) { x = ((x += a.x) >= M) ? (x - M) : x; return *this; }
+  ModInt &operator-=(const ModInt &a) { x = ((x -= a.x) >= M) ? (x + M) : x; return *this; }
   ModInt &operator*=(const ModInt &a) { x = (static_cast<unsigned long long>(x) * a.x) % M; return *this; }
   ModInt &operator/=(const ModInt &a) { return (*this *= a.inv()); }
   ModInt pow(long long e) const {

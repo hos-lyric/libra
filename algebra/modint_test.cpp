@@ -155,11 +155,33 @@ void measurement() {
   solve(8, 4, 16776);
   solve(9999999, 4999, 90395416);
   solve(10000000, 20000, 187146217);
+  // 1801 msec @ DAIVRabbit
+}
+
+void measurement_pow() {
+  static constexpr int NUM_CASES = 10000000;
+  using Mint = ModInt<1000000007>;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  Mint ans;
+  for (int i = 0; i < NUM_CASES; ++i) {
+    Mint a;
+    a.x = i;
+    ans += a.pow((1LL << 60) - i);
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  std::cerr << NUM_CASES << " cases: ans = " << ans << std::endl;
+  std::cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << std::endl;
+  assert(801522223 == ans.x);
+  // 2062 msec @ DAIVRabbit
 }
 
 int main() {
   unittest();
   unittestInv();
   measurement();
+  measurement_pow();
   return 0;
 }
