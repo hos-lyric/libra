@@ -1,13 +1,107 @@
-#include <initializer_list>
-#include <ostream>
+#include <assert.h>
+#include <stdio.h>
+#include <algorithm>
+#include <iostream>
+#include <vector>
 
-#include "modint.h"
-#include "fft.h"
-
+using std::max;
+using std::min;
 using std::vector;
 
-constexpr int LIM_POLY = 1 << 20;
-Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY];
+template <int M_> struct ModInt {
+  static constexpr int M = M_;
+  int x;
+  constexpr ModInt() : x(0) {}
+  constexpr ModInt(long long x_) : x(x_ % M) { if (x < 0) x += M; }
+  ModInt &operator+=(const ModInt &a) { x += a.x; if (x >= M) x -= M; return *this; }
+  ModInt &operator-=(const ModInt &a) { x -= a.x; if (x < 0) x += M; return *this; }
+  ModInt &operator*=(const ModInt &a) { x = static_cast<int>((static_cast<long long>(x) * a.x) % M); return *this; }
+  ModInt operator+(const ModInt &a) const { return (ModInt(*this) += a); }
+  ModInt operator-(const ModInt &a) const { return (ModInt(*this) -= a); }
+  ModInt operator*(const ModInt &a) const { return (ModInt(*this) *= a); }
+  ModInt operator-() const { return ModInt(-x); }
+  ModInt pow(long long e) const {
+    ModInt x2 = x, xe = 1;
+    for (; e; e >>= 1) {
+      if (e & 1) xe *= x2;
+      x2 *= x2;
+    }
+    return xe;
+  }
+  ModInt inv() const {
+    int a = x, b = M, y = 1, z = 0, t;
+    for (; ; ) {
+      t = a / b; a -= t * b;
+      if (a == 0) {
+        assert(b == 1 || b == -1);
+        return ModInt(b * z);
+      }
+      y -= t * z;
+      t = b / a; b -= t * a;
+      if (b == 0) {
+        assert(a == 1 || a == -1);
+        return ModInt(a * y);
+      }
+      z -= t * y;
+    }
+  }
+  friend ModInt operator+(long long a, const ModInt &b) { return (ModInt(a) += b); }
+  friend ModInt operator-(long long a, const ModInt &b) { return (ModInt(a) -= b); }
+  friend ModInt operator*(long long a, const ModInt &b) { return (ModInt(a) *= b); }
+  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
+};
+
+// M: prime, G: primitive root
+template <int M, int G, int K> struct Fft {
+  using Mint = ModInt<M>;
+  // 1, 1/4, 1/8, 3/8, 1/16, 5/16, 3/16, 7/16, ...
+  Mint g[1 << (K - 1)];
+  constexpr Fft() : g() {
+    static_assert(K >= 2, "Fft: K >= 2 must hold");
+    static_assert(!((M - 1) & ((1 << K) - 1)), "Fft: 2^K | M - 1 must hold");
+    g[0] = 1;
+    g[1 << (K - 2)] = Mint(G).pow((M - 1) >> K);
+    for (int l = 1 << (K - 2); l >= 2; l >>= 1) {
+      g[l >> 1] = g[l] * g[l];
+    }
+    assert((g[1] * g[1]).x == M - 1);
+    for (int l = 2; l <= 1 << (K - 2); l <<= 1) {
+      for (int i = 1; i < l; ++i) {
+        g[l + i] = g[l] * g[i];
+      }
+    }
+  }
+  void fft(vector<Mint> &x) const {
+    const int n = x.size();
+    assert(!(n & (n - 1)) && n <= 1 << K);
+    for (int l = n; l >>= 1; ) {
+      for (int i = 0; i < (n >> 1) / l; ++i) {
+        for (int j = (i << 1) * l; j < (i << 1 | 1) * l; ++j) {
+          const Mint t = g[i] * x[j + l];
+          x[j + l] = x[j] - t;
+          x[j] += t;
+        }
+      }
+    }
+    for (int i = 0, j = 0; i < n; ++i) {
+      if (i < j) std::swap(x[i], x[j]);
+      for (int l = n; (l >>= 1) && !((j ^= l) & l); ) {}
+    }
+  }
+};
+
+constexpr int MO = 998244353;
+constexpr int LIM = (1 << 20) + 1;
+const Fft<MO, 3, 20> FFT;
+using Mint = ModInt<MO>;
+
+Mint inv[LIM];
+struct ModIntPreparator {
+  ModIntPreparator() {
+    inv[1] = 1;
+    for (int i = 2; i < LIM; ++i) inv[i] = -(MO / i) * inv[MO % i];
+  }
+} preparator;
 
 struct Poly : public vector<Mint> {
   Poly() {}
@@ -18,45 +112,12 @@ struct Poly : public vector<Mint> {
   Poly take(int n) const { return Poly(vector<Mint>(this->begin(), this->begin() + min(max(n, 1), size()))); }
   friend std::ostream &operator<<(std::ostream &os, const Poly &f) {
     os << "[";
-    for (int i = 0; i < f.size(); ++i) { if (i > 0) os << ", "; os << f[i]; }
+    for (int i = 0; i < f.size(); ++i) {
+      if (i > 0) os << ", ";
+      os << f[i];
+    }
     return os << "]";
   }
-
-  Poly &operator+=(const Poly &f) {
-    if (size() < f.size()) resize(f.size());
-    for (int i = 0; i < f.size(); ++i) (*this)[i] += f[i];
-    return *this;
-  }
-  Poly &operator-=(const Poly &f) {
-    if (size() < f.size()) resize(f.size());
-    for (int i = 0; i < f.size(); ++i) (*this)[i] -= f[i];
-    return *this;
-  }
-  // 1 M(n)
-  Poly &operator*=(const Poly &f) {
-    const int nt = size(), nf = f.size();
-    int n = 1;
-    for (; n < nt + nf - 1; n <<= 1) {}
-    resize(n);
-    fft(data(), n);
-    memcpy(polyWork0, f.data(), nf * sizeof(Mint));
-    memset(polyWork0 + nf, 0, (n - nf) * sizeof(Mint));
-    fft(polyWork0, n);
-    for (int i = 0; i < n; ++i) (*this)[i] *= polyWork0[i];
-    invFft(data(), n);
-    resize(nt + nf - 1);
-    return *this;
-  }
-};
-
-/*
-Mint inv[LIM];
-struct ModIntPreparator {
-  ModIntPreparator() {
-    inv[1] = 1;
-    for (int i = 2; i < LIM; ++i) inv[i] = -(MO / i) * inv[MO % i];
-  }
-} preparator;
 
   Poly &operator+=(const Poly &f) {
     if (size() < f.size()) resize(f.size());
@@ -179,4 +240,3 @@ int main() {
   yosupo_exp_of_formal_power_series();
   return 0;
 }
-*/
