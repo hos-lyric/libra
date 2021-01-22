@@ -83,6 +83,7 @@ struct Poly : public vector<Mint> {
       memset(polyWork0 + min(m << 1, size()), 0, ((m << 1) - min(m << 1, size())) * sizeof(Mint));
       fft(polyWork0, m << 1);
       memcpy(polyWork1, f.data(), min(m << 1, n) * sizeof(Mint));
+      memset(polyWork1 + min(m << 1, n), 0, ((m << 1) - min(m << 1, n)) * sizeof(Mint));
       fft(polyWork1, m << 1);
       for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
       invFft(polyWork0, m << 1);
@@ -97,6 +98,11 @@ struct Poly : public vector<Mint> {
 };
 
 // -----------------------------------------------------------------------------
+
+#include <chrono>
+#include <iostream>
+using std::cerr;
+using std::endl;
 
 void unittest() {
   // take
@@ -156,7 +162,49 @@ void unittest() {
   }
 }
 
+unsigned xrand() {
+  static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
+  unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
+}
+
+void solve_inv(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 100;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    Poly as(N);
+    as[0] = 1 + xrand() % (MO - 1);
+    for (int i = 0; i < N; ++i) {
+      as[i] = xrand();
+    }
+    const Poly bs = as.inv(N);
+    assert(bs.size() == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (bs[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[inv] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_inv() {
+  solve_inv(1, 34918970);
+  solve_inv(10, 754220679);
+  solve_inv(100, 588377382);
+  solve_inv(1000, 1032597331);
+  solve_inv(10000, 109459152);
+  solve_inv(100000, 934740919);
+  solve_inv(1000000, 266783204);
+  // 15876 msec @ DAIVRabbit
+}
+
 int main() {
   unittest();
+  measurement_inv();
   return 0;
 }
