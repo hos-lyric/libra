@@ -9,6 +9,7 @@ using std::min;
 using std::vector;
 
 constexpr int LIM_POLY = 1 << 20;
+static_assert(LIM_POLY <= 1 << FFT_MAX);
 Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY];
 
 struct Poly : public vector<Mint> {
@@ -18,31 +19,32 @@ struct Poly : public vector<Mint> {
   Poly(std::initializer_list<Mint> il) : vector<Mint>(il) {}
   int size() const { return vector<Mint>::size(); }
   Poly take(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
-  friend std::ostream &operator<<(std::ostream &os, const Poly &f) {
+  friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
     os << "[";
-    for (int i = 0; i < f.size(); ++i) { if (i > 0) os << ", "; os << f[i]; }
+    for (int i = 0; i < fs.size(); ++i) { if (i > 0) os << ", "; os << fs[i]; }
     return os << "]";
   }
 
-  Poly &operator+=(const Poly &f) {
-    if (size() < f.size()) resize(f.size());
-    for (int i = 0; i < f.size(); ++i) (*this)[i] += f[i];
+  Poly &operator+=(const Poly &fs) {
+    if (size() < fs.size()) resize(fs.size());
+    for (int i = 0; i < fs.size(); ++i) (*this)[i] += fs[i];
     return *this;
   }
-  Poly &operator-=(const Poly &f) {
-    if (size() < f.size()) resize(f.size());
-    for (int i = 0; i < f.size(); ++i) (*this)[i] -= f[i];
+  Poly &operator-=(const Poly &fs) {
+    if (size() < fs.size()) resize(fs.size());
+    for (int i = 0; i < fs.size(); ++i) (*this)[i] -= fs[i];
     return *this;
   }
   // 1 M(n)
-  Poly &operator*=(const Poly &f) {
-    if (empty() || f.empty()) return *this = {};
-    const int nt = size(), nf = f.size();
+  Poly &operator*=(const Poly &fs) {
+    if (empty() || fs.empty()) return *this = {};
+    const int nt = size(), nf = fs.size();
     int n = 1;
     for (; n < nt + nf - 1; n <<= 1) {}
+    assert(n <= LIM_POLY);
     resize(n);
     fft(data(), n);
-    memcpy(polyWork0, f.data(), nf * sizeof(Mint));
+    memcpy(polyWork0, fs.data(), nf * sizeof(Mint));
     memset(polyWork0 + nf, 0, (n - nf) * sizeof(Mint));
     fft(polyWork0, n);
     for (int i = 0; i < n; ++i) (*this)[i] *= polyWork0[i];
@@ -61,39 +63,120 @@ struct Poly : public vector<Mint> {
   }
   Poly operator+() const { return *this; }
   Poly operator-() const {
-    Poly f(size());
-    for (int i = 0; i < size(); ++i) f[i] = -(*this)[i];
-    return f;
+    Poly fs(size());
+    for (int i = 0; i < size(); ++i) fs[i] = -(*this)[i];
+    return fs;
   }
-  Poly operator+(const Poly &f) const { return (Poly(*this) += f); }
-  Poly operator-(const Poly &f) const { return (Poly(*this) -= f); }
-  Poly operator*(const Poly &f) const { return (Poly(*this) *= f); }
+  Poly operator+(const Poly &fs) const { return (Poly(*this) += fs); }
+  Poly operator-(const Poly &fs) const { return (Poly(*this) -= fs); }
+  Poly operator*(const Poly &fs) const { return (Poly(*this) *= fs); }
   Poly operator*(const Mint &a) const { return (Poly(*this) *= a); }
   Poly operator/(const Mint &a) const { return (Poly(*this) /= a); }
-  friend Poly operator*(const Mint &a, const Poly &f) { return f * a; }
+  friend Poly operator*(const Mint &a, const Poly &fs) { return fs * a; }
 
   // (5/3) M(n)
   // f <- f - (t f - 1) f
   Poly inv(int n) const {
-    assert(!empty()); assert((*this)[0]); assert(n >= 1);
-    Poly f(n);
-    f[0] = (*this)[0].inv();
+    assert(!empty()); assert((*this)[0]); assert(1 <= n);
+    assert(n <= 1 || 1 << (32 - __builtin_clz(n - 1)) <= LIM_POLY);
+    Poly fs(n);
+    fs[0] = (*this)[0].inv();
     for (int m = 1; m < n; m <<= 1) {
       memcpy(polyWork0, data(), min(m << 1, size()) * sizeof(Mint));
       memset(polyWork0 + min(m << 1, size()), 0, ((m << 1) - min(m << 1, size())) * sizeof(Mint));
-      fft(polyWork0, m << 1);
-      memcpy(polyWork1, f.data(), min(m << 1, n) * sizeof(Mint));
+      fft(polyWork0, m << 1);  // (1/3) M(n)
+      memcpy(polyWork1, fs.data(), min(m << 1, n) * sizeof(Mint));
       memset(polyWork1 + min(m << 1, n), 0, ((m << 1) - min(m << 1, n)) * sizeof(Mint));
-      fft(polyWork1, m << 1);
+      fft(polyWork1, m << 1);  // (1/3) M(n)
       for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
-      invFft(polyWork0, m << 1);
+      invFft(polyWork0, m << 1); // (1/3) M(n)
       memset(polyWork0, 0, m * sizeof(Mint));
-      fft(polyWork0, m << 1);
+      fft(polyWork0, m << 1); // (1/3) M(n)
       for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
-      invFft(polyWork0, m << 1);
-      for (int i = m, i0 = min(m << 1, n); i < i0; ++i) f[i] = -polyWork0[i];
+      invFft(polyWork0, m << 1); // (1/3) M(n)
+      for (int i = m, i0 = min(m << 1, n); i < i0; ++i) fs[i] = -polyWork0[i];
     }
-    return f;
+    return fs;
+  }
+  // (3/2) M(n)
+  // Use (4 m)-th roots of unity to lift from (mod x^m) to (mod x^(2m)).
+  // f <- f - (t f - 1) f
+  // mod (x^(2m) - 1) (x^m - 1^(1/4))
+  /*
+  Poly inv(int n) const {
+    assert(!empty()); assert((*this)[0]); assert(1 <= n);
+    assert(n <= 1 || 3 << (31 - __builtin_clz(n - 1)) <= LIM_POLY);
+    assert(n <= 1 << (FFT_MAX - 1));
+    Poly fs(n);
+    fs[0] = (*this)[0].inv();
+    for (int h = 2, m = 1; m < n; ++h, m <<= 1) {
+      const Mint a = FFT_ROOTS[h], b = INV_FFT_ROOTS[h];
+      memcpy(polyWork0, data(), min(m << 1, size()) * sizeof(Mint));
+      memset(polyWork0 + min(m << 1, size()), 0, ((m << 1) - min(m << 1, size())) * sizeof(Mint));
+      {
+        Mint aa = 1;
+        for (int i = 0; i < m; ++i) { polyWork0[(m << 1) + i] = aa * polyWork0[i]; aa *= a; }
+        for (int i = 0; i < m; ++i) { polyWork0[(m << 1) + i] += aa * polyWork0[m + i]; aa *= a; }
+      }
+      fft(polyWork0, m << 1);  // (1/3) M(n)
+      fft(polyWork0 + (m << 1), m);  // (1/6) M(n)
+      memcpy(polyWork1, fs.data(), min(m << 1, n) * sizeof(Mint));
+      memset(polyWork1 + min(m << 1, n), 0, ((m << 1) - min(m << 1, n)) * sizeof(Mint));
+      {
+        Mint aa = 1;
+        for (int i = 0; i < m; ++i) { polyWork1[(m << 1) + i] = aa * polyWork1[i]; aa *= a; }
+        for (int i = 0; i < m; ++i) { polyWork1[(m << 1) + i] += aa * polyWork1[m + i]; aa *= a; }
+      }
+      fft(polyWork1, m << 1);  // (1/3) M(n)
+      fft(polyWork1 + (m << 1), m);  // (1/6) M(n)
+      for (int i = 0; i < (m << 1) + m; ++i) polyWork0[i] *= polyWork1[i] * polyWork1[i];
+      invFft(polyWork0, m << 1);  // (1/3) M(n)
+      invFft(polyWork0 + (m << 1), m);  // (1/6) M(n)
+      // 2 f0 + (-f2), (-f1) + (-f3), 1^(1/4) (-f1) - (-f2) - 1^(1/4) (-f3)
+      {
+        Mint bb = 1;
+        for (int i = 0, i0 = min(m, n - m); i < i0; ++i) {
+          unsigned x = polyWork0[i].x + (bb * polyWork0[(m << 1) + i]).x + MO2 - (fs[i].x << 1);  // < 4 MO
+          fs[m + i] = Mint(static_cast<unsigned long long>(FFT_ROOTS[2].x) * x) - polyWork0[m + i];
+          fs[m + i].x = ((fs[m + i].x & 1) ? (fs[m + i].x + MO) : fs[m + i].x) >> 1;
+          bb *= b;
+        }
+      }
+    }
+    return fs;
+  }
+  */
+  // (13/6) M(n)
+  // h <- h - (f h - t) g
+  Poly div(const Poly &fs, int n) const {
+    assert(!empty()); assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
+    if (n == 1) return {(*this)[0] / fs[0]};
+    const int m = 1 << (31 - __builtin_clz(n - 1));
+    assert(m << 1 <= LIM_POLY);
+    Poly gs = fs.inv(m);  // (5/6) M(n)
+    gs.resize(m << 1);
+    fft(gs.data(), m << 1);  // (1/6) M(n)
+    memcpy(polyWork0, data(), min(m, size()) * sizeof(Mint));
+    memset(polyWork0 + min(m, size()), 0, ((m << 1) - min(m, size())) * sizeof(Mint));
+    fft(polyWork0, m << 1);  // (1/6) M(n)
+    for (int i = 0; i < m << 1; ++i) polyWork0[i] *= gs[i];
+    invFft(polyWork0, m << 1);  // (1/6) M(n)
+    Poly hs(n);
+    memcpy(hs.data(), polyWork0, m * sizeof(Mint));
+    memset(polyWork0 + m, 0, m * sizeof(Mint));
+    fft(polyWork0, m << 1);  // (1/6) M(n)
+    memcpy(polyWork1, fs.data(), min(m << 1, fs.size()) * sizeof(Mint));
+    memset(polyWork1 + min(m << 1, fs.size()), 0, ((m << 1) - min(m << 1, fs.size())) * sizeof(Mint));
+    fft(polyWork1, m << 1);  // (1/6) M(n)
+    for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
+    invFft(polyWork0, m << 1);  // (1/6) M(n)
+    memset(polyWork0, 0, m * sizeof(Mint));
+    for (int i = m, i0 = min(m << 1, size()); i < i0; ++i) polyWork0[i] -= (*this)[i];
+    fft(polyWork0, m << 1);  // (1/6) M(n)
+    for (int i = 0; i < m << 1; ++i) polyWork0[i] *= gs[i];
+    invFft(polyWork0, m << 1);  // (1/6) M(n)
+    for (int i = m; i < n; ++i) hs[i] = -polyWork0[i];
+    return hs;
   }
 };
 
@@ -160,6 +243,27 @@ void unittest() {
     assert(as.inv(8) == bs.take(8));
     assert(as.inv(10) == bs.take(10));
   }
+  // div
+  {
+    const Poly as{2}, bs{3};
+    const Poly cs{Mint(2) / 3, 0, 0};
+    assert(as.div(bs, 1) == cs.take(1));
+    assert(as.div(bs, 2) == cs.take(2));
+    assert(as.div(bs, 3) == cs.take(3));
+  }
+  {
+    const Poly as{3, 1, 4, 1, 5}, bs{9, 2, 6, 5, 3, 5};
+    const Poly cs{Mint(1) / 3, Mint(1) / 27, Mint(52) / 243, Mint(-320) / 2187,
+                  Mint(6175) / 19683, Mint(-51122) / 177147,
+                  Mint(-248135) / 1594323, Mint(-250037) / 14348907,
+                  Mint(31596649) / 129140163, Mint(-39963686) / 1162261467};
+    assert(as.div(bs, 1) == cs.take(1));
+    assert(as.div(bs, 2) == cs.take(2));
+    assert(as.div(bs, 3) == cs.take(3));
+    assert(as.div(bs, 5) == cs.take(5));
+    assert(as.div(bs, 8) == cs.take(8));
+    assert(as.div(bs, 10) == cs.take(10));
+  }
 }
 
 unsigned xrand() {
@@ -200,7 +304,8 @@ void measurement_inv() {
   solve_inv(10000, 109459152);
   solve_inv(100000, 934740919);
   solve_inv(1000000, 266783204);
-  // 15876 msec @ DAIVRabbit
+  // 5/3: 15876 msec @ DAIVRabbit
+  // 3/2: 16125 msec @ DAIVRabbit
 }
 
 int main() {
