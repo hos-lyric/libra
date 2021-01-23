@@ -1,3 +1,6 @@
+#ifndef LIBRA_ALGEBRA_FFT998244353_H_
+#define LIBRA_ALGEBRA_FFT998244353_H_
+
 #include <assert.h>
 #include <string.h>
 #include <vector>
@@ -133,3 +136,5 @@ vector<Mint> convolve(vector<Mint> as, vector<Mint> bs) {
   as.resize(len);
   return as;
 }
+
+#endif  // LIBRA_ALGEBRA_FFT998244353_H_

@@ -1,3 +1,6 @@
+#ifndef LIBRA_ALGEBRA_MODINT_H_
+#define LIBRA_ALGEBRA_MODINT_H_
+
 #include <assert.h>
 #include <ostream>
 
@@ -37,3 +40,5 @@ template <unsigned M_> struct ModInt {
   bool operator!=(const ModInt &a) const { return (x != a.x); }
   friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
 };
+
+#endif  // LIBRA_ALGEBRA_MODINT_H_

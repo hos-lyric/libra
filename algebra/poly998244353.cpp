@@ -4,6 +4,7 @@
 #include <ostream>
 
 #include "fft998244353.h"
+#include "modint.h"
 
 using std::min;
 using std::vector;
