@@ -9,7 +9,17 @@
 using std::min;
 using std::vector;
 
-constexpr int LIM_POLY = 1 << 20;
+// For log.
+constexpr int LIM_INV = 1 << 20;  // @
+Mint inv[LIM_INV];
+struct ModIntPreparator {
+  ModIntPreparator() {
+    inv[1] = 1;
+    for (int i = 2; i < LIM_INV; ++i) inv[i] = -((Mint::M / i) * inv[Mint::M % i]);
+  }
+} preparator;
+
+constexpr int LIM_POLY = 1 << 20;  // @
 static_assert(LIM_POLY <= 1 << FFT_MAX);
 Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY];
 
@@ -179,6 +189,16 @@ struct Poly : public vector<Mint> {
     for (int i = m; i < n; ++i) hs[i] = -polyWork0[i];
     return hs;
   }
+  // (13/6) M(n)
+  // D log(t) = (D t) / t
+  Poly log(int n) const {
+    assert(!empty()); assert((*this)[0].x == 1); assert(n <= LIM_INV);
+    Poly fs = take(n);
+    for (int i = 0; i < fs.size(); ++i) fs[i] *= i;
+    fs = fs.div(*this, n);
+    for (int i = 1; i < n; ++i) fs[i] *= ::inv[i];
+    return fs;
+  }
 };
 
 // -----------------------------------------------------------------------------
@@ -265,6 +285,19 @@ void unittest() {
     assert(as.div(bs, 8) == cs.take(8));
     assert(as.div(bs, 10) == cs.take(10));
   }
+  // log
+  {
+    const Poly as{1, 8, 2, -8, -1, -8, 2, -8, -4, 5};
+    const Poly bs{0, 8, -30, Mint(440) / 3, -835, Mint(25328) / 5, -32068,
+                  Mint(1461776) / 7, Mint(-2776609) / 2, Mint(84385997) / 9,
+                  -64116076};
+    assert(as.log(1) == bs.take(1));
+    assert(as.log(2) == bs.take(2));
+    assert(as.log(3) == bs.take(3));
+    assert(as.log(5) == bs.take(5));
+    assert(as.log(8) == bs.take(8));
+    assert(as.log(10) == bs.take(10));
+  }
 }
 
 unsigned xrand() {
@@ -280,7 +313,7 @@ void solve_inv(const int N, const unsigned expected) {
   for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
     Poly as(N);
     as[0] = 1 + xrand() % (MO - 1);
-    for (int i = 0; i < N; ++i) {
+    for (int i = 1; i < N; ++i) {
       as[i] = xrand();
     }
     const Poly bs = as.inv(N);
@@ -298,19 +331,56 @@ void solve_inv(const int N, const unsigned expected) {
   assert(expected == ans);
 }
 void measurement_inv() {
-  solve_inv(1, 34918970);
-  solve_inv(10, 754220679);
-  solve_inv(100, 588377382);
-  solve_inv(1000, 1032597331);
-  solve_inv(10000, 109459152);
-  solve_inv(100000, 934740919);
-  solve_inv(1000000, 266783204);
+  solve_inv(1, 236309389);
+  solve_inv(10, 855277511);
+  solve_inv(100, 594998919);
+  solve_inv(1000, 826080596);
+  solve_inv(10000, 1054298238);
+  solve_inv(100000, 102902713);
+  solve_inv(1000000, 520886679);
   // 5/3: 15876 msec @ DAIVRabbit
   // 3/2: 16125 msec @ DAIVRabbit
+}
+
+void solve_log(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 100;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    Poly as(N);
+    as[0] = 1;
+    for (int i = 1; i < N; ++i) {
+      as[i] = xrand();
+    }
+    const Poly bs = as.log(N);
+    assert(bs.size() == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (bs[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[log] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_log() {
+  solve_log(1, 0);
+  solve_log(10, 782075849);
+  solve_log(100, 657181233);
+  solve_log(1000, 196435197);
+  solve_log(10000, 748203336);
+  solve_log(100000, 482239467);
+  solve_log(1000000, 515787875);
+  // 21674 msec @ DAIVRabbit
 }
 
 int main() {
   unittest();
   measurement_inv();
+  measurement_log();
   return 0;
 }
