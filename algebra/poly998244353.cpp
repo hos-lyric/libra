@@ -9,7 +9,7 @@
 using std::min;
 using std::vector;
 
-// For log.
+// inv: log, exp
 constexpr int LIM_INV = 1 << 20;  // @
 Mint inv[LIM_INV];
 struct ModIntPreparator {
@@ -19,9 +19,11 @@ struct ModIntPreparator {
   }
 } preparator;
 
-constexpr int LIM_POLY = 1 << 20;  // @
+// polyWork0, polyWork1: inv, div, log, exp
+// polyWork2, polyWork3: exp
+static constexpr int LIM_POLY = 1 << 20;  // @
 static_assert(LIM_POLY <= 1 << FFT_MAX);
-Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY];
+static Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY], polyWork2[LIM_POLY], polyWork3[LIM_POLY];
 
 struct Poly : public vector<Mint> {
   Poly() {}
@@ -112,7 +114,7 @@ struct Poly : public vector<Mint> {
   // 9 E(n)
   // Need (4 m)-th roots of unity to lift from (mod x^m) to (mod x^(2m)).
   // f <- f - (t f - 1) f
-  // t f^2 mod ((x^(2m) - 1) (x^m - 1^(1/4)))
+  // (t f^2) mod ((x^(2m) - 1) (x^m - 1^(1/4)))
   /*
   Poly inv(int n) const {
     assert(!empty()); assert((*this)[0]); assert(1 <= n);
@@ -158,6 +160,7 @@ struct Poly : public vector<Mint> {
   }
   */
   // 13 E(n)
+  // g = (1 / f) mod x^m
   // h <- h - (f h - t) g
   Poly div(const Poly &fs, int n) const {
     assert(!empty()); assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
@@ -198,6 +201,83 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < fs.size(); ++i) fs[i] *= i;
     fs = fs.div(*this, n);
     for (int i = 1; i < n; ++i) fs[i] *= ::inv[i];
+    return fs;
+  }
+  // (16 + 1/2) E(n)
+  // f = exp(t) mod x^m  ==>  (D f) / f == D t  (mod x^m)
+  // g = (1 / exp(t)) mod x^m
+  // f <- f - (log f - t) / (1 / f)
+  //   =  f - (I ((D f) / f) - t) f
+  //   == f - (I ((D f) / f + (f g - 1) ((D f) / f - D (t mod x^m))) - t) f  (mod x^(2m))
+  //   =  f - (I (g (D f - f D (t mod x^m)) + D (t mod x^m)) - t) f
+  // g <- g - (f g - 1) g
+  // polyWork1: DFT(f, 2 m), polyWork2: g, polyWork3: DFT(g, 2 m)
+  Poly exp(int n) const {
+    assert(!empty()); assert(!(*this)[0]); assert(1 <= n);
+    assert(n == 1 || 1 << (32 - __builtin_clz(n - 1)) <= min(LIM_INV, LIM_POLY));
+    if (n == 1) return {1U};
+    if (n == 2) return {1U, (1 < size()) ? (*this)[1] : 0U};
+    Poly fs(n);
+    fs[0].x = polyWork1[0].x = polyWork1[1].x = polyWork2[0].x = 1U;
+    int m;
+    for (m = 1; m << 1 < n; m <<= 1) {
+      for (int i = 0, i0 = min(m, size()); i < i0; ++i) polyWork0[i] = i * (*this)[i];
+      memset(polyWork0 + min(m, size()), 0, (m - min(m, size())) * sizeof(Mint));
+      fft(polyWork0, m);  // (1/2) E(n)
+      for (int i = 0; i < m; ++i) polyWork0[i] *= polyWork1[i];
+      invFft(polyWork0, m);  // (1/2) E(n)
+      for (int i = 0; i < m; ++i) polyWork0[i] -= i * fs[i];
+      memset(polyWork0 + m, 0, m * sizeof(Mint));
+      fft(polyWork0, m << 1);  // 1 E(n)
+      memcpy(polyWork3, polyWork2, m * sizeof(Mint));
+      memset(polyWork3 + m, 0, m * sizeof(Mint));
+      fft(polyWork3, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork3[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = 0; i < m; ++i) polyWork0[i] *= ::inv[m + i];
+      for (int i = 0, i0 = min(m, size() - m); i < i0; ++i) polyWork0[i] += (*this)[m + i];
+      memset(polyWork0 + m, 0, m * sizeof(Mint));
+      fft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      memcpy(fs.data() + m, polyWork0, m * sizeof(Mint));
+      memcpy(polyWork1, fs.data(), (m << 1) * sizeof(Mint));
+      memset(polyWork1 + (m << 1), 0, (m << 1) * sizeof(Mint));
+      fft(polyWork1, m << 2);  // 2 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] = polyWork1[i] * polyWork3[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      memset(polyWork0, 0, m * sizeof(Mint));
+      fft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork3[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = m; i < m << 1; ++i) polyWork2[i] = -polyWork0[i];
+    }
+    for (int i = 0, i0 = min(m, size()); i < i0; ++i) polyWork0[i] = i * (*this)[i];
+    memset(polyWork0 + min(m, size()), 0, (m - min(m, size())) * sizeof(Mint));
+    fft(polyWork0, m);  // (1/2) E(n)
+    for (int i = 0; i < m; ++i) polyWork0[i] *= polyWork1[i];
+    invFft(polyWork0, m);  // (1/2) E(n)
+    for (int i = 0; i < m; ++i) polyWork0[i] -= i * fs[i];
+    memcpy(polyWork0 + m, polyWork0 + (m >> 1), (m >> 1) * sizeof(Mint));
+    memset(polyWork0 + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    memset(polyWork0 + m + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    fft(polyWork0, m);  // (1/2) E(n)
+    fft(polyWork0 + m, m);  // (1/2) E(n)
+    memcpy(polyWork3 + m, polyWork2 + (m >> 1), (m >> 1) * sizeof(Mint));
+    memset(polyWork3 + m + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    fft(polyWork3 + m, m);  // (1/2) E(n)
+    for (int i = 0; i < m; ++i) polyWork0[m + i] = polyWork0[i] * polyWork3[m + i] + polyWork0[m + i] * polyWork3[i];
+    for (int i = 0; i < m; ++i) polyWork0[i] *= polyWork3[i];
+    invFft(polyWork0, m);  // (1/2) E(n)
+    invFft(polyWork0 + m, m);  // (1/2) E(n)
+    for (int i = 0; i < m >> 1; ++i) polyWork0[(m >> 1) + i] += polyWork0[m + i];
+    for (int i = 0; i < m; ++i) polyWork0[i] *= ::inv[m + i];
+    for (int i = 0, i0 = min(m, size() - m); i < i0; ++i) polyWork0[i] += (*this)[m + i];
+    memset(polyWork0 + m, 0, m * sizeof(Mint));
+    fft(polyWork0, m << 1);  // 1 E(n)
+    for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
+    invFft(polyWork0, m << 1);  // 1 E(n)
+    memcpy(fs.data() + m, polyWork0, (n - m) * sizeof(Mint));
     return fs;
   }
 };
@@ -288,6 +368,27 @@ void unittest() {
   }
   // log
   {
+    const Poly as{1};
+    const Poly bs{0, 0};
+    assert(as.log(1) == bs.take(1));
+    assert(as.log(2) == bs.take(2));
+  }
+  {
+    const Poly as{1, 2};
+    const Poly bs{0, 2, -2};
+    assert(as.log(1) == bs.take(1));
+    assert(as.log(2) == bs.take(2));
+    assert(as.log(3) == bs.take(3));
+  }
+  {
+    const Poly as{1, 3, 4};
+    const Poly bs{0, 3, Mint(-1) / 2, -3};
+    assert(as.log(1) == bs.take(1));
+    assert(as.log(2) == bs.take(2));
+    assert(as.log(3) == bs.take(3));
+    assert(as.log(4) == bs.take(4));
+  }
+  {
     const Poly as{1, 8, 2, -8, -1, -8, 2, -8, -4, 5};
     const Poly bs{0, 8, -30, Mint(440) / 3, -835, Mint(25328) / 5, -32068,
                   Mint(1461776) / 7, Mint(-2776609) / 2, Mint(84385997) / 9,
@@ -298,6 +399,40 @@ void unittest() {
     assert(as.log(5) == bs.take(5));
     assert(as.log(8) == bs.take(8));
     assert(as.log(10) == bs.take(10));
+  }
+  // exp
+  {
+    const Poly as{0};
+    const Poly bs{1, 0};
+    assert(as.exp(1) == bs.take(1));
+    assert(as.exp(2) == bs.take(2));
+  }
+  {
+    const Poly as{0, 2};
+    const Poly bs{1, 2, 2};
+    assert(as.exp(1) == bs.take(1));
+    assert(as.exp(2) == bs.take(2));
+    assert(as.exp(3) == bs.take(3));
+  }
+  {
+    const Poly as{0, 3, 4};
+    const Poly bs{1, 3, Mint(17) / 2, Mint(33) / 2};
+    assert(as.exp(1) == bs.take(1));
+    assert(as.exp(2) == bs.take(2));
+    assert(as.exp(3) == bs.take(3));
+    assert(as.exp(4) == bs.take(4));
+  }
+  {
+    const Poly as{0, 8, 2, -8, -1, -8, 2, -8, -4, 5};
+    const Poly bs{1, 8, 34, Mint(280) / 3, Mint(515) / 3, Mint(2576) / 15,
+                  Mint(-4676) / 45, Mint(-268096) / 315, Mint(-249449) / 126,
+                  Mint(-1593721) / 567};
+    assert(as.exp(1) == bs.take(1));
+    assert(as.exp(2) == bs.take(2));
+    assert(as.exp(3) == bs.take(3));
+    assert(as.exp(5) == bs.take(5));
+    assert(as.exp(8) == bs.take(8));
+    assert(as.exp(10) == bs.take(10));
   }
 }
 
@@ -379,9 +514,46 @@ void measurement_log() {
   // 21674 msec @ DAIVRabbit
 }
 
+void solve_exp(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 100;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    Poly as(N);
+    as[0] = 0;
+    for (int i = 1; i < N; ++i) {
+      as[i] = xrand();
+    }
+    const Poly bs = as.exp(N);
+    assert(bs.size() == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (bs[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[exp] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_exp() {
+  solve_exp(1, 0);
+  solve_exp(10, 552854624);
+  solve_exp(100, 1012444333);
+  solve_exp(1000, 201206437);
+  solve_exp(10000, 24842905);
+  solve_exp(100000, 674622497);
+  solve_exp(1000000, 197978996);
+  // 25017 msec @ DAIVRabbit
+}
+
 int main() {
   unittest();
   measurement_inv();
   measurement_log();
+  measurement_exp();
   return 0;
 }
