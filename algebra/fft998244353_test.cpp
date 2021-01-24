@@ -122,7 +122,7 @@ void measurement() {
   solve(10000, 886351275);
   solve(100000, 737124305);
   solve(1000000, 490935560);
-  // 14105 msec @DAIVRabbit
+  // 14105 msec @ DAIVRabbit
 }
 
 int main() {
