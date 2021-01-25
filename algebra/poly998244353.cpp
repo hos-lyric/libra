@@ -1,7 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <initializer_list>
-#include <ostream>
+#include <iostream>
 
 #include "fft998244353.h"
 #include "modint.h"
@@ -9,7 +9,7 @@
 using std::min;
 using std::vector;
 
-// inv: log, exp
+// inv: log, exp, pow
 constexpr int LIM_INV = 1 << 20;  // @
 Mint inv[LIM_INV];
 struct ModIntPreparator {
@@ -19,8 +19,9 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0, polyWork1: inv, div, log, exp
-// polyWork2, polyWork3: exp
+// polyWork0: *, inv, div, log, exp, pow
+// polyWork1: inv, div, log, exp, pow
+// polyWork2, polyWork3: exp, pow
 static constexpr int LIM_POLY = 1 << 20;  // @
 static_assert(LIM_POLY <= 1 << FFT_MAX);
 static Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY], polyWork2[LIM_POLY], polyWork3[LIM_POLY];
@@ -31,6 +32,7 @@ struct Poly : public vector<Mint> {
   Poly(const vector<Mint> &vec) : vector<Mint>(vec) {}
   Poly(std::initializer_list<Mint> il) : vector<Mint>(il) {}
   int size() const { return vector<Mint>::size(); }
+  int ord() const { for (int i = 0; i < size(); ++i) if ((*this)[i]) return i; return -1; }
   Poly take(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
   friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
     os << "[";
@@ -280,6 +282,27 @@ struct Poly : public vector<Mint> {
     memcpy(fs.data() + m, polyWork0, (n - m) * sizeof(Mint));
     return fs;
   }
+  // (29 + 1/2) E(n)
+  // g <- g - (log g - a log t) g
+  Poly pow(long long a, int n) const {
+    assert(1 <= n);
+    if (empty() || (*this)[0].x != 1) {
+      assert(a >= 0);
+      if (a == 0) { Poly gs(n); gs[0].x = 1U; return gs; }
+      const int o = ord();
+      if (o == -1 || o > (n - 1) / a) return Poly(n);
+      const Mint b = (*this)[o].inv(), c = (*this)[o].pow(a);
+      const int ntt = min<int>(n - a * o, size() - o);
+      Poly tts(ntt);
+      for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
+      tts = tts.pow(a, n - a * o);
+      Poly gs(n);
+      for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
+      return gs;
+    }
+    assert(!empty()); assert((*this)[0].x == 1);
+    return (a * log(n)).exp(n);  // 13 E(n) + (16 + 1/2) E(n)
+  }
 };
 
 // -----------------------------------------------------------------------------
@@ -290,6 +313,16 @@ using std::cerr;
 using std::endl;
 
 void unittest() {
+  // ord
+  {
+    assert((Poly{}).ord() == -1);
+    assert((Poly{1}).ord() == 0);
+    assert((Poly{0}).ord() == -1);
+    assert((Poly{3, 1, 4, 1}).ord() == 0);
+    assert((Poly{0, 1, 0, 1}).ord() == 1);
+    assert((Poly{0, 0, 0, 1}).ord() == 3);
+    assert((Poly{0, 0, 0, 0}).ord() == -1);
+  }
   // take
   {
     const Poly as{3, 1, 4, 1};
@@ -433,6 +466,44 @@ void unittest() {
     assert(as.exp(5) == bs.take(5));
     assert(as.exp(8) == bs.take(8));
     assert(as.exp(10) == bs.take(10));
+  }
+  // pow
+  {
+    const Poly as{};
+    const Poly bs{1, 0};
+    assert(as.pow(0, 1) == bs.take(1));
+    assert(as.pow(0, 2) == bs.take(2));
+  }
+  {
+    const Poly as{};
+    const Poly bs{0, 0};
+    assert(as.pow(10, 1) == bs.take(1));
+    assert(as.pow(10, 2) == bs.take(2));
+  }
+  {
+    const Poly as{2};
+    const Poly bs{1024, 0};
+    assert(as.pow(10, 1) == bs.take(1));
+    assert(as.pow(10, 2) == bs.take(2));
+  }
+  {
+    const Poly as{1, 3, 4};
+    const Poly bs{1, 15, 110, 510};
+    assert(as.pow(5, 1) == bs.take(1));
+    assert(as.pow(5, 2) == bs.take(2));
+    assert(as.pow(5, 3) == bs.take(3));
+    assert(as.pow(5, 4) == bs.take(4));
+  }
+  {
+    const Poly as{0, 0, 3, 1, 4, 1, 5, 9, 2, 6};
+    const Poly bs{0, 0, 0, 0, 0, 0, 27, 27, 117, 100, 309, 456};
+    assert(as.pow(3, 1) == bs.take(1));
+    assert(as.pow(3, 2) == bs.take(2));
+    assert(as.pow(3, 3) == bs.take(3));
+    assert(as.pow(3, 5) == bs.take(5));
+    assert(as.pow(3, 8) == bs.take(8));
+    assert(as.pow(3, 10) == bs.take(10));
+    assert(as.pow(3, 12) == bs.take(12));
   }
 }
 

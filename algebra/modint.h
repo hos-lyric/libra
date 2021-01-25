@@ -2,7 +2,7 @@
 #define LIBRA_ALGEBRA_MODINT_H_
 
 #include <assert.h>
-#include <ostream>
+#include <iostream>
 
 template <unsigned M_> struct ModInt {
   static constexpr unsigned M = M_;
