@@ -19,9 +19,10 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0: *, inv, div, log, exp, pow
-// polyWork1: inv, div, log, exp, pow
-// polyWork2, polyWork3: exp, pow
+// polyWork0: operator*, inv, div, divAt, log, exp, pow
+// polyWork1: inv, div, divAt, log, exp, pow
+// polyWork2: divAt, exp, pow
+// polyWork3: exp, pow
 static constexpr int LIM_POLY = 1 << 20;  // @
 static_assert(LIM_POLY <= 1 << FFT_MAX);
 static Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY], polyWork2[LIM_POLY], polyWork3[LIM_POLY];
@@ -32,6 +33,7 @@ struct Poly : public vector<Mint> {
   Poly(const vector<Mint> &vec) : vector<Mint>(vec) {}
   Poly(std::initializer_list<Mint> il) : vector<Mint>(il) {}
   int size() const { return vector<Mint>::size(); }
+  Mint at(long long k) const { return (0 <= k && k < size()) ? (*this)[k] : 0U; }
   int ord() const { for (int i = 0; i < size(); ++i) if ((*this)[i]) return i; return -1; }
   Poly take(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
   friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
@@ -195,10 +197,66 @@ struct Poly : public vector<Mint> {
     for (int i = m; i < n; ++i) hs[i] = -polyWork0[i];
     return hs;
   }
+  // (4 (floor(log_2 k) - ceil(log_2 |fs|)) + 16) E(|fs|)
+  // [x^k] (t(x) / f(x)) = [x^k] ((t(x) f(-x)) / (f(x) f(-x))
+  // polyWork0: half of (2 m)-th roots of unity, inversed, bit-reversed
+  Mint divAt(const Poly &fs, long long k) const {
+    assert(k >= 0);
+    if (size() >= fs.size()) {
+      // TODO: operator%
+      assert(false);
+    }
+    int h = 0, m = 1;
+    for (; m < fs.size(); ++h, m <<= 1) {}
+    if (k < m) {
+      const Poly gs = fs.inv(k + 1);  // 10 E(|fs|)
+      Mint sum;
+      for (int i = 0, i0 = min<int>(k + 1, size()); i < i0; ++i) sum += (*this)[i] * gs[k - i];
+      return sum;
+    }
+    assert(m << 1 <= LIM_POLY);
+    polyWork0[0] = Mint(2U).inv();
+    for (int hh = 0; hh < h; ++hh) for (int i = 0; i < 1 << hh; ++i) polyWork0[1 << hh | i] = polyWork0[i] * INV_FFT_ROOTS[hh + 2];
+    const Mint a = FFT_ROOTS[h + 1];
+    memcpy(polyWork2, data(), size() * sizeof(Mint));
+    memset(polyWork2 + size(), 0, ((m << 1) - size()) * sizeof(Mint));
+    fft(polyWork2, m << 1);  // 2 E(|fs|)
+    memcpy(polyWork1, fs.data(), fs.size() * sizeof(Mint));
+    memset(polyWork1 + fs.size(), 0, ((m << 1) - fs.size()) * sizeof(Mint));
+    fft(polyWork1, m << 1);  // 2 E(|fs|)
+    for (; ; ) {
+      if (k & 1) {
+        for (int i = 0; i < m; ++i) polyWork2[i] = polyWork0[i] * (polyWork2[i << 1 | 0] * polyWork1[i << 1 | 1] - polyWork2[i << 1 | 1] * polyWork1[i << 1 | 0]);
+      } else {
+        for (int i = 0; i < m; ++i) {
+          polyWork2[i] = polyWork2[i << 1 | 0] * polyWork1[i << 1 | 1] + polyWork2[i << 1 | 1] * polyWork1[i << 1 | 0];
+          polyWork2[i].x = ((polyWork2[i].x & 1) ? (polyWork2[i].x + MO) : polyWork2[i].x) >> 1;
+        }
+      }
+      for (int i = 0; i < m; ++i) polyWork1[i] = polyWork1[i << 1 | 0] * polyWork1[i << 1 | 1];
+      if ((k >>= 1) < m) {
+        invFft(polyWork2, m);  // 1 E(|fs|)
+        invFft(polyWork1, m);  // 1 E(|fs|)
+        // Poly::inv does not use polyWork2
+        const Poly gs = Poly(vector<Mint>(polyWork1, polyWork1 + k + 1)).inv(k + 1);  // 10 E(|fs|)
+        Mint sum;
+        for (int i = 0; i <= k; ++i) sum += polyWork2[i] * gs[k - i];
+        return sum;
+      }
+      memcpy(polyWork2 + m, polyWork2, m * sizeof(Mint));
+      invFft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      memcpy(polyWork1 + m, polyWork1, m * sizeof(Mint));
+      invFft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      Mint aa = 1;
+      for (int i = m; i < m << 1; ++i) { polyWork2[i] *= aa; polyWork1[i] *= aa; aa *= a; }
+      fft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      fft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+    }
+  }
   // 13 E(n)
   // D log(t) = (D t) / t
   Poly log(int n) const {
-    assert(!empty()); assert((*this)[0].x == 1); assert(n <= LIM_INV);
+    assert(!empty()); assert((*this)[0].x == 1U); assert(n <= LIM_INV);
     Poly fs = take(n);
     for (int i = 0; i < fs.size(); ++i) fs[i] *= i;
     fs = fs.div(*this, n);
@@ -286,7 +344,7 @@ struct Poly : public vector<Mint> {
   // g <- g - (log g - a log t) g
   Poly pow(long long a, int n) const {
     assert(1 <= n);
-    if (empty() || (*this)[0].x != 1) {
+    if (empty() || (*this)[0].x != 1U) {
       assert(a >= 0);
       if (a == 0) { Poly gs(n); gs[0].x = 1U; return gs; }
       const int o = ord();
@@ -305,6 +363,13 @@ struct Poly : public vector<Mint> {
   }
 };
 
+Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long long k) {
+  assert(!cs.empty()); assert(cs[0]);
+  const int d = cs.size() - 1;
+  assert(as.size() >= static_cast<size_t>(d));
+  return (Poly(vector<Mint>(as.begin(), as.begin() + d)) * cs).take(d).divAt(cs, k);
+}
+
 // -----------------------------------------------------------------------------
 
 #include <chrono>
@@ -313,6 +378,13 @@ using std::cerr;
 using std::endl;
 
 void unittest() {
+  // at
+  {
+    assert((Poly{3, 1, 4, 1}).at(-1) == 0);
+    assert((Poly{3, 1, 4, 1}).at(2) == 4);
+    assert((Poly{3, 1, 4, 1}).at(4) == 0);
+    assert((Poly{3, 1, 4, 1}).at(1LL << 32) == 0);
+  }
   // ord
   {
     assert((Poly{}).ord() == -1);
@@ -398,6 +470,54 @@ void unittest() {
     assert(as.div(bs, 5) == cs.take(5));
     assert(as.div(bs, 8) == cs.take(8));
     assert(as.div(bs, 10) == cs.take(10));
+  }
+  // divAt
+  {
+    const Poly as{};
+    const Poly bs{2};
+    assert(as.divAt(bs, 0) == 0);
+    assert(as.divAt(bs, 1) == 0);
+    assert(as.divAt(bs, 2) == 0);
+    assert(as.divAt(bs, 3) == 0);
+    assert(as.divAt(bs, 4) == 0);
+  }
+  {
+    const Poly as{2};
+    const Poly bs{3, 4};
+    assert(as.divAt(bs, 0) == Mint(2) / 3);
+    assert(as.divAt(bs, 1) == Mint(-8) / 9);
+    assert(as.divAt(bs, 2) == Mint(32) / 27);
+    assert(as.divAt(bs, 3) == Mint(-128) / 81);
+    assert(as.divAt(bs, 4) == Mint(512) / 243);
+  }
+  {
+    const Poly as{0, 1};
+    const Poly bs{1, -1, -1};
+    assert(as.divAt(bs, 0) == 0);
+    assert(as.divAt(bs, 1) == 1);
+    assert(as.divAt(bs, 2) == 1);
+    assert(as.divAt(bs, 3) == 2);
+    assert(as.divAt(bs, 4) == 3);
+    assert(as.divAt(bs, 5) == 5);
+    assert(as.divAt(bs, 6) == 8);
+    assert(as.divAt(bs, 7) == 13);
+    assert(as.divAt(bs, 8) == 21);
+    assert(as.divAt(bs, 9) == 34);
+    assert(as.divAt(bs, 10) == 55);
+    assert(as.divAt(bs, 1000000000000000000LL) == Mint(23849548U));
+  }
+  {
+    const Poly as{3, 1, 4, 1, 5, 9};
+    const Poly bs{2, 7, 1, 8, 2, 8, 1, 8};
+    assert(as.divAt(bs, 0) == Mint(3) / 2);
+    assert(as.divAt(bs, 1) == Mint(-19) / 4);
+    assert(as.divAt(bs, 2) == Mint(143) / 8);
+    assert(as.divAt(bs, 9) == Mint(-162213091) / 1024);
+    assert(as.divAt(bs, 10) == Mint(1188773543) / 2048);
+    assert(as.divAt(bs, 11) == Mint(-8711858971LL) / 4096);
+    assert(as.divAt(bs, 19) == Mint(-72477705834111867LL) / 1048576);
+    assert(as.divAt(bs, 20) == Mint(531148740030089567LL) / 2097152);
+    assert(as.divAt(bs, 21) == Mint(-3892493295581025139LL) / 4194304);
   }
   // log
   {
@@ -504,6 +624,18 @@ void unittest() {
     assert(as.pow(3, 8) == bs.take(8));
     assert(as.pow(3, 10) == bs.take(10));
     assert(as.pow(3, 12) == bs.take(12));
+  }
+  // linearRecurrenceAt
+  {
+    const vector<Mint> as{0, 1, 1, 2};
+    const vector<Mint> cs{1, -1, -1};
+    assert(linearRecurrenceAt(as, cs, 0) == 0);
+    assert(linearRecurrenceAt(as, cs, 1) == 1);
+    assert(linearRecurrenceAt(as, cs, 2) == 1);
+    assert(linearRecurrenceAt(as, cs, 3) == 2);
+    assert(linearRecurrenceAt(as, cs, 7) == 13);
+    assert(linearRecurrenceAt(as, cs, 8) == 21);
+    assert(linearRecurrenceAt(as, cs, 1000000000000000000) == Mint(23849548U));
   }
 }
 
