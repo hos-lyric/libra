@@ -1,7 +1,9 @@
 #include <assert.h>
 #include <string.h>
+#include <algorithm>
 #include <initializer_list>
 #include <iostream>
+#include <vector>
 
 #include "fft998244353.h"
 #include "modint.h"
