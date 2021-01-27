@@ -361,7 +361,7 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
     return gs;
   }
-  // 11 E(n)
+  // (10 + 1/2) E(n)
   // f = t^(1/2) mod x^m,  g = 1 / t^(1/2) mod x^m
   // f <- f - (f^2 - h) g / 2
   // g <- g - (f g - 1) g
@@ -397,18 +397,24 @@ struct Poly : public vector<Mint> {
       invFft(polyWork0, m << 1);  // 1 E(n)
       for (int i = m; i < m << 1; ++i) polyWork2[i] = -polyWork0[i];
     }
-    // TODO: save (1/2) E(n)
     for (int i = 0; i < m; ++i) polyWork1[i] *= polyWork1[i];
     invFft(polyWork1, m);  // (1/2) E(n)
     for (int i = 0, i0 = min(m, size()); i < i0; ++i) polyWork1[i] -= (*this)[i];
     for (int i = 0, i0 = min(m, size() - m); i < i0; ++i) polyWork1[i] -= (*this)[m + i];
-    memset(polyWork1 + m, 0, m * sizeof(Mint));
-    fft(polyWork1, m << 1);  // 1 E(n)
-    memcpy(polyWork3, polyWork2, m * sizeof(Mint));
-    memset(polyWork3 + m, 0, m * sizeof(Mint));
-    fft(polyWork3, m << 1);  // 1 E(n)
-    for (int i = 0; i < m << 1; ++i) polyWork1[i] *= polyWork3[i];
-    invFft(polyWork1, m << 1);  // 1 E(n)
+    memcpy(polyWork1 + m, polyWork1 + (m >> 1), (m >> 1) * sizeof(Mint));
+    memset(polyWork1 + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    memset(polyWork1 + m + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    fft(polyWork1, m);  // (1/2) E(n)
+    fft(polyWork1 + m, m);  // (1/2) E(n)
+    memcpy(polyWork3 + m, polyWork2 + (m >> 1), (m >> 1) * sizeof(Mint));
+    memset(polyWork3 + m + (m >> 1), 0, (m >> 1) * sizeof(Mint));
+    fft(polyWork3 + m, m);  // (1/2) E(n)
+    // for (int i = 0; i < m << 1; ++i) polyWork1[i] *= polyWork3[i];
+    for (int i = 0; i < m; ++i) polyWork1[m + i] = polyWork1[i] * polyWork3[m + i] + polyWork1[m + i] * polyWork3[i];
+    for (int i = 0; i < m; ++i) polyWork1[i] *= polyWork3[i];
+    invFft(polyWork1, m);  // (1/2) E(n)
+    invFft(polyWork1 + m, m);  // (1/2) E(n)
+    for (int i = 0; i < m >> 1; ++i) polyWork1[(m >> 1) + i] += polyWork1[m + i];
     for (int i = 0; i < n - m; ++i) { polyWork1[i] = -polyWork1[i]; fs[m + i].x = ((polyWork1[i].x & 1) ? (polyWork1[i].x + MO) : polyWork1[i].x) >> 1; }
     return fs;
   }
@@ -895,7 +901,7 @@ void measurement_sqrt() {
   solve_sqrt(100000, 1060519291);
   solve_sqrt(1000000, 640353577);
   //  11        E(n): 16610 msec @ DAIVRabbit
-  // (10 + 1/2) E(n):  msec @ DAIVRabbit
+  // (10 + 1/2) E(n): 15861 msec @ DAIVRabbit
 }
 
 int main() {
