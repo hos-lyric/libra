@@ -418,7 +418,26 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < n - m; ++i) { polyWork1[i] = -polyWork1[i]; fs[m + i].x = ((polyWork1[i].x & 1) ? (polyWork1[i].x + MO) : polyWork1[i].x) >> 1; }
     return fs;
   }
-  // TODO: sqrt F_998244353
+  // (10 + 1/2) E(n)
+  // modSqrt must return a quadratic residue if exists, or anything otherwise.
+  // Return {} if *this does not have a square root.
+  template <class F> Poly sqrt(int n, F modSqrt) const {
+    assert(1 <= n);
+    const int o = ord();
+    if (o == -1) return Poly(n);
+    if (o & 1) return {};
+    const Mint c = modSqrt((*this)[o]);
+    if (c * c != (*this)[o]) return {};
+    if (o >> 1 >= n) return Poly(n);
+    const Mint b = (*this)[o].inv();
+    const int ntt = min(n - (o >> 1), size() - o);
+    Poly tts(ntt);
+    for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
+    tts = tts.sqrt(n - (o >> 1));  // (10 + 1/2) E(n)
+    Poly gs(n);
+    for (int i = 0; i < n - (o >> 1); ++i) gs[(o >> 1) + i] = c * tts[i];
+    return gs;
+  }
 };
 
 Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long long k) {
@@ -738,6 +757,59 @@ void unittest() {
     assert(as.sqrt(5) == bs.take(5));
     assert(as.sqrt(8) == bs.take(8));
     assert(as.sqrt(10) == bs.take(10));
+  }
+  {
+    auto mockModSqrt = [&](Mint a) {
+      switch (a.x) {
+        case 4: return 2;
+        case 3: return 0;  // non-residue
+        case 17556470: return 100000;
+        default: assert(false);
+      }
+      return 0;
+    };
+    {
+      const Poly as{4, 1, 5};
+      const Poly bs{2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512,
+                    Mint(-5925) / 16384};
+      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
+      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
+    }
+    {
+      const Poly as{0, 0, 4, 1, 5};
+      const Poly bs{0, 2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512};
+      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
+      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
+    }
+    {
+      const Poly as{3, 1, 4};
+      const Poly bs{};
+      assert(as.sqrt(1, mockModSqrt) == bs);
+      assert(as.sqrt(5, mockModSqrt) == bs);
+    }
+    {
+      const Poly as{0, 4, 1, 5};
+      const Poly bs{};
+      assert(as.sqrt(1, mockModSqrt) == bs);
+      assert(as.sqrt(5, mockModSqrt) == bs);
+    }
+    {
+      const Poly as{0, 0, 0, 0, 10000000000LL, 2000000000, 300000000, 40000000,
+                    5000000};
+      const Poly bs{0, 0, 100000, 10000, 1000, 100, 10, -2, Mint(1) / 20,
+                    Mint(1) / 200, Mint(1) / 2000, Mint(1) / 20000,
+                    Mint(-1) / 25000, Mint(7) / 2000000, Mint(3) / 80000000,
+                    Mint(3) / 800000000, Mint(3) / 8000000000LL};
+      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
+      assert(as.sqrt(2, mockModSqrt) == bs.take(2));
+      assert(as.sqrt(3, mockModSqrt) == bs.take(3));
+      assert(as.sqrt(4, mockModSqrt) == bs.take(4));
+      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
+      assert(as.sqrt(8, mockModSqrt) == bs.take(8));
+      assert(as.sqrt(10, mockModSqrt) == bs.take(10));
+      assert(as.sqrt(15, mockModSqrt) == bs.take(15));
+      assert(as.sqrt(16, mockModSqrt) == bs.take(16));
+    }
   }
   // linearRecurrenceAt
   {
