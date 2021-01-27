@@ -19,10 +19,10 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0: operator*, inv, div, divAt, log, exp, pow
-// polyWork1: inv, div, divAt, log, exp, pow
-// polyWork2: divAt, exp, pow
-// polyWork3: exp, pow
+// polyWork0: operator*, inv, div, divAt, log, exp, pow, sqrt
+// polyWork1: inv, div, divAt, log, exp, pow, sqrt
+// polyWork2: divAt, exp, pow, sqrt
+// polyWork3: exp, pow, sqrt
 static constexpr int LIM_POLY = 1 << 20;  // @
 static_assert(LIM_POLY <= 1 << FFT_MAX);
 static Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY], polyWork2[LIM_POLY], polyWork3[LIM_POLY];
@@ -276,7 +276,7 @@ struct Poly : public vector<Mint> {
     assert(!empty()); assert(!(*this)[0]); assert(1 <= n);
     assert(n == 1 || 1 << (32 - __builtin_clz(n - 1)) <= min(LIM_INV, LIM_POLY));
     if (n == 1) return {1U};
-    if (n == 2) return {1U, (1 < size()) ? (*this)[1] : 0U};
+    if (n == 2) return {1U, at(1)};
     Poly fs(n);
     fs[0].x = polyWork1[0].x = polyWork1[1].x = polyWork2[0].x = 1U;
     int m;
@@ -342,25 +342,77 @@ struct Poly : public vector<Mint> {
   }
   // (29 + 1/2) E(n)
   // g <- g - (log g - a log t) g
-  Poly pow(long long a, int n) const {
-    assert(1 <= n);
-    if (empty() || (*this)[0].x != 1U) {
-      assert(a >= 0);
-      if (a == 0) { Poly gs(n); gs[0].x = 1U; return gs; }
-      const int o = ord();
-      if (o == -1 || o > (n - 1) / a) return Poly(n);
-      const Mint b = (*this)[o].inv(), c = (*this)[o].pow(a);
-      const int ntt = min<int>(n - a * o, size() - o);
-      Poly tts(ntt);
-      for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
-      tts = tts.pow(a, n - a * o);
-      Poly gs(n);
-      for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
-      return gs;
-    }
-    assert(!empty()); assert((*this)[0].x == 1);
+  Poly pow(Mint a, int n) const {
+    assert(!empty()); assert((*this)[0].x == 1U); assert(1 <= n);
     return (a * log(n)).exp(n);  // 13 E(n) + (16 + 1/2) E(n)
   }
+  // (29 + 1/2) E(n - a ord(t))
+  Poly pow(long long a, int n) const {
+    assert(a >= 0); assert(1 <= n);
+    if (a == 0) { Poly gs(n); gs[0].x = 1U; return gs; }
+    const int o = ord();
+    if (o == -1 || o > (n - 1) / a) return Poly(n);
+    const Mint b = (*this)[o].inv(), c = (*this)[o].pow(a);
+    const int ntt = min<int>(n - a * o, size() - o);
+    Poly tts(ntt);
+    for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
+    tts = tts.pow(Mint(a), n - a * o);  // (29 + 1/2) E(n - a ord(t))
+    Poly gs(n);
+    for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
+    return gs;
+  }
+  // 11 E(n)
+  // f = t^(1/2) mod x^m,  g = 1 / t^(1/2) mod x^m
+  // f <- f - (f^2 - h) g / 2
+  // g <- g - (f g - 1) g
+  // polyWork1: DFT(f, m), polyWork2: g, polyWork3: DFT(g, 2 m)
+  Poly sqrt(int n) const {
+    assert(!empty()); assert((*this)[0].x == 1U); assert(1 <= n);
+    assert(n == 1 || 1 << (32 - __builtin_clz(n - 1)) <= LIM_POLY);
+    if (n == 1) return {1U};
+    if (n == 2) return {1U, at(1) / 2};
+    Poly fs(n);
+    fs[0].x = polyWork1[0].x = polyWork2[0].x = 1U;
+    int m;
+    for (m = 1; m << 1 < n; m <<= 1) {
+      for (int i = 0; i < m; ++i) polyWork1[i] *= polyWork1[i];
+      invFft(polyWork1, m);  // (1/2) E(n)
+      for (int i = 0, i0 = min(m, size()); i < i0; ++i) polyWork1[i] -= (*this)[i];
+      for (int i = 0, i0 = min(m, size() - m); i < i0; ++i) polyWork1[i] -= (*this)[m + i];
+      memset(polyWork1 + m, 0, m * sizeof(Mint));
+      fft(polyWork1, m << 1);  // 1 E(n)
+      memcpy(polyWork3, polyWork2, m * sizeof(Mint));
+      memset(polyWork3 + m, 0, m * sizeof(Mint));
+      fft(polyWork3, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork1[i] *= polyWork3[i];
+      invFft(polyWork1, m << 1);  // 1 E(n)
+      for (int i = 0; i < m; ++i) { polyWork1[i] = -polyWork1[i]; fs[m + i].x = ((polyWork1[i].x & 1) ? (polyWork1[i].x + MO) : polyWork1[i].x) >> 1; }
+      memcpy(polyWork1, fs.data(), (m << 1) * sizeof(Mint));
+      fft(polyWork1, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] = polyWork1[i] * polyWork3[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      memset(polyWork0, 0, m * sizeof(Mint));
+      fft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork3[i];
+      invFft(polyWork0, m << 1);  // 1 E(n)
+      for (int i = m; i < m << 1; ++i) polyWork2[i] = -polyWork0[i];
+    }
+    // TODO: save (1/2) E(n)
+    for (int i = 0; i < m; ++i) polyWork1[i] *= polyWork1[i];
+    invFft(polyWork1, m);  // (1/2) E(n)
+    for (int i = 0, i0 = min(m, size()); i < i0; ++i) polyWork1[i] -= (*this)[i];
+    for (int i = 0, i0 = min(m, size() - m); i < i0; ++i) polyWork1[i] -= (*this)[m + i];
+    memset(polyWork1 + m, 0, m * sizeof(Mint));
+    fft(polyWork1, m << 1);  // 1 E(n)
+    memcpy(polyWork3, polyWork2, m * sizeof(Mint));
+    memset(polyWork3 + m, 0, m * sizeof(Mint));
+    fft(polyWork3, m << 1);  // 1 E(n)
+    for (int i = 0; i < m << 1; ++i) polyWork1[i] *= polyWork3[i];
+    invFft(polyWork1, m << 1);  // 1 E(n)
+    for (int i = 0; i < n - m; ++i) { polyWork1[i] = -polyWork1[i]; fs[m + i].x = ((polyWork1[i].x & 1) ? (polyWork1[i].x + MO) : polyWork1[i].x) >> 1; }
+    return fs;
+  }
+  // TODO: sqrt F_998244353
 };
 
 Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long long k) {
@@ -589,6 +641,28 @@ void unittest() {
   }
   // pow
   {
+    const Poly as{1};
+    const Poly bs{1, 0};
+    assert(as.pow(Mint(1), 1) == bs.take(1));
+    assert(as.pow(Mint(1), 2) == bs.take(2));
+  }
+  {
+    const Poly as{1, 1};
+    const Poly bs{1, 0, 0};
+    assert(as.pow(Mint(MO), 1) == bs.take(1));
+    assert(as.pow(Mint(MO), 2) == bs.take(2));
+    assert(as.pow(Mint(MO), 3) == bs.take(3));
+  }
+  {
+    const Poly as{1, 2, 3};
+    const Poly bs{1, Mint(1) / 2, Mint(3) / 8, Mint(-11) / 16, Mint(67) / 128};
+    assert(as.pow(Mint(1) / 4, 1) == bs.take(1));
+    assert(as.pow(Mint(1) / 4, 2) == bs.take(2));
+    assert(as.pow(Mint(1) / 4, 3) == bs.take(3));
+    assert(as.pow(Mint(1) / 4, 4) == bs.take(4));
+    assert(as.pow(Mint(1) / 4, 5) == bs.take(5));
+  }
+  {
     const Poly as{};
     const Poly bs{1, 0};
     assert(as.pow(0, 1) == bs.take(1));
@@ -624,6 +698,40 @@ void unittest() {
     assert(as.pow(3, 8) == bs.take(8));
     assert(as.pow(3, 10) == bs.take(10));
     assert(as.pow(3, 12) == bs.take(12));
+  }
+  // sqrt
+  {
+    const Poly as{1};
+    const Poly bs{1, 0};
+    assert(as.sqrt(1) == bs.take(1));
+    assert(as.sqrt(2) == bs.take(2));
+  }
+  {
+    const Poly as{1, 3};
+    const Poly bs{1, Mint(3) / 2, Mint(-9) / 8};
+    assert(as.sqrt(1) == bs.take(1));
+    assert(as.sqrt(2) == bs.take(2));
+    assert(as.sqrt(3) == bs.take(3));
+  }
+  {
+    const Poly as{1, -4, -5};
+    const Poly bs{1, -2, Mint(-9) / 2, -9};
+    assert(as.sqrt(1) == bs.take(1));
+    assert(as.sqrt(2) == bs.take(2));
+    assert(as.sqrt(3) == bs.take(3));
+    assert(as.sqrt(4) == bs.take(4));
+  }
+  {
+    const Poly as{1, 4, 1, 5, 9, 2, 6};
+    const Poly bs{1, 2, Mint(-3) / 2, Mint(11) / 2, Mint(-61) / 8, Mint(49) / 2,
+                  Mint(-1161) / 16, Mint(3581) / 16, Mint(-92197) / 128,
+                  Mint(151181) / 64};
+    assert(as.sqrt(1) == bs.take(1));
+    assert(as.sqrt(2) == bs.take(2));
+    assert(as.sqrt(3) == bs.take(3));
+    assert(as.sqrt(5) == bs.take(5));
+    assert(as.sqrt(8) == bs.take(8));
+    assert(as.sqrt(10) == bs.take(10));
   }
   // linearRecurrenceAt
   {
@@ -677,8 +785,8 @@ void measurement_inv() {
   solve_inv(10000, 1054298238);
   solve_inv(100000, 102902713);
   solve_inv(1000000, 520886679);
-  // 5/3: 15876 msec @ DAIVRabbit
-  // 3/2: 16125 msec @ DAIVRabbit
+  // 10 E(n): 15876 msec @ DAIVRabbit
+  //  9 E(n): 16125 msec @ DAIVRabbit
 }
 
 void solve_log(const int N, const unsigned expected) {
@@ -753,10 +861,48 @@ void measurement_exp() {
   // 25017 msec @ DAIVRabbit
 }
 
+void solve_sqrt(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 100;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    Poly as(N);
+    as[0] = 1;
+    for (int i = 1; i < N; ++i) {
+      as[i] = xrand();
+    }
+    const Poly bs = as.sqrt(N);
+    assert(bs.size() == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (bs[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[sqrt] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_sqrt() {
+  solve_sqrt(1, 0);
+  solve_sqrt(10, 404272824);
+  solve_sqrt(100, 919601335);
+  solve_sqrt(1000, 995272394);
+  solve_sqrt(10000, 238679007);
+  solve_sqrt(100000, 1060519291);
+  solve_sqrt(1000000, 640353577);
+  //  11        E(n): 16610 msec @ DAIVRabbit
+  // (10 + 1/2) E(n):  msec @ DAIVRabbit
+}
+
 int main() {
   unittest();
   measurement_inv();
   measurement_log();
   measurement_exp();
+  measurement_sqrt();
   return 0;
 }
