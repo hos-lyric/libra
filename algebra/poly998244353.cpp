@@ -21,7 +21,7 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0: operator*, inv, div, divAt, log, exp, pow, sqrt
+// polyWork0: *, inv, div, divAt, log, exp, pow, sqrt
 // polyWork1: inv, div, divAt, log, exp, pow, sqrt
 // polyWork2: divAt, exp, pow, sqrt
 // polyWork3: exp, pow, sqrt
@@ -37,6 +37,7 @@ struct Poly : public vector<Mint> {
   int size() const { return vector<Mint>::size(); }
   Mint at(long long k) const { return (0 <= k && k < size()) ? (*this)[k] : 0U; }
   int ord() const { for (int i = 0; i < size(); ++i) if ((*this)[i]) return i; return -1; }
+  int deg() const { for (int i = size(); --i >= 0; ) if ((*this)[i]) return i; return -1; }
   Poly mod(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
   friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
     os << "[";
@@ -71,6 +72,27 @@ struct Poly : public vector<Mint> {
     resize(nt + nf - 1);
     return *this;
   }
+  // 13 E(deg(t) - deg(f) + 1)
+  // rev(t) = rev(f) rev(q) + x^(deg(t)-deg(f)+1) rev(r)
+  Poly &operator/=(const Poly &fs) {
+    const int m = deg(), n = fs.deg();
+    assert(n != -1);
+    if (m < n) return *this = {};
+    Poly tsRev(m - n + 1), fsRev(min(m - n, n) + 1);
+    for (int i = 0; i <= m - n; ++i) tsRev[i] = (*this)[m - i];
+    for (int i = 0, i0 = min(m - n, n); i <= i0; ++i) fsRev[i] = fs[n - i];
+    const Poly qsRev = tsRev.div(fsRev, m - n + 1);  // 13 E(m - n + 1)
+    resize(m - n + 1);
+    for (int i = 0; i <= m - n; ++i) (*this)[i] = qsRev[m - n - i];
+    return *this;
+  }
+  // 13 E(deg(t) - deg(f) + 1) + 3 E(|t|)
+  Poly &operator%=(const Poly &fs) {
+    const Poly qs = *this / fs;  // 13 E(deg(t) - deg(f) + 1)
+    *this -= fs * qs;  // 3 E(|t|)
+    resize(deg() + 1);
+    return *this;
+  }
   Poly &operator*=(const Mint &a) {
     for (int i = 0; i < size(); ++i) (*this)[i] *= a;
     return *this;
@@ -89,6 +111,8 @@ struct Poly : public vector<Mint> {
   Poly operator+(const Poly &fs) const { return (Poly(*this) += fs); }
   Poly operator-(const Poly &fs) const { return (Poly(*this) -= fs); }
   Poly operator*(const Poly &fs) const { return (Poly(*this) *= fs); }
+  Poly operator/(const Poly &fs) const { return (Poly(*this) /= fs); }
+  Poly operator%(const Poly &fs) const { return (Poly(*this) %= fs); }
   Poly operator*(const Mint &a) const { return (Poly(*this) *= a); }
   Poly operator/(const Mint &a) const { return (Poly(*this) /= a); }
   friend Poly operator*(const Mint &a, const Poly &fs) { return fs * a; }
@@ -169,8 +193,8 @@ struct Poly : public vector<Mint> {
   // g = (1 / f) mod x^m
   // h <- h - (f h - t) g
   Poly div(const Poly &fs, int n) const {
-    assert(!empty()); assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
-    if (n == 1) return {(*this)[0] / fs[0]};
+    assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
+    if (n == 1) return {at(0) / fs[0]};
     // m < n <= 2 m
     const int m = 1 << (31 - __builtin_clz(n - 1));
     assert(m << 1 <= LIM_POLY);
@@ -474,6 +498,16 @@ void unittest() {
     assert((Poly{0, 0, 0, 1}).ord() == 3);
     assert((Poly{0, 0, 0, 0}).ord() == -1);
   }
+  // deg
+  {
+    assert((Poly{}).deg() == -1);
+    assert((Poly{1}).deg() == 0);
+    assert((Poly{0}).deg() == -1);
+    assert((Poly{3, 1, 4, 1}).deg() == 3);
+    assert((Poly{1, 0, 1, 0}).deg() == 2);
+    assert((Poly{1, 0, 0, 0}).deg() == 0);
+    assert((Poly{0, 0, 0, 0}).deg() == -1);
+  }
   // mod
   {
     const Poly as{3, 1, 4, 1};
@@ -502,7 +536,41 @@ void unittest() {
   // operator*(const Poly &)
   {
     const Poly as{3, 1, -4, -1}, bs{-5, 9, -2, 6, -5};
-    assert(as * bs == (vector<Mint>{-15, 22, 23, -15, -10, -27, 14, 5}));
+    assert(as * bs == (Poly{-15, 22, 23, -15, -10, -27, 14, 5}));
+  }
+  // operator/(const Poly &)
+  // operator%(const Poly &)
+  {
+    const Poly as{}, bs{1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{}));
+  }
+  {
+    const Poly as{}, bs{0, 1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{}));
+  }
+  {
+    const Poly as{1}, bs{0, 1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{1}));
+  }
+  {
+    const Poly as{2, 3}, bs{1, 1};
+    assert(as / bs == (Poly{3}));
+    assert(as % bs == (Poly{-1}));
+  }
+  {
+    const Poly as{1, 2, 3, 4, 5, 6}, bs{7, 8, 9, 10};
+    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
+    assert(as % bs ==
+           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
+  }
+  {
+    const Poly as{1, 2, 3, 4, 5, 6, 0, 0}, bs{7, 8, 9, 10, 0, 0, 0};
+    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
+    assert(as % bs ==
+           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
   }
   // operator*(const Mint &)
   // operator/(const Mint &)
@@ -530,6 +598,13 @@ void unittest() {
     assert(as.inv(10) == bs.mod(10));
   }
   // div
+  {
+    const Poly as{}, bs{3};
+    const Poly cs{0, 0, 0};
+    assert(as.div(bs, 1) == cs.mod(1));
+    assert(as.div(bs, 2) == cs.mod(2));
+    assert(as.div(bs, 3) == cs.mod(3));
+  }
   {
     const Poly as{2}, bs{3};
     const Poly cs{Mint(2) / 3, 0, 0};
