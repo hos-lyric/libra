@@ -21,7 +21,7 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0: operator*, inv, div, divAt, log, exp, pow, sqrt
+// polyWork0: *, inv, div, divAt, log, exp, pow, sqrt
 // polyWork1: inv, div, divAt, log, exp, pow, sqrt
 // polyWork2: divAt, exp, pow, sqrt
 // polyWork3: exp, pow, sqrt
@@ -37,7 +37,8 @@ struct Poly : public vector<Mint> {
   int size() const { return vector<Mint>::size(); }
   Mint at(long long k) const { return (0 <= k && k < size()) ? (*this)[k] : 0U; }
   int ord() const { for (int i = 0; i < size(); ++i) if ((*this)[i]) return i; return -1; }
-  Poly take(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
+  int deg() const { for (int i = size(); --i >= 0; ) if ((*this)[i]) return i; return -1; }
+  Poly mod(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
   friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
     os << "[";
     for (int i = 0; i < fs.size(); ++i) { if (i > 0) os << ", "; os << fs[i]; }
@@ -71,6 +72,27 @@ struct Poly : public vector<Mint> {
     resize(nt + nf - 1);
     return *this;
   }
+  // 13 E(deg(t) - deg(f) + 1)
+  // rev(t) = rev(f) rev(q) + x^(deg(t)-deg(f)+1) rev(r)
+  Poly &operator/=(const Poly &fs) {
+    const int m = deg(), n = fs.deg();
+    assert(n != -1);
+    if (m < n) return *this = {};
+    Poly tsRev(m - n + 1), fsRev(min(m - n, n) + 1);
+    for (int i = 0; i <= m - n; ++i) tsRev[i] = (*this)[m - i];
+    for (int i = 0, i0 = min(m - n, n); i <= i0; ++i) fsRev[i] = fs[n - i];
+    const Poly qsRev = tsRev.div(fsRev, m - n + 1);  // 13 E(m - n + 1)
+    resize(m - n + 1);
+    for (int i = 0; i <= m - n; ++i) (*this)[i] = qsRev[m - n - i];
+    return *this;
+  }
+  // 13 E(deg(t) - deg(f) + 1) + 3 E(|t|)
+  Poly &operator%=(const Poly &fs) {
+    const Poly qs = *this / fs;  // 13 E(deg(t) - deg(f) + 1)
+    *this -= fs * qs;  // 3 E(|t|)
+    resize(deg() + 1);
+    return *this;
+  }
   Poly &operator*=(const Mint &a) {
     for (int i = 0; i < size(); ++i) (*this)[i] *= a;
     return *this;
@@ -89,6 +111,8 @@ struct Poly : public vector<Mint> {
   Poly operator+(const Poly &fs) const { return (Poly(*this) += fs); }
   Poly operator-(const Poly &fs) const { return (Poly(*this) -= fs); }
   Poly operator*(const Poly &fs) const { return (Poly(*this) *= fs); }
+  Poly operator/(const Poly &fs) const { return (Poly(*this) /= fs); }
+  Poly operator%(const Poly &fs) const { return (Poly(*this) %= fs); }
   Poly operator*(const Mint &a) const { return (Poly(*this) *= a); }
   Poly operator/(const Mint &a) const { return (Poly(*this) /= a); }
   friend Poly operator*(const Mint &a, const Poly &fs) { return fs * a; }
@@ -169,8 +193,8 @@ struct Poly : public vector<Mint> {
   // g = (1 / f) mod x^m
   // h <- h - (f h - t) g
   Poly div(const Poly &fs, int n) const {
-    assert(!empty()); assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
-    if (n == 1) return {(*this)[0] / fs[0]};
+    assert(!fs.empty()); assert(fs[0]); assert(1 <= n);
+    if (n == 1) return {at(0) / fs[0]};
     // m < n <= 2 m
     const int m = 1 << (31 - __builtin_clz(n - 1));
     assert(m << 1 <= LIM_POLY);
@@ -259,7 +283,7 @@ struct Poly : public vector<Mint> {
   // D log(t) = (D t) / t
   Poly log(int n) const {
     assert(!empty()); assert((*this)[0].x == 1U); assert(n <= LIM_INV);
-    Poly fs = take(n);
+    Poly fs = mod(n);
     for (int i = 0; i < fs.size(); ++i) fs[i] *= i;
     fs = fs.div(*this, n);
     for (int i = 1; i < n; ++i) fs[i] *= ::inv[i];
@@ -446,7 +470,7 @@ Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long lon
   assert(!cs.empty()); assert(cs[0]);
   const int d = cs.size() - 1;
   assert(as.size() >= static_cast<size_t>(d));
-  return (Poly(vector<Mint>(as.begin(), as.begin() + d)) * cs).take(d).divAt(cs, k);
+  return (Poly(vector<Mint>(as.begin(), as.begin() + d)) * cs).mod(d).divAt(cs, k);
 }
 
 // -----------------------------------------------------------------------------
@@ -474,13 +498,23 @@ void unittest() {
     assert((Poly{0, 0, 0, 1}).ord() == 3);
     assert((Poly{0, 0, 0, 0}).ord() == -1);
   }
-  // take
+  // deg
+  {
+    assert((Poly{}).deg() == -1);
+    assert((Poly{1}).deg() == 0);
+    assert((Poly{0}).deg() == -1);
+    assert((Poly{3, 1, 4, 1}).deg() == 3);
+    assert((Poly{1, 0, 1, 0}).deg() == 2);
+    assert((Poly{1, 0, 0, 0}).deg() == 0);
+    assert((Poly{0, 0, 0, 0}).deg() == -1);
+  }
+  // mod
   {
     const Poly as{3, 1, 4, 1};
-    assert(as.take(0) == (vector<Mint>{}));
-    assert(as.take(2) == (vector<Mint>{3, 1}));
-    assert(as.take(4) == (vector<Mint>{3, 1, 4, 1}));
-    assert(as.take(6) == (vector<Mint>{3, 1, 4, 1}));
+    assert(as.mod(0) == (vector<Mint>{}));
+    assert(as.mod(2) == (vector<Mint>{3, 1}));
+    assert(as.mod(4) == (vector<Mint>{3, 1, 4, 1}));
+    assert(as.mod(6) == (vector<Mint>{3, 1, 4, 1}));
   }
 
   // operator+()
@@ -502,7 +536,41 @@ void unittest() {
   // operator*(const Poly &)
   {
     const Poly as{3, 1, -4, -1}, bs{-5, 9, -2, 6, -5};
-    assert(as * bs == (vector<Mint>{-15, 22, 23, -15, -10, -27, 14, 5}));
+    assert(as * bs == (Poly{-15, 22, 23, -15, -10, -27, 14, 5}));
+  }
+  // operator/(const Poly &)
+  // operator%(const Poly &)
+  {
+    const Poly as{}, bs{1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{}));
+  }
+  {
+    const Poly as{}, bs{0, 1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{}));
+  }
+  {
+    const Poly as{1}, bs{0, 1};
+    assert(as / bs == (Poly{}));
+    assert(as % bs == (Poly{1}));
+  }
+  {
+    const Poly as{2, 3}, bs{1, 1};
+    assert(as / bs == (Poly{3}));
+    assert(as % bs == (Poly{-1}));
+  }
+  {
+    const Poly as{1, 2, 3, 4, 5, 6}, bs{7, 8, 9, 10};
+    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
+    assert(as % bs ==
+           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
+  }
+  {
+    const Poly as{1, 2, 3, 4, 5, 6, 0, 0}, bs{7, 8, 9, 10, 0, 0, 0};
+    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
+    assert(as % bs ==
+           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
   }
   // operator*(const Mint &)
   // operator/(const Mint &)
@@ -522,20 +590,27 @@ void unittest() {
                   Mint(-8) / 243, Mint(74) / 729, Mint(1381) / 2187,
                   Mint(-4087) / 6561, Mint(-12071) / 19683,
                   Mint(38696) / 59049};
-    assert(as.inv(1) == bs.take(1));
-    assert(as.inv(2) == bs.take(2));
-    assert(as.inv(3) == bs.take(3));
-    assert(as.inv(5) == bs.take(5));
-    assert(as.inv(8) == bs.take(8));
-    assert(as.inv(10) == bs.take(10));
+    assert(as.inv(1) == bs.mod(1));
+    assert(as.inv(2) == bs.mod(2));
+    assert(as.inv(3) == bs.mod(3));
+    assert(as.inv(5) == bs.mod(5));
+    assert(as.inv(8) == bs.mod(8));
+    assert(as.inv(10) == bs.mod(10));
   }
   // div
   {
+    const Poly as{}, bs{3};
+    const Poly cs{0, 0, 0};
+    assert(as.div(bs, 1) == cs.mod(1));
+    assert(as.div(bs, 2) == cs.mod(2));
+    assert(as.div(bs, 3) == cs.mod(3));
+  }
+  {
     const Poly as{2}, bs{3};
     const Poly cs{Mint(2) / 3, 0, 0};
-    assert(as.div(bs, 1) == cs.take(1));
-    assert(as.div(bs, 2) == cs.take(2));
-    assert(as.div(bs, 3) == cs.take(3));
+    assert(as.div(bs, 1) == cs.mod(1));
+    assert(as.div(bs, 2) == cs.mod(2));
+    assert(as.div(bs, 3) == cs.mod(3));
   }
   {
     const Poly as{3, 1, 4, 1, 5}, bs{9, 2, 6, 5, 3, 5};
@@ -543,12 +618,12 @@ void unittest() {
                   Mint(6175) / 19683, Mint(-51122) / 177147,
                   Mint(-248135) / 1594323, Mint(-250037) / 14348907,
                   Mint(31596649) / 129140163, Mint(-39963686) / 1162261467};
-    assert(as.div(bs, 1) == cs.take(1));
-    assert(as.div(bs, 2) == cs.take(2));
-    assert(as.div(bs, 3) == cs.take(3));
-    assert(as.div(bs, 5) == cs.take(5));
-    assert(as.div(bs, 8) == cs.take(8));
-    assert(as.div(bs, 10) == cs.take(10));
+    assert(as.div(bs, 1) == cs.mod(1));
+    assert(as.div(bs, 2) == cs.mod(2));
+    assert(as.div(bs, 3) == cs.mod(3));
+    assert(as.div(bs, 5) == cs.mod(5));
+    assert(as.div(bs, 8) == cs.mod(8));
+    assert(as.div(bs, 10) == cs.mod(10));
   }
   // divAt
   {
@@ -602,163 +677,163 @@ void unittest() {
   {
     const Poly as{1};
     const Poly bs{0, 0};
-    assert(as.log(1) == bs.take(1));
-    assert(as.log(2) == bs.take(2));
+    assert(as.log(1) == bs.mod(1));
+    assert(as.log(2) == bs.mod(2));
   }
   {
     const Poly as{1, 2};
     const Poly bs{0, 2, -2};
-    assert(as.log(1) == bs.take(1));
-    assert(as.log(2) == bs.take(2));
-    assert(as.log(3) == bs.take(3));
+    assert(as.log(1) == bs.mod(1));
+    assert(as.log(2) == bs.mod(2));
+    assert(as.log(3) == bs.mod(3));
   }
   {
     const Poly as{1, 3, 4};
     const Poly bs{0, 3, Mint(-1) / 2, -3};
-    assert(as.log(1) == bs.take(1));
-    assert(as.log(2) == bs.take(2));
-    assert(as.log(3) == bs.take(3));
-    assert(as.log(4) == bs.take(4));
+    assert(as.log(1) == bs.mod(1));
+    assert(as.log(2) == bs.mod(2));
+    assert(as.log(3) == bs.mod(3));
+    assert(as.log(4) == bs.mod(4));
   }
   {
     const Poly as{1, 8, 2, -8, -1, -8, 2, -8, -4, 5};
     const Poly bs{0, 8, -30, Mint(440) / 3, -835, Mint(25328) / 5, -32068,
                   Mint(1461776) / 7, Mint(-2776609) / 2, Mint(84385997) / 9,
                   -64116076};
-    assert(as.log(1) == bs.take(1));
-    assert(as.log(2) == bs.take(2));
-    assert(as.log(3) == bs.take(3));
-    assert(as.log(5) == bs.take(5));
-    assert(as.log(8) == bs.take(8));
-    assert(as.log(10) == bs.take(10));
+    assert(as.log(1) == bs.mod(1));
+    assert(as.log(2) == bs.mod(2));
+    assert(as.log(3) == bs.mod(3));
+    assert(as.log(5) == bs.mod(5));
+    assert(as.log(8) == bs.mod(8));
+    assert(as.log(10) == bs.mod(10));
   }
   // exp
   {
     const Poly as{0};
     const Poly bs{1, 0};
-    assert(as.exp(1) == bs.take(1));
-    assert(as.exp(2) == bs.take(2));
+    assert(as.exp(1) == bs.mod(1));
+    assert(as.exp(2) == bs.mod(2));
   }
   {
     const Poly as{0, 2};
     const Poly bs{1, 2, 2};
-    assert(as.exp(1) == bs.take(1));
-    assert(as.exp(2) == bs.take(2));
-    assert(as.exp(3) == bs.take(3));
+    assert(as.exp(1) == bs.mod(1));
+    assert(as.exp(2) == bs.mod(2));
+    assert(as.exp(3) == bs.mod(3));
   }
   {
     const Poly as{0, 3, 4};
     const Poly bs{1, 3, Mint(17) / 2, Mint(33) / 2};
-    assert(as.exp(1) == bs.take(1));
-    assert(as.exp(2) == bs.take(2));
-    assert(as.exp(3) == bs.take(3));
-    assert(as.exp(4) == bs.take(4));
+    assert(as.exp(1) == bs.mod(1));
+    assert(as.exp(2) == bs.mod(2));
+    assert(as.exp(3) == bs.mod(3));
+    assert(as.exp(4) == bs.mod(4));
   }
   {
     const Poly as{0, 8, 2, -8, -1, -8, 2, -8, -4, 5};
     const Poly bs{1, 8, 34, Mint(280) / 3, Mint(515) / 3, Mint(2576) / 15,
                   Mint(-4676) / 45, Mint(-268096) / 315, Mint(-249449) / 126,
                   Mint(-1593721) / 567};
-    assert(as.exp(1) == bs.take(1));
-    assert(as.exp(2) == bs.take(2));
-    assert(as.exp(3) == bs.take(3));
-    assert(as.exp(5) == bs.take(5));
-    assert(as.exp(8) == bs.take(8));
-    assert(as.exp(10) == bs.take(10));
+    assert(as.exp(1) == bs.mod(1));
+    assert(as.exp(2) == bs.mod(2));
+    assert(as.exp(3) == bs.mod(3));
+    assert(as.exp(5) == bs.mod(5));
+    assert(as.exp(8) == bs.mod(8));
+    assert(as.exp(10) == bs.mod(10));
   }
   // pow
   {
     const Poly as{1};
     const Poly bs{1, 0};
-    assert(as.pow(Mint(1), 1) == bs.take(1));
-    assert(as.pow(Mint(1), 2) == bs.take(2));
+    assert(as.pow(Mint(1), 1) == bs.mod(1));
+    assert(as.pow(Mint(1), 2) == bs.mod(2));
   }
   {
     const Poly as{1, 1};
     const Poly bs{1, 0, 0};
-    assert(as.pow(Mint(MO), 1) == bs.take(1));
-    assert(as.pow(Mint(MO), 2) == bs.take(2));
-    assert(as.pow(Mint(MO), 3) == bs.take(3));
+    assert(as.pow(Mint(MO), 1) == bs.mod(1));
+    assert(as.pow(Mint(MO), 2) == bs.mod(2));
+    assert(as.pow(Mint(MO), 3) == bs.mod(3));
   }
   {
     const Poly as{1, 2, 3};
     const Poly bs{1, Mint(1) / 2, Mint(3) / 8, Mint(-11) / 16, Mint(67) / 128};
-    assert(as.pow(Mint(1) / 4, 1) == bs.take(1));
-    assert(as.pow(Mint(1) / 4, 2) == bs.take(2));
-    assert(as.pow(Mint(1) / 4, 3) == bs.take(3));
-    assert(as.pow(Mint(1) / 4, 4) == bs.take(4));
-    assert(as.pow(Mint(1) / 4, 5) == bs.take(5));
+    assert(as.pow(Mint(1) / 4, 1) == bs.mod(1));
+    assert(as.pow(Mint(1) / 4, 2) == bs.mod(2));
+    assert(as.pow(Mint(1) / 4, 3) == bs.mod(3));
+    assert(as.pow(Mint(1) / 4, 4) == bs.mod(4));
+    assert(as.pow(Mint(1) / 4, 5) == bs.mod(5));
   }
   {
     const Poly as{};
     const Poly bs{1, 0};
-    assert(as.pow(0, 1) == bs.take(1));
-    assert(as.pow(0, 2) == bs.take(2));
+    assert(as.pow(0, 1) == bs.mod(1));
+    assert(as.pow(0, 2) == bs.mod(2));
   }
   {
     const Poly as{};
     const Poly bs{0, 0};
-    assert(as.pow(10, 1) == bs.take(1));
-    assert(as.pow(10, 2) == bs.take(2));
+    assert(as.pow(10, 1) == bs.mod(1));
+    assert(as.pow(10, 2) == bs.mod(2));
   }
   {
     const Poly as{2};
     const Poly bs{1024, 0};
-    assert(as.pow(10, 1) == bs.take(1));
-    assert(as.pow(10, 2) == bs.take(2));
+    assert(as.pow(10, 1) == bs.mod(1));
+    assert(as.pow(10, 2) == bs.mod(2));
   }
   {
     const Poly as{1, 3, 4};
     const Poly bs{1, 15, 110, 510};
-    assert(as.pow(5, 1) == bs.take(1));
-    assert(as.pow(5, 2) == bs.take(2));
-    assert(as.pow(5, 3) == bs.take(3));
-    assert(as.pow(5, 4) == bs.take(4));
+    assert(as.pow(5, 1) == bs.mod(1));
+    assert(as.pow(5, 2) == bs.mod(2));
+    assert(as.pow(5, 3) == bs.mod(3));
+    assert(as.pow(5, 4) == bs.mod(4));
   }
   {
     const Poly as{0, 0, 3, 1, 4, 1, 5, 9, 2, 6};
     const Poly bs{0, 0, 0, 0, 0, 0, 27, 27, 117, 100, 309, 456};
-    assert(as.pow(3, 1) == bs.take(1));
-    assert(as.pow(3, 2) == bs.take(2));
-    assert(as.pow(3, 3) == bs.take(3));
-    assert(as.pow(3, 5) == bs.take(5));
-    assert(as.pow(3, 8) == bs.take(8));
-    assert(as.pow(3, 10) == bs.take(10));
-    assert(as.pow(3, 12) == bs.take(12));
+    assert(as.pow(3, 1) == bs.mod(1));
+    assert(as.pow(3, 2) == bs.mod(2));
+    assert(as.pow(3, 3) == bs.mod(3));
+    assert(as.pow(3, 5) == bs.mod(5));
+    assert(as.pow(3, 8) == bs.mod(8));
+    assert(as.pow(3, 10) == bs.mod(10));
+    assert(as.pow(3, 12) == bs.mod(12));
   }
   // sqrt
   {
     const Poly as{1};
     const Poly bs{1, 0};
-    assert(as.sqrt(1) == bs.take(1));
-    assert(as.sqrt(2) == bs.take(2));
+    assert(as.sqrt(1) == bs.mod(1));
+    assert(as.sqrt(2) == bs.mod(2));
   }
   {
     const Poly as{1, 3};
     const Poly bs{1, Mint(3) / 2, Mint(-9) / 8};
-    assert(as.sqrt(1) == bs.take(1));
-    assert(as.sqrt(2) == bs.take(2));
-    assert(as.sqrt(3) == bs.take(3));
+    assert(as.sqrt(1) == bs.mod(1));
+    assert(as.sqrt(2) == bs.mod(2));
+    assert(as.sqrt(3) == bs.mod(3));
   }
   {
     const Poly as{1, -4, -5};
     const Poly bs{1, -2, Mint(-9) / 2, -9};
-    assert(as.sqrt(1) == bs.take(1));
-    assert(as.sqrt(2) == bs.take(2));
-    assert(as.sqrt(3) == bs.take(3));
-    assert(as.sqrt(4) == bs.take(4));
+    assert(as.sqrt(1) == bs.mod(1));
+    assert(as.sqrt(2) == bs.mod(2));
+    assert(as.sqrt(3) == bs.mod(3));
+    assert(as.sqrt(4) == bs.mod(4));
   }
   {
     const Poly as{1, 4, 1, 5, 9, 2, 6};
     const Poly bs{1, 2, Mint(-3) / 2, Mint(11) / 2, Mint(-61) / 8, Mint(49) / 2,
                   Mint(-1161) / 16, Mint(3581) / 16, Mint(-92197) / 128,
                   Mint(151181) / 64};
-    assert(as.sqrt(1) == bs.take(1));
-    assert(as.sqrt(2) == bs.take(2));
-    assert(as.sqrt(3) == bs.take(3));
-    assert(as.sqrt(5) == bs.take(5));
-    assert(as.sqrt(8) == bs.take(8));
-    assert(as.sqrt(10) == bs.take(10));
+    assert(as.sqrt(1) == bs.mod(1));
+    assert(as.sqrt(2) == bs.mod(2));
+    assert(as.sqrt(3) == bs.mod(3));
+    assert(as.sqrt(5) == bs.mod(5));
+    assert(as.sqrt(8) == bs.mod(8));
+    assert(as.sqrt(10) == bs.mod(10));
   }
   {
     auto mockModSqrt = [&](Mint a) {
@@ -774,14 +849,14 @@ void unittest() {
       const Poly as{4, 1, 5};
       const Poly bs{2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512,
                     Mint(-5925) / 16384};
-      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
-      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
+      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
+      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
     }
     {
       const Poly as{0, 0, 4, 1, 5};
       const Poly bs{0, 2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512};
-      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
-      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
+      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
+      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
     }
     {
       const Poly as{3, 1, 4};
@@ -802,15 +877,15 @@ void unittest() {
                     Mint(1) / 200, Mint(1) / 2000, Mint(1) / 20000,
                     Mint(-1) / 25000, Mint(7) / 2000000, Mint(3) / 80000000,
                     Mint(3) / 800000000, Mint(3) / 8000000000LL};
-      assert(as.sqrt(1, mockModSqrt) == bs.take(1));
-      assert(as.sqrt(2, mockModSqrt) == bs.take(2));
-      assert(as.sqrt(3, mockModSqrt) == bs.take(3));
-      assert(as.sqrt(4, mockModSqrt) == bs.take(4));
-      assert(as.sqrt(5, mockModSqrt) == bs.take(5));
-      assert(as.sqrt(8, mockModSqrt) == bs.take(8));
-      assert(as.sqrt(10, mockModSqrt) == bs.take(10));
-      assert(as.sqrt(15, mockModSqrt) == bs.take(15));
-      assert(as.sqrt(16, mockModSqrt) == bs.take(16));
+      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
+      assert(as.sqrt(2, mockModSqrt) == bs.mod(2));
+      assert(as.sqrt(3, mockModSqrt) == bs.mod(3));
+      assert(as.sqrt(4, mockModSqrt) == bs.mod(4));
+      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
+      assert(as.sqrt(8, mockModSqrt) == bs.mod(8));
+      assert(as.sqrt(10, mockModSqrt) == bs.mod(10));
+      assert(as.sqrt(15, mockModSqrt) == bs.mod(15));
+      assert(as.sqrt(16, mockModSqrt) == bs.mod(16));
     }
   }
   // linearRecurrenceAt
