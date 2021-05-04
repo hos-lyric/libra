@@ -9,6 +9,7 @@
 
 using std::vector;
 
+////////////////////////////////////////////////////////////////////////////////
 constexpr unsigned MO = 998244353U;
 constexpr unsigned MO2 = 2U * MO;
 constexpr int FFT_MAX = 23;
@@ -136,5 +137,6 @@ vector<Mint> convolve(vector<Mint> as, vector<Mint> bs) {
   as.resize(len);
   return as;
 }
+////////////////////////////////////////////////////////////////////////////////
 
 #endif  // LIBRA_ALGEBRA_FFT998244353_H_

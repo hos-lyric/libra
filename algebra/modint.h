@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <iostream>
 
+////////////////////////////////////////////////////////////////////////////////
 template <unsigned M_> struct ModInt {
   static constexpr unsigned M = M_;
   unsigned x;
@@ -40,5 +41,6 @@ template <unsigned M_> struct ModInt {
   bool operator!=(const ModInt &a) const { return (x != a.x); }
   friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
 };
+////////////////////////////////////////////////////////////////////////////////
 
 #endif  // LIBRA_ALGEBRA_MODINT_H_

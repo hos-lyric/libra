@@ -1,16 +1,171 @@
-#include <assert.h>
-#include <string.h>
-#include <algorithm>
-#include <initializer_list>
-#include <iostream>
-#include <vector>
+////////////////////////////////////////////////////////////////////////////////
+template <unsigned M_> struct ModInt {
+  static constexpr unsigned M = M_;
+  unsigned x;
+  constexpr ModInt() : x(0) {}
+  constexpr ModInt(unsigned x_) : x(x_ % M) {}
+  constexpr ModInt(unsigned long long x_) : x(x_ % M) {}
+  constexpr ModInt(int x_) : x(((x_ %= static_cast<int>(M)) < 0) ? (x_ + static_cast<int>(M)) : x_) {}
+  constexpr ModInt(long long x_) : x(((x_ %= static_cast<long long>(M)) < 0) ? (x_ + static_cast<long long>(M)) : x_) {}
+  ModInt &operator+=(const ModInt &a) { x = ((x += a.x) >= M) ? (x - M) : x; return *this; }
+  ModInt &operator-=(const ModInt &a) { x = ((x -= a.x) >= M) ? (x + M) : x; return *this; }
+  ModInt &operator*=(const ModInt &a) { x = (static_cast<unsigned long long>(x) * a.x) % M; return *this; }
+  ModInt &operator/=(const ModInt &a) { return (*this *= a.inv()); }
+  ModInt pow(long long e) const {
+    if (e < 0) return inv().pow(-e);
+    ModInt a = *this, b = 1; for (; e; e >>= 1) { if (e & 1) b *= a; a *= a; } return b;
+  }
+  ModInt inv() const {
+    unsigned a = M, b = x; int y = 0, z = 1;
+    for (; b; ) { const unsigned q = a / b; const unsigned c = a - q * b; a = b; b = c; const int w = y - static_cast<int>(q) * z; y = z; z = w; }
+    assert(a == 1); return ModInt(y);
+  }
+  ModInt operator+() const { return *this; }
+  ModInt operator-() const { ModInt a; a.x = x ? (M - x) : 0; return a; }
+  ModInt operator+(const ModInt &a) const { return (ModInt(*this) += a); }
+  ModInt operator-(const ModInt &a) const { return (ModInt(*this) -= a); }
+  ModInt operator*(const ModInt &a) const { return (ModInt(*this) *= a); }
+  ModInt operator/(const ModInt &a) const { return (ModInt(*this) /= a); }
+  template <class T> friend ModInt operator+(T a, const ModInt &b) { return (ModInt(a) += b); }
+  template <class T> friend ModInt operator-(T a, const ModInt &b) { return (ModInt(a) -= b); }
+  template <class T> friend ModInt operator*(T a, const ModInt &b) { return (ModInt(a) *= b); }
+  template <class T> friend ModInt operator/(T a, const ModInt &b) { return (ModInt(a) /= b); }
+  explicit operator bool() const { return x; }
+  bool operator==(const ModInt &a) const { return (x == a.x); }
+  bool operator!=(const ModInt &a) const { return (x != a.x); }
+  friend std::ostream &operator<<(std::ostream &os, const ModInt &a) { return os << a.x; }
+};
+////////////////////////////////////////////////////////////////////////////////
 
-#include "fft998244353.h"
-#include "modint.h"
+////////////////////////////////////////////////////////////////////////////////
+constexpr unsigned MO = 998244353U;
+constexpr unsigned MO2 = 2U * MO;
+constexpr int FFT_MAX = 23;
+using Mint = ModInt<MO>;
+constexpr Mint FFT_ROOTS[FFT_MAX + 1] = {1U, 998244352U, 911660635U, 372528824U, 929031873U, 452798380U, 922799308U, 781712469U, 476477967U, 166035806U, 258648936U, 584193783U, 63912897U, 350007156U, 666702199U, 968855178U, 629671588U, 24514907U, 996173970U, 363395222U, 565042129U, 733596141U, 267099868U, 15311432U};
+constexpr Mint INV_FFT_ROOTS[FFT_MAX + 1] = {1U, 998244352U, 86583718U, 509520358U, 337190230U, 87557064U, 609441965U, 135236158U, 304459705U, 685443576U, 381598368U, 335559352U, 129292727U, 358024708U, 814576206U, 708402881U, 283043518U, 3707709U, 121392023U, 704923114U, 950391366U, 428961804U, 382752275U, 469870224U};
+constexpr Mint FFT_RATIOS[FFT_MAX - 1] = {911660635U, 509520358U, 369330050U, 332049552U, 983190778U, 123842337U, 238493703U, 975955924U, 603855026U, 856644456U, 131300601U, 842657263U, 730768835U, 942482514U, 806263778U, 151565301U, 510815449U, 503497456U, 743006876U, 741047443U, 56250497U, 867605899U};
+constexpr Mint INV_FFT_RATIOS[FFT_MAX - 1] = {86583718U, 372528824U, 373294451U, 645684063U, 112220581U, 692852209U, 155456985U, 797128860U, 90816748U, 860285882U, 927414960U, 354738543U, 109331171U, 293255632U, 535113200U, 308540755U, 121186627U, 608385704U, 438932459U, 359477183U, 824071951U, 103369235U};
 
-using std::max;
-using std::min;
-using std::vector;
+// as[rev(i)] <- \sum_j \zeta^(ij) as[j]
+void fft(Mint *as, int n) {
+  assert(!(n & (n - 1))); assert(1 <= n); assert(n <= 1 << FFT_MAX);
+  int m = n;
+  if (m >>= 1) {
+    for (int i = 0; i < m; ++i) {
+      const unsigned x = as[i + m].x;  // < MO
+      as[i + m].x = as[i].x + MO - x;  // < 2 MO
+      as[i].x += x;  // < 2 MO
+    }
+  }
+  if (m >>= 1) {
+    Mint prod = 1;
+    for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
+      for (int i = i0; i < i0 + m; ++i) {
+        const unsigned x = (prod * as[i + m]).x;  // < MO
+        as[i + m].x = as[i].x + MO - x;  // < 3 MO
+        as[i].x += x;  // < 3 MO
+      }
+      prod *= FFT_RATIOS[__builtin_ctz(++h)];
+    }
+  }
+  for (; m; ) {
+    if (m >>= 1) {
+      Mint prod = 1;
+      for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
+        for (int i = i0; i < i0 + m; ++i) {
+          const unsigned x = (prod * as[i + m]).x;  // < MO
+          as[i + m].x = as[i].x + MO - x;  // < 4 MO
+          as[i].x += x;  // < 4 MO
+        }
+        prod *= FFT_RATIOS[__builtin_ctz(++h)];
+      }
+    }
+    if (m >>= 1) {
+      Mint prod = 1;
+      for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
+        for (int i = i0; i < i0 + m; ++i) {
+          const unsigned x = (prod * as[i + m]).x;  // < MO
+          as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
+          as[i + m].x = as[i].x + MO - x;  // < 3 MO
+          as[i].x += x;  // < 3 MO
+        }
+        prod *= FFT_RATIOS[__builtin_ctz(++h)];
+      }
+    }
+  }
+  for (int i = 0; i < n; ++i) {
+    as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
+    as[i].x = (as[i].x >= MO) ? (as[i].x - MO) : as[i].x;  // < MO
+  }
+}
+
+// as[i] <- (1/n) \sum_j \zeta^(-ij) as[rev(j)]
+void invFft(Mint *as, int n) {
+  assert(!(n & (n - 1))); assert(1 <= n); assert(n <= 1 << FFT_MAX);
+  int m = 1;
+  if (m < n >> 1) {
+    Mint prod = 1;
+    for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
+      for (int i = i0; i < i0 + m; ++i) {
+        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 MO
+        as[i].x += as[i + m].x;  // < 2 MO
+        as[i + m].x = (prod.x * y) % MO;  // < MO
+      }
+      prod *= INV_FFT_RATIOS[__builtin_ctz(++h)];
+    }
+    m <<= 1;
+  }
+  for (; m < n >> 1; m <<= 1) {
+    Mint prod = 1;
+    for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
+      for (int i = i0; i < i0 + (m >> 1); ++i) {
+        const unsigned long long y = as[i].x + MO2 - as[i + m].x;  // < 4 MO
+        as[i].x += as[i + m].x;  // < 4 MO
+        as[i].x = (as[i].x >= MO2) ? (as[i].x - MO2) : as[i].x;  // < 2 MO
+        as[i + m].x = (prod.x * y) % MO;  // < MO
+      }
+      for (int i = i0 + (m >> 1); i < i0 + m; ++i) {
+        const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 MO
+        as[i].x += as[i + m].x;  // < 2 MO
+        as[i + m].x = (prod.x * y) % MO;  // < MO
+      }
+      prod *= INV_FFT_RATIOS[__builtin_ctz(++h)];
+    }
+  }
+  if (m < n) {
+    for (int i = 0; i < m; ++i) {
+      const unsigned y = as[i].x + MO2 - as[i + m].x;  // < 4 MO
+      as[i].x += as[i + m].x;  // < 4 MO
+      as[i + m].x = y;  // < 4 MO
+    }
+  }
+  const Mint invN = Mint(n).inv();
+  for (int i = 0; i < n; ++i) {
+    as[i] *= invN;
+  }
+}
+
+void fft(vector<Mint> &as) {
+  fft(as.data(), as.size());
+}
+void invFft(vector<Mint> &as) {
+  invFft(as.data(), as.size());
+}
+
+vector<Mint> convolve(vector<Mint> as, vector<Mint> bs) {
+  if (as.empty() || bs.empty()) return {};
+  const int len = as.size() + bs.size() - 1;
+  int n = 1;
+  for (; n < len; n <<= 1) {}
+  as.resize(n); fft(as);
+  bs.resize(n); fft(bs);
+  for (int i = 0; i < n; ++i) as[i] *= bs[i];
+  invFft(as);
+  as.resize(len);
+  return as;
+}
+////////////////////////////////////////////////////////////////////////////////
 
 ////////////////////////////////////////////////////////////////////////////////
 // inv: log, exp, pow
@@ -594,742 +749,3 @@ struct SubproductTree {
 };
 ////////////////////////////////////////////////////////////////////////////////
 
-
-#include <chrono>
-#include <iostream>
-#include <set>
-using std::cerr;
-using std::endl;
-
-void unittest() {
-  // ModIntPreparator
-  assert(100 < LIM_INV);
-  assert(inv[0].x == 0);
-  assert(inv[1].x == 1);
-  assert(inv[2].x == 499122177);
-  assert(inv[3].x == 332748118);
-  assert(inv[4].x == 748683265);
-  assert(inv[100].x == 828542813);
-  assert(fac[0].x == 1);
-  assert(fac[1].x == 1);
-  assert(fac[2].x == 2);
-  assert(fac[3].x == 6);
-  assert(fac[4].x == 24);
-  assert(fac[100].x == 35305197);
-  assert(invFac[0].x == 1);
-  assert(invFac[1].x == 1);
-  assert(invFac[2].x == 499122177);
-  assert(invFac[3].x == 166374059);
-  assert(invFac[4].x == 291154603);
-  assert(invFac[100].x == 65687929);
-
-  // at
-  {
-    assert((Poly{3, 1, 4, 1}).at(-1) == 0);
-    assert((Poly{3, 1, 4, 1}).at(2) == 4);
-    assert((Poly{3, 1, 4, 1}).at(4) == 0);
-    assert((Poly{3, 1, 4, 1}).at(1LL << 32) == 0);
-  }
-  // ord
-  {
-    assert((Poly{}).ord() == -1);
-    assert((Poly{1}).ord() == 0);
-    assert((Poly{0}).ord() == -1);
-    assert((Poly{3, 1, 4, 1}).ord() == 0);
-    assert((Poly{0, 1, 0, 1}).ord() == 1);
-    assert((Poly{0, 0, 0, 1}).ord() == 3);
-    assert((Poly{0, 0, 0, 0}).ord() == -1);
-  }
-  // deg
-  {
-    assert((Poly{}).deg() == -1);
-    assert((Poly{1}).deg() == 0);
-    assert((Poly{0}).deg() == -1);
-    assert((Poly{3, 1, 4, 1}).deg() == 3);
-    assert((Poly{1, 0, 1, 0}).deg() == 2);
-    assert((Poly{1, 0, 0, 0}).deg() == 0);
-    assert((Poly{0, 0, 0, 0}).deg() == -1);
-  }
-  // mod
-  {
-    const Poly as{3, 1, 4, 1};
-    assert(as.mod(0) == (vector<Mint>{}));
-    assert(as.mod(2) == (vector<Mint>{3, 1}));
-    assert(as.mod(4) == (vector<Mint>{3, 1, 4, 1}));
-    assert(as.mod(6) == (vector<Mint>{3, 1, 4, 1}));
-  }
-
-  // operator+()
-  // operator-()
-  {
-    const Poly as{3, 1, -4, -1};
-    assert(+as == (vector<Mint>{3, 1, -4, -1}));
-    assert(-as == (vector<Mint>{-3, -1, 4, 1}));
-  }
-  // operator+(const Poly &)
-  // operator-(const Poly &)
-  {
-    const Poly as{3, 1}, bs{4, 1, 5};
-    assert(as + bs == (vector<Mint>{7, 2, 5}));
-    assert(bs + as == (vector<Mint>{7, 2, 5}));
-    assert(as - bs == (vector<Mint>{-1, 0, -5}));
-    assert(bs - as == (vector<Mint>{1, 0, 5}));
-  }
-  // operator*(const Poly &)
-  {
-    const Poly as{3, 1, -4, -1}, bs{-5, 9, -2, 6, -5};
-    assert(as * bs == (Poly{-15, 22, 23, -15, -10, -27, 14, 5}));
-  }
-  // operator/(const Poly &)
-  // operator%(const Poly &)
-  {
-    const Poly as{}, bs{1};
-    assert(as / bs == (Poly{}));
-    assert(as % bs == (Poly{}));
-  }
-  {
-    const Poly as{}, bs{0, 1};
-    assert(as / bs == (Poly{}));
-    assert(as % bs == (Poly{}));
-  }
-  {
-    const Poly as{1}, bs{0, 1};
-    assert(as / bs == (Poly{}));
-    assert(as % bs == (Poly{1}));
-  }
-  {
-    const Poly as{2, 3}, bs{1, 1};
-    assert(as / bs == (Poly{3}));
-    assert(as % bs == (Poly{-1}));
-  }
-  {
-    const Poly as{1, 2, 3, 4, 5, 6}, bs{7, 8, 9, 10};
-    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
-    assert(as % bs ==
-           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
-  }
-  {
-    const Poly as{1, 2, 3, 4, 5, 6, 0, 0}, bs{7, 8, 9, 10, 0, 0, 0};
-    assert(as / bs == (Poly{Mint(-11) / 250, Mint(-1) / 25, Mint(3) / 5}));
-    assert(as % bs ==
-           (Poly{Mint(327) / 250, Mint(329) / 125, Mint(-121) / 250}));
-  }
-  // operator*(const Mint &)
-  // operator/(const Mint &)
-  // friend operator*(const Poly &, const Mint &)
-  {
-    const Poly as{3, 1, -4, -1};
-    assert(as * 2 == (vector<Mint>{6, 2, -8, -2}));
-    assert(as / 2 ==
-           (vector<Mint>{(MO + 3) / 2, (MO + 1) / 2, -2, (MO - 1) / 2}));
-    assert(2 * as == (vector<Mint>{6, 2, -8, -2}));
-  }
-
-  // inv
-  {
-    const Poly as{3, 1, 4, 1, 5};
-    const Poly bs{Mint(1) / 3, Mint(-1) / 9, Mint(-11) / 27, Mint(14) / 81,
-                  Mint(-8) / 243, Mint(74) / 729, Mint(1381) / 2187,
-                  Mint(-4087) / 6561, Mint(-12071) / 19683,
-                  Mint(38696) / 59049};
-    assert(as.inv(1) == bs.mod(1));
-    assert(as.inv(2) == bs.mod(2));
-    assert(as.inv(3) == bs.mod(3));
-    assert(as.inv(5) == bs.mod(5));
-    assert(as.inv(8) == bs.mod(8));
-    assert(as.inv(10) == bs.mod(10));
-  }
-  // div
-  {
-    const Poly as{}, bs{3};
-    const Poly cs{0, 0, 0};
-    assert(as.div(bs, 1) == cs.mod(1));
-    assert(as.div(bs, 2) == cs.mod(2));
-    assert(as.div(bs, 3) == cs.mod(3));
-  }
-  {
-    const Poly as{2}, bs{3};
-    const Poly cs{Mint(2) / 3, 0, 0};
-    assert(as.div(bs, 1) == cs.mod(1));
-    assert(as.div(bs, 2) == cs.mod(2));
-    assert(as.div(bs, 3) == cs.mod(3));
-  }
-  {
-    const Poly as{3, 1, 4, 1, 5}, bs{9, 2, 6, 5, 3, 5};
-    const Poly cs{Mint(1) / 3, Mint(1) / 27, Mint(52) / 243, Mint(-320) / 2187,
-                  Mint(6175) / 19683, Mint(-51122) / 177147,
-                  Mint(-248135) / 1594323, Mint(-250037) / 14348907,
-                  Mint(31596649) / 129140163, Mint(-39963686) / 1162261467};
-    assert(as.div(bs, 1) == cs.mod(1));
-    assert(as.div(bs, 2) == cs.mod(2));
-    assert(as.div(bs, 3) == cs.mod(3));
-    assert(as.div(bs, 5) == cs.mod(5));
-    assert(as.div(bs, 8) == cs.mod(8));
-    assert(as.div(bs, 10) == cs.mod(10));
-  }
-  // divAt
-  {
-    const Poly as{};
-    const Poly bs{2};
-    assert(as.divAt(bs, 0) == 0);
-    assert(as.divAt(bs, 1) == 0);
-    assert(as.divAt(bs, 2) == 0);
-    assert(as.divAt(bs, 3) == 0);
-    assert(as.divAt(bs, 4) == 0);
-  }
-  {
-    const Poly as{2};
-    const Poly bs{3, 4};
-    assert(as.divAt(bs, 0) == Mint(2) / 3);
-    assert(as.divAt(bs, 1) == Mint(-8) / 9);
-    assert(as.divAt(bs, 2) == Mint(32) / 27);
-    assert(as.divAt(bs, 3) == Mint(-128) / 81);
-    assert(as.divAt(bs, 4) == Mint(512) / 243);
-  }
-  {
-    const Poly as{0, 1};
-    const Poly bs{1, -1, -1};
-    assert(as.divAt(bs, 0) == 0);
-    assert(as.divAt(bs, 1) == 1);
-    assert(as.divAt(bs, 2) == 1);
-    assert(as.divAt(bs, 3) == 2);
-    assert(as.divAt(bs, 4) == 3);
-    assert(as.divAt(bs, 5) == 5);
-    assert(as.divAt(bs, 6) == 8);
-    assert(as.divAt(bs, 7) == 13);
-    assert(as.divAt(bs, 8) == 21);
-    assert(as.divAt(bs, 9) == 34);
-    assert(as.divAt(bs, 10) == 55);
-    assert(as.divAt(bs, 1000000000000000000LL) == Mint(23849548U));
-  }
-  {
-    const Poly as{3, 1, 4, 1, 5, 9};
-    const Poly bs{2, 7, 1, 8, 2, 8, 1, 8};
-    assert(as.divAt(bs, 0) == Mint(3) / 2);
-    assert(as.divAt(bs, 1) == Mint(-19) / 4);
-    assert(as.divAt(bs, 2) == Mint(143) / 8);
-    assert(as.divAt(bs, 9) == Mint(-162213091) / 1024);
-    assert(as.divAt(bs, 10) == Mint(1188773543) / 2048);
-    assert(as.divAt(bs, 11) == Mint(-8711858971LL) / 4096);
-    assert(as.divAt(bs, 19) == Mint(-72477705834111867LL) / 1048576);
-    assert(as.divAt(bs, 20) == Mint(531148740030089567LL) / 2097152);
-    assert(as.divAt(bs, 21) == Mint(-3892493295581025139LL) / 4194304);
-  }
-  // log
-  {
-    const Poly as{1};
-    const Poly bs{0, 0};
-    assert(as.log(1) == bs.mod(1));
-    assert(as.log(2) == bs.mod(2));
-  }
-  {
-    const Poly as{1, 2};
-    const Poly bs{0, 2, -2};
-    assert(as.log(1) == bs.mod(1));
-    assert(as.log(2) == bs.mod(2));
-    assert(as.log(3) == bs.mod(3));
-  }
-  {
-    const Poly as{1, 3, 4};
-    const Poly bs{0, 3, Mint(-1) / 2, -3};
-    assert(as.log(1) == bs.mod(1));
-    assert(as.log(2) == bs.mod(2));
-    assert(as.log(3) == bs.mod(3));
-    assert(as.log(4) == bs.mod(4));
-  }
-  {
-    const Poly as{1, 8, 2, -8, -1, -8, 2, -8, -4, 5};
-    const Poly bs{0, 8, -30, Mint(440) / 3, -835, Mint(25328) / 5, -32068,
-                  Mint(1461776) / 7, Mint(-2776609) / 2, Mint(84385997) / 9,
-                  -64116076};
-    assert(as.log(1) == bs.mod(1));
-    assert(as.log(2) == bs.mod(2));
-    assert(as.log(3) == bs.mod(3));
-    assert(as.log(5) == bs.mod(5));
-    assert(as.log(8) == bs.mod(8));
-    assert(as.log(10) == bs.mod(10));
-  }
-  // exp
-  {
-    const Poly as{0};
-    const Poly bs{1, 0};
-    assert(as.exp(1) == bs.mod(1));
-    assert(as.exp(2) == bs.mod(2));
-  }
-  {
-    const Poly as{0, 2};
-    const Poly bs{1, 2, 2};
-    assert(as.exp(1) == bs.mod(1));
-    assert(as.exp(2) == bs.mod(2));
-    assert(as.exp(3) == bs.mod(3));
-  }
-  {
-    const Poly as{0, 3, 4};
-    const Poly bs{1, 3, Mint(17) / 2, Mint(33) / 2};
-    assert(as.exp(1) == bs.mod(1));
-    assert(as.exp(2) == bs.mod(2));
-    assert(as.exp(3) == bs.mod(3));
-    assert(as.exp(4) == bs.mod(4));
-  }
-  {
-    const Poly as{0, 8, 2, -8, -1, -8, 2, -8, -4, 5};
-    const Poly bs{1, 8, 34, Mint(280) / 3, Mint(515) / 3, Mint(2576) / 15,
-                  Mint(-4676) / 45, Mint(-268096) / 315, Mint(-249449) / 126,
-                  Mint(-1593721) / 567};
-    assert(as.exp(1) == bs.mod(1));
-    assert(as.exp(2) == bs.mod(2));
-    assert(as.exp(3) == bs.mod(3));
-    assert(as.exp(5) == bs.mod(5));
-    assert(as.exp(8) == bs.mod(8));
-    assert(as.exp(10) == bs.mod(10));
-  }
-  // pow
-  {
-    const Poly as{1};
-    const Poly bs{1, 0};
-    assert(as.pow(Mint(1), 1) == bs.mod(1));
-    assert(as.pow(Mint(1), 2) == bs.mod(2));
-  }
-  {
-    const Poly as{1, 1};
-    const Poly bs{1, 0, 0};
-    assert(as.pow(Mint(MO), 1) == bs.mod(1));
-    assert(as.pow(Mint(MO), 2) == bs.mod(2));
-    assert(as.pow(Mint(MO), 3) == bs.mod(3));
-  }
-  {
-    const Poly as{1, 2, 3};
-    const Poly bs{1, Mint(1) / 2, Mint(3) / 8, Mint(-11) / 16, Mint(67) / 128};
-    assert(as.pow(Mint(1) / 4, 1) == bs.mod(1));
-    assert(as.pow(Mint(1) / 4, 2) == bs.mod(2));
-    assert(as.pow(Mint(1) / 4, 3) == bs.mod(3));
-    assert(as.pow(Mint(1) / 4, 4) == bs.mod(4));
-    assert(as.pow(Mint(1) / 4, 5) == bs.mod(5));
-  }
-  {
-    const Poly as{};
-    const Poly bs{1, 0};
-    assert(as.pow(0, 1) == bs.mod(1));
-    assert(as.pow(0, 2) == bs.mod(2));
-  }
-  {
-    const Poly as{};
-    const Poly bs{0, 0};
-    assert(as.pow(10, 1) == bs.mod(1));
-    assert(as.pow(10, 2) == bs.mod(2));
-  }
-  {
-    const Poly as{2};
-    const Poly bs{1024, 0};
-    assert(as.pow(10, 1) == bs.mod(1));
-    assert(as.pow(10, 2) == bs.mod(2));
-  }
-  {
-    const Poly as{1, 3, 4};
-    const Poly bs{1, 15, 110, 510};
-    assert(as.pow(5, 1) == bs.mod(1));
-    assert(as.pow(5, 2) == bs.mod(2));
-    assert(as.pow(5, 3) == bs.mod(3));
-    assert(as.pow(5, 4) == bs.mod(4));
-  }
-  {
-    const Poly as{0, 0, 3, 1, 4, 1, 5, 9, 2, 6};
-    const Poly bs{0, 0, 0, 0, 0, 0, 27, 27, 117, 100, 309, 456};
-    assert(as.pow(3, 1) == bs.mod(1));
-    assert(as.pow(3, 2) == bs.mod(2));
-    assert(as.pow(3, 3) == bs.mod(3));
-    assert(as.pow(3, 5) == bs.mod(5));
-    assert(as.pow(3, 8) == bs.mod(8));
-    assert(as.pow(3, 10) == bs.mod(10));
-    assert(as.pow(3, 12) == bs.mod(12));
-  }
-  // sqrt
-  {
-    const Poly as{1};
-    const Poly bs{1, 0};
-    assert(as.sqrt(1) == bs.mod(1));
-    assert(as.sqrt(2) == bs.mod(2));
-  }
-  {
-    const Poly as{1, 3};
-    const Poly bs{1, Mint(3) / 2, Mint(-9) / 8};
-    assert(as.sqrt(1) == bs.mod(1));
-    assert(as.sqrt(2) == bs.mod(2));
-    assert(as.sqrt(3) == bs.mod(3));
-  }
-  {
-    const Poly as{1, -4, -5};
-    const Poly bs{1, -2, Mint(-9) / 2, -9};
-    assert(as.sqrt(1) == bs.mod(1));
-    assert(as.sqrt(2) == bs.mod(2));
-    assert(as.sqrt(3) == bs.mod(3));
-    assert(as.sqrt(4) == bs.mod(4));
-  }
-  {
-    const Poly as{1, 4, 1, 5, 9, 2, 6};
-    const Poly bs{1, 2, Mint(-3) / 2, Mint(11) / 2, Mint(-61) / 8, Mint(49) / 2,
-                  Mint(-1161) / 16, Mint(3581) / 16, Mint(-92197) / 128,
-                  Mint(151181) / 64};
-    assert(as.sqrt(1) == bs.mod(1));
-    assert(as.sqrt(2) == bs.mod(2));
-    assert(as.sqrt(3) == bs.mod(3));
-    assert(as.sqrt(5) == bs.mod(5));
-    assert(as.sqrt(8) == bs.mod(8));
-    assert(as.sqrt(10) == bs.mod(10));
-  }
-  {
-    auto mockModSqrt = [&](Mint a) {
-      switch (a.x) {
-        case 4: return 2;
-        case 3: return 0;  // non-residue
-        case 17556470: return 100000;
-        default: assert(false);
-      }
-      return 0;
-    };
-    {
-      const Poly as{4, 1, 5};
-      const Poly bs{2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512,
-                    Mint(-5925) / 16384};
-      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
-      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
-    }
-    {
-      const Poly as{0, 0, 4, 1, 5};
-      const Poly bs{0, 2, Mint(1) / 4, Mint(79) / 64, Mint(-79) / 512};
-      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
-      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
-    }
-    {
-      const Poly as{3, 1, 4};
-      const Poly bs{};
-      assert(as.sqrt(1, mockModSqrt) == bs);
-      assert(as.sqrt(5, mockModSqrt) == bs);
-    }
-    {
-      const Poly as{0, 4, 1, 5};
-      const Poly bs{};
-      assert(as.sqrt(1, mockModSqrt) == bs);
-      assert(as.sqrt(5, mockModSqrt) == bs);
-    }
-    {
-      const Poly as{0, 0, 0, 0, 10000000000LL, 2000000000, 300000000, 40000000,
-                    5000000};
-      const Poly bs{0, 0, 100000, 10000, 1000, 100, 10, -2, Mint(1) / 20,
-                    Mint(1) / 200, Mint(1) / 2000, Mint(1) / 20000,
-                    Mint(-1) / 25000, Mint(7) / 2000000, Mint(3) / 80000000,
-                    Mint(3) / 800000000, Mint(3) / 8000000000LL};
-      assert(as.sqrt(1, mockModSqrt) == bs.mod(1));
-      assert(as.sqrt(2, mockModSqrt) == bs.mod(2));
-      assert(as.sqrt(3, mockModSqrt) == bs.mod(3));
-      assert(as.sqrt(4, mockModSqrt) == bs.mod(4));
-      assert(as.sqrt(5, mockModSqrt) == bs.mod(5));
-      assert(as.sqrt(8, mockModSqrt) == bs.mod(8));
-      assert(as.sqrt(10, mockModSqrt) == bs.mod(10));
-      assert(as.sqrt(15, mockModSqrt) == bs.mod(15));
-      assert(as.sqrt(16, mockModSqrt) == bs.mod(16));
-    }
-  }
-  // linearRecurrenceAt
-  {
-    const vector<Mint> as{0, 1, 1, 2};
-    const vector<Mint> cs{1, -1, -1};
-    assert(linearRecurrenceAt(as, cs, 0) == 0);
-    assert(linearRecurrenceAt(as, cs, 1) == 1);
-    assert(linearRecurrenceAt(as, cs, 2) == 1);
-    assert(linearRecurrenceAt(as, cs, 3) == 2);
-    assert(linearRecurrenceAt(as, cs, 7) == 13);
-    assert(linearRecurrenceAt(as, cs, 8) == 21);
-    assert(linearRecurrenceAt(as, cs, 1000000000000000000) == Mint(23849548U));
-  }
-  // SubproductTree
-  {
-    SubproductTree st({4});
-    assert(st.all == (Poly{1, -4}));
-    assert(st.multiEval(Poly{}) == (vector<Mint>{0}));
-    assert(st.multiEval(Poly{2}) == (vector<Mint>{2}));
-    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{23}));
-    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) == (vector<Mint>{3947}));
-    assert(st.interpolate(vector<Mint>{0}) == (Poly{0}));
-    assert(st.interpolate(vector<Mint>{2}) == (Poly{2}));
-  }
-  {
-    SubproductTree st({6, 6});
-    assert(st.all == (Poly{1, -12, 36}));
-    assert(st.multiEval(Poly{}) == (vector<Mint>{0, 0}));
-    assert(st.multiEval(Poly{2}) == (vector<Mint>{2, 2}));
-    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{33, 33}));
-    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) ==
-           (vector<Mint>{21361, 21361}));
-  }
-  {
-    SubproductTree st({2, 3, 5, 7, 11});
-    assert(st.all == (Poly{1, -28, 288, -1358, 2927, -2310, 0, 0, 0}));
-    assert(st.multiEval(Poly{}) == (vector<Mint>{0, 0, 0, 0, 0}));
-    assert(st.multiEval(Poly{2}) == (vector<Mint>{2, 2, 2, 2, 2}));
-    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{13, 18, 28, 38, 58}));
-    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) ==
-           (vector<Mint>{205, 1171, 10027, 40355, 257011}));
-    assert(st.multiEval(Poly{0, 1, 2, 3, 4, -4, -3, -2, -1, 0}) ==
-           (vector<Mint>{-734, -13668, -603320, -7821324, -259229300}));
-    assert(st.interpolate(vector<Mint>{2, 2, 2, 2, 2}) ==
-           (Poly{2, 0, 0, 0, 0}));
-    assert(st.interpolate(vector<Mint>{13, 18, 28, 38, 58}) ==
-           (Poly{3, 5, 0, 0, 0}));
-    assert(st.interpolate(vector<Mint>{205, 1171, 10027, 40355, 257011}) ==
-           (Poly{7, -11, 13, -17, 19}));
-    assert(st.interpolate(vector<Mint>{-124, -576, -4150, -15484, -91960}) ==
-           (Poly{0, 0, -1, -3, -6}));
-  }
-}
-
-// -----------------------------------------------------------------------------
-
-unsigned xrand() {
-  static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
-  unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
-}
-
-void solve_inv(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 100;
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    Poly as(N);
-    as[0] = 1 + xrand() % (MO - 1);
-    for (int i = 1; i < N; ++i) {
-      as[i] = xrand();
-    }
-    const Poly bs = as.inv(N);
-    assert(bs.size() == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (bs[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[inv] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_inv() {
-  solve_inv(1, 236309389);
-  solve_inv(10, 855277511);
-  solve_inv(100, 594998919);
-  solve_inv(1000, 826080596);
-  solve_inv(10000, 1054298238);
-  solve_inv(100000, 102902713);
-  solve_inv(1000000, 520886679);
-  // 10 E(n): 15876 msec @ DAIVRabbit
-  //  9 E(n): 16125 msec @ DAIVRabbit
-}
-
-void solve_log(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 100;
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    Poly as(N);
-    as[0] = 1;
-    for (int i = 1; i < N; ++i) {
-      as[i] = xrand();
-    }
-    const Poly bs = as.log(N);
-    assert(bs.size() == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (bs[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[log] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_log() {
-  solve_log(1, 0);
-  solve_log(10, 782075849);
-  solve_log(100, 657181233);
-  solve_log(1000, 196435197);
-  solve_log(10000, 748203336);
-  solve_log(100000, 482239467);
-  solve_log(1000000, 515787875);
-  // 21377 msec @ DAIVRabbit
-}
-
-void solve_exp(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 100;
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    Poly as(N);
-    as[0] = 0;
-    for (int i = 1; i < N; ++i) {
-      as[i] = xrand();
-    }
-    const Poly bs = as.exp(N);
-    assert(bs.size() == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (bs[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[exp] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_exp() {
-  solve_exp(1, 0);
-  solve_exp(10, 552854624);
-  solve_exp(100, 1012444333);
-  solve_exp(1000, 201206437);
-  solve_exp(10000, 24842905);
-  solve_exp(100000, 674622497);
-  solve_exp(1000000, 197978996);
-  // 24632 msec @ DAIVRabbit
-}
-
-void solve_sqrt(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 100;
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    Poly as(N);
-    as[0] = 1;
-    for (int i = 1; i < N; ++i) {
-      as[i] = xrand();
-    }
-    const Poly bs = as.sqrt(N);
-    assert(bs.size() == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (bs[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[sqrt] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_sqrt() {
-  solve_sqrt(1, 0);
-  solve_sqrt(10, 404272824);
-  solve_sqrt(100, 919601335);
-  solve_sqrt(1000, 995272394);
-  solve_sqrt(10000, 238679007);
-  solve_sqrt(100000, 1060519291);
-  solve_sqrt(1000000, 640353577);
-  //  11        E(n): 16610 msec @ DAIVRabbit
-  // (10 + 1/2) E(n): 15861 msec @ DAIVRabbit
-}
-
-void solve_multiEval(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 10;
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    vector<Mint> xs(N);
-    for (int i = 0; i < N; ++i) {
-      xs[i] = xrand();
-    }
-    Poly fs(N);
-    for (int i = 0; i < N; ++i) {
-      fs[i] = xrand();
-    }
-    const vector<Mint> ys = SubproductTree(xs).multiEval(fs);
-    assert(static_cast<int>(ys.size()) == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (ys[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[multiEval] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_multiEval() {
-  solve_multiEval(1, 586873962);
-  solve_multiEval(10, 240737245);
-  solve_multiEval(100, 70255279);
-  solve_multiEval(1000, 143298450);
-  solve_multiEval(10000, 970216647);
-  solve_multiEval(100000, 801629321);
-  solve_multiEval(1000000, 94551219);
-  // 15073 msec @ DAIVRabbit
-}
-
-void solve_interpolate(const int N, const unsigned expected) {
-  static constexpr int NUM_CASES = 10;
-
-  // remove duplicates
-  vector<vector<Mint>> xss(NUM_CASES, vector<Mint>(N));
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    std::set<unsigned> xsSet;
-    for (int i = 0; i < N; ++i) {
-      do {
-        xss[caseId][i] = xrand();
-      } while (!xsSet.insert(xss[caseId][i].x).second);
-    }
-  }
-
-  const auto timerBegin = std::chrono::high_resolution_clock::now();
-
-  unsigned ans = 0;
-  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
-    const vector<Mint> xs = xss[caseId];
-    vector<Mint> ys(N);
-    for (int i = 0; i < N; ++i) {
-      ys[i] = xrand();
-    }
-    const Poly fs = SubproductTree(xs).interpolate(ys);
-    assert(fs.size() == N);
-    for (int i = 0; i < N; ++i) {
-      ans ^= (fs[i].x + i);
-    }
-  }
-
-  const auto timerEnd = std::chrono::high_resolution_clock::now();
-  cerr << "[interpolate] " << NUM_CASES << " cases, N = " << N
-       << ": expected = " << expected << ", actual = " << ans << endl;
-  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << endl;
-  assert(expected == ans);
-}
-void measurement_interpolate() {
-  solve_interpolate(1, 600277546);
-  solve_interpolate(10, 143555864);
-  solve_interpolate(100, 447001368);
-  solve_interpolate(1000, 554384008);
-  solve_interpolate(10000, 362383663);
-  solve_interpolate(100000, 786550405);
-  solve_interpolate(1000000, 1064427553);
-  // 21132 msec @ DAIVRabbit
-}
-
-int main() {
-  unittest();
-  measurement_inv();
-  measurement_log();
-  measurement_exp();
-  measurement_sqrt();
-  measurement_multiEval();
-  measurement_interpolate();
-  return 0;
-}
