@@ -14,11 +14,15 @@ using std::vector;
 
 // inv: log, exp, pow
 constexpr int LIM_INV = 1 << 20;  // @
-Mint inv[LIM_INV];
+Mint inv[LIM_INV], fac[LIM_INV], invFac[LIM_INV];
 struct ModIntPreparator {
   ModIntPreparator() {
     inv[1] = 1;
     for (int i = 2; i < LIM_INV; ++i) inv[i] = -((Mint::M / i) * inv[Mint::M % i]);
+    fac[0] = 1;
+    for (int i = 1; i < LIM_INV; ++i) fac[i] = fac[i - 1] * i;
+    invFac[0] = 1;
+    for (int i = 1; i < LIM_INV; ++i) invFac[i] = invFac[i - 1] * inv[i];
   }
 } preparator;
 
@@ -597,6 +601,27 @@ using std::cerr;
 using std::endl;
 
 void unittest() {
+  // ModIntPreparator
+  assert(100 < LIM_INV);
+  assert(inv[0].x == 0);
+  assert(inv[1].x == 1);
+  assert(inv[2].x == 499122177);
+  assert(inv[3].x == 332748118);
+  assert(inv[4].x == 748683265);
+  assert(inv[100].x == 828542813);
+  assert(fac[0].x == 1);
+  assert(fac[1].x == 1);
+  assert(fac[2].x == 2);
+  assert(fac[3].x == 6);
+  assert(fac[4].x == 24);
+  assert(fac[100].x == 35305197);
+  assert(invFac[0].x == 1);
+  assert(invFac[1].x == 1);
+  assert(invFac[2].x == 499122177);
+  assert(invFac[3].x == 166374059);
+  assert(invFac[4].x == 291154603);
+  assert(invFac[100].x == 65687929);
+
   // at
   {
     assert((Poly{3, 1, 4, 1}).at(-1) == 0);
