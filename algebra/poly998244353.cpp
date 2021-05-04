@@ -8,6 +8,7 @@
 #include "fft998244353.h"
 #include "modint.h"
 
+using std::max;
 using std::min;
 using std::vector;
 
@@ -473,10 +474,125 @@ Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long lon
   return (Poly(vector<Mint>(as.begin(), as.begin() + d)) * cs).mod(d).divAt(cs, k);
 }
 
+struct SubproductTree {
+  int logN, n, nn;
+  vector<Mint> xs;
+  // [DFT_4((X-xs[0])(X-xs[1])(X-xs[2])(X-xs[3]))] [(X-xs[0])(X-xs[1])(X-xs[2])(X-xs[3])mod X^4]
+  // [         DFT_4((X-xs[0])(X-xs[1]))         ] [         DFT_4((X-xs[2])(X-xs[3]))         ]
+  // [   DFT_2(X-xs[0])   ] [   DFT_2(X-xs[1])   ] [   DFT_2(X-xs[2])   ] [   DFT_2(X-xs[3])   ]
+  vector<Mint> buf;
+  vector<Mint *> gss;
+  // (1 - xs[0] X) ... (1 - xs[nn-1] X)
+  Poly all;
+  // (ceil(log_2 n) + O(1)) E(n)
+  SubproductTree(const vector<Mint> &xs_) {
+    n = xs_.size();
+    for (logN = 0, nn = 1; nn < n; ++logN, nn <<= 1) {}
+    xs.assign(nn, 0U);
+    memcpy(xs.data(), xs_.data(), n * sizeof(Mint));
+    buf.assign((logN + 1) * (nn << 1), 0U);
+    gss.assign(nn << 1, nullptr);
+    for (int h = 0; h <= logN; ++h) for (int u = 1 << h; u < 1 << (h + 1); ++u) {
+      gss[u] = buf.data() + (h * (nn << 1) + ((u - (1 << h)) << (logN - h + 1)));
+    }
+    for (int i = 0; i < nn; ++i) {
+      gss[nn + i][0] = -xs[i] + 1;
+      gss[nn + i][1] = -xs[i] - 1;
+    }
+    if (nn == 1) gss[1][1] += 2;
+    for (int h = logN; --h >= 0; ) {
+      const int m = 1 << (logN - h);
+      for (int u = 1 << (h + 1); --u >= 1 << h; ) {
+        for (int i = 0; i < m; ++i) gss[u][i] = gss[u << 1][i] * gss[u << 1 | 1][i];
+        memcpy(gss[u] + m, gss[u], m * sizeof(Mint));
+        invFft(gss[u] + m, m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        if (h > 0) {
+          gss[u][m] -= 2;
+          const Mint a = FFT_ROOTS[logN - h + 1];
+          Mint aa = 1;
+          for (int i = m; i < m << 1; ++i) { gss[u][i] *= aa; aa *= a; };
+          fft(gss[u] + m, m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        }
+      }
+    }
+    all.resize(nn + 1);
+    all[0] = 1;
+    for (int i = 1; i < nn; ++i) all[i] = gss[1][nn + nn - i];
+    all[nn] = gss[1][nn] - 1;
+  }
+  // ((3/2) ceil(log_2 n) + O(1)) E(n) + 10 E(|fs|) + 3 E(|fs| + 2^(ceil(log_2 n)))
+  vector<Mint> multiEval(const Poly &fs) const {
+    vector<Mint> work0(nn), work1(nn), work2(nn);
+    {
+      const int m = max(fs.size(), 1);
+      auto invAll = all.inv(m);  // 10 E(|fs|)
+      std::reverse(invAll.begin(), invAll.end());
+      int mm;
+      for (mm = 1; mm < m - 1 + nn; mm <<= 1) {}
+      invAll.resize(mm, 0U);
+      fft(invAll);  // E(|fs| + 2^(ceil(log_2 n)))
+      vector<Mint> ffs(mm, 0U);
+      memcpy(ffs.data(), fs.data(), fs.size() * sizeof(Mint));
+      fft(ffs);  // E(|fs| + 2^(ceil(log_2 n)))
+      for (int i = 0; i < mm; ++i) ffs[i] *= invAll[i];
+      invFft(ffs);  // E(|fs| + 2^(ceil(log_2 n)))
+      memcpy(((logN & 1) ? work1 : work0).data(), ffs.data() + m - 1, nn * sizeof(Mint));
+    }
+    for (int h = 0; h < logN; ++h) {
+      const int m = 1 << (logN - h);
+      for (int u = 1 << h; u < 1 << (h + 1); ++u) {
+        Mint *hs = (((logN - h) & 1) ? work1 : work0).data() + ((u - (1 << h)) << (logN - h));
+        Mint *hs0 = (((logN - h) & 1) ? work0 : work1).data() + ((u - (1 << h)) << (logN - h));
+        Mint *hs1 = hs0 + (m >> 1);
+        fft(hs, m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        for (int i = 0; i < m; ++i) work2[i] = gss[u << 1 | 1][i] * hs[i];
+        invFft(work2.data(), m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        memcpy(hs0, work2.data() + (m >> 1), (m >> 1) * sizeof(Mint));
+        for (int i = 0; i < m; ++i) work2[i] = gss[u << 1][i] * hs[i];
+        invFft(work2.data(), m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        memcpy(hs1, work2.data() + (m >> 1), (m >> 1) * sizeof(Mint));
+      }
+    }
+    work0.resize(n);
+    return work0;
+  }
+  // ((5/2) ceil(log_2 n) + O(1)) E(n)
+  Poly interpolate(const vector<Mint> &ys) const {
+    assert(static_cast<int>(ys.size()) == n);
+    Poly gs(n);
+    for (int i = 0; i < n; ++i) gs[i] = (i + 1) * all[n - (i + 1)];
+    const vector<Mint> denoms = multiEval(gs);  // ((3/2) ceil(log_2 n) + O(1)) E(n)
+    vector<Mint> work(nn << 1, 0U);
+    for (int i = 0; i < n; ++i) {
+      // xs[0], ..., xs[n - 1] are not distinct
+      assert(denoms[i]);
+      work[i << 1] = work[i << 1 | 1] = ys[i] / denoms[i];
+    }
+    for (int h = logN; --h >= 0; ) {
+      const int m = 1 << (logN - h);
+      for (int u = 1 << (h + 1); --u >= 1 << h; ) {
+        Mint *hs = work.data() + ((u - (1 << h)) << (logN - h + 1));
+        for (int i = 0; i < m; ++i) hs[i] = gss[u << 1 | 1][i] * hs[i] + gss[u << 1][i] * hs[m + i];
+        if (h > 0) {
+          memcpy(hs + m, hs, m * sizeof(Mint));
+          invFft(hs + m, m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+          const Mint a = FFT_ROOTS[logN - h + 1];
+          Mint aa = 1;
+          for (int i = m; i < m << 1; ++i) { hs[i] *= aa; aa *= a; };
+          fft(hs + m, m);  // ((1/2) ceil(log_2 n) + O(1)) E(n)
+        }
+      }
+    }
+    invFft(work.data(), nn);  // E(n)
+    return Poly(vector<Mint>(work.data() + nn - n, work.data() + nn));
+  }
+};
+
 // -----------------------------------------------------------------------------
 
 #include <chrono>
 #include <iostream>
+#include <set>
 using std::cerr;
 using std::endl;
 
@@ -900,7 +1016,48 @@ void unittest() {
     assert(linearRecurrenceAt(as, cs, 8) == 21);
     assert(linearRecurrenceAt(as, cs, 1000000000000000000) == Mint(23849548U));
   }
+  // SubproductTree
+  {
+    SubproductTree st({4});
+    assert(st.all == (Poly{1, -4}));
+    assert(st.multiEval(Poly{}) == (vector<Mint>{0}));
+    assert(st.multiEval(Poly{2}) == (vector<Mint>{2}));
+    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{23}));
+    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) == (vector<Mint>{3947}));
+    assert(st.interpolate(vector<Mint>{0}) == (Poly{0}));
+    assert(st.interpolate(vector<Mint>{2}) == (Poly{2}));
+  }
+  {
+    SubproductTree st({6, 6});
+    assert(st.all == (Poly{1, -12, 36}));
+    assert(st.multiEval(Poly{}) == (vector<Mint>{0, 0}));
+    assert(st.multiEval(Poly{2}) == (vector<Mint>{2, 2}));
+    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{33, 33}));
+    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) ==
+           (vector<Mint>{21361, 21361}));
+  }
+  {
+    SubproductTree st({2, 3, 5, 7, 11});
+    assert(st.all == (Poly{1, -28, 288, -1358, 2927, -2310, 0, 0, 0}));
+    assert(st.multiEval(Poly{}) == (vector<Mint>{0, 0, 0, 0, 0}));
+    assert(st.multiEval(Poly{2}) == (vector<Mint>{2, 2, 2, 2, 2}));
+    assert(st.multiEval(Poly{3, 5}) == (vector<Mint>{13, 18, 28, 38, 58}));
+    assert(st.multiEval(Poly{7, -11, 13, -17, 19}) ==
+           (vector<Mint>{205, 1171, 10027, 40355, 257011}));
+    assert(st.multiEval(Poly{0, 1, 2, 3, 4, -4, -3, -2, -1, 0}) ==
+           (vector<Mint>{-734, -13668, -603320, -7821324, -259229300}));
+    assert(st.interpolate(vector<Mint>{2, 2, 2, 2, 2}) ==
+           (Poly{2, 0, 0, 0, 0}));
+    assert(st.interpolate(vector<Mint>{13, 18, 28, 38, 58}) ==
+           (Poly{3, 5, 0, 0, 0}));
+    assert(st.interpolate(vector<Mint>{205, 1171, 10027, 40355, 257011}) ==
+           (Poly{7, -11, 13, -17, 19}));
+    assert(st.interpolate(vector<Mint>{-124, -576, -4150, -15484, -91960}) ==
+           (Poly{0, 0, -1, -3, -6}));
+  }
 }
+
+// -----------------------------------------------------------------------------
 
 unsigned xrand() {
   static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
@@ -977,7 +1134,7 @@ void measurement_log() {
   solve_log(10000, 748203336);
   solve_log(100000, 482239467);
   solve_log(1000000, 515787875);
-  // 21674 msec @ DAIVRabbit
+  // 21377 msec @ DAIVRabbit
 }
 
 void solve_exp(const int N, const unsigned expected) {
@@ -1013,7 +1170,7 @@ void measurement_exp() {
   solve_exp(10000, 24842905);
   solve_exp(100000, 674622497);
   solve_exp(1000000, 197978996);
-  // 25017 msec @ DAIVRabbit
+  // 24632 msec @ DAIVRabbit
 }
 
 void solve_sqrt(const int N, const unsigned expected) {
@@ -1053,11 +1210,100 @@ void measurement_sqrt() {
   // (10 + 1/2) E(n): 15861 msec @ DAIVRabbit
 }
 
+void solve_multiEval(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 10;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    vector<Mint> xs(N);
+    for (int i = 0; i < N; ++i) {
+      xs[i] = xrand();
+    }
+    Poly fs(N);
+    for (int i = 0; i < N; ++i) {
+      fs[i] = xrand();
+    }
+    const vector<Mint> ys = SubproductTree(xs).multiEval(fs);
+    assert(static_cast<int>(ys.size()) == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (ys[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[multiEval] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_multiEval() {
+  solve_multiEval(1, 586873962);
+  solve_multiEval(10, 240737245);
+  solve_multiEval(100, 70255279);
+  solve_multiEval(1000, 143298450);
+  solve_multiEval(10000, 970216647);
+  solve_multiEval(100000, 801629321);
+  solve_multiEval(1000000, 94551219);
+  // 15073 msec @ DAIVRabbit
+}
+
+void solve_interpolate(const int N, const unsigned expected) {
+  static constexpr int NUM_CASES = 10;
+
+  // remove duplicates
+  vector<vector<Mint>> xss(NUM_CASES, vector<Mint>(N));
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    std::set<unsigned> xsSet;
+    for (int i = 0; i < N; ++i) {
+      do {
+        xss[caseId][i] = xrand();
+      } while (!xsSet.insert(xss[caseId][i].x).second);
+    }
+  }
+
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    const vector<Mint> xs = xss[caseId];
+    vector<Mint> ys(N);
+    for (int i = 0; i < N; ++i) {
+      ys[i] = xrand();
+    }
+    const Poly fs = SubproductTree(xs).interpolate(ys);
+    assert(fs.size() == N);
+    for (int i = 0; i < N; ++i) {
+      ans ^= (fs[i].x + i);
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[interpolate] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_interpolate() {
+  solve_interpolate(1, 600277546);
+  solve_interpolate(10, 143555864);
+  solve_interpolate(100, 447001368);
+  solve_interpolate(1000, 554384008);
+  solve_interpolate(10000, 362383663);
+  solve_interpolate(100000, 786550405);
+  solve_interpolate(1000000, 1064427553);
+  // 21132 msec @ DAIVRabbit
+}
+
 int main() {
   unittest();
   measurement_inv();
   measurement_log();
   measurement_exp();
   measurement_sqrt();
+  measurement_multiEval();
+  measurement_interpolate();
   return 0;
 }
