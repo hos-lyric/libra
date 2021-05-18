@@ -32,7 +32,7 @@ struct ModIntPreparator {
 // polyWork2: divAt, exp, pow, sqrt
 // polyWork3: exp, pow, sqrt
 static constexpr int LIM_POLY = 1 << 20;  // @
-static_assert(LIM_POLY <= 1 << FFT_MAX);
+static_assert(LIM_POLY <= 1 << FFT_MAX, "Poly: LIM_POLY <= 1 << FFT_MAX must hold.");
 static Mint polyWork0[LIM_POLY], polyWork1[LIM_POLY], polyWork2[LIM_POLY], polyWork3[LIM_POLY];
 
 struct Poly : public vector<Mint> {
