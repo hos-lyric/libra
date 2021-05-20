@@ -15,17 +15,18 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
   static_assert(!((M_ - 1U) & ((1U << K_) - 1U)), "Fft: 2^K | M - 1 must hold.");
   static constexpr unsigned M = M_;
   static constexpr unsigned M2 = 2U * M_;
-  static constexpr ModInt<M> G = G_;
+  static constexpr unsigned G = G_;
   static constexpr int K = K_;
   ModInt<M> FFT_ROOTS[K + 1], INV_FFT_ROOTS[K + 1];
   ModInt<M> FFT_RATIOS[K - 1], INV_FFT_RATIOS[K - 1];
   Fft() {
+    const ModInt<M> g(G);
     for (int k = 0; k <= K; ++k) {
-      FFT_ROOTS[k] = G.pow((M - 1U) >> k);
+      FFT_ROOTS[k] = g.pow((M - 1U) >> k);
       INV_FFT_ROOTS[k] = FFT_ROOTS[k].inv();
     }
     for (int k = 0; k <= K - 2; ++k) {
-      FFT_RATIOS[k] = -G.pow(3U * ((M - 1U) >> (k + 2)));
+      FFT_RATIOS[k] = -g.pow(3U * ((M - 1U) >> (k + 2)));
       INV_FFT_RATIOS[k] = FFT_RATIOS[k].inv();
     }
     assert(FFT_ROOTS[1] == M - 1U);
@@ -156,20 +157,22 @@ const Fft<935329793U, 3U, 22> FFT5;
 const Fft<918552577U, 5U, 22> FFT6;
 
 // T = unsigned, unsigned long long, ModInt<M>
-template <class T, unsigned M0, unsigned M1, unsigned M2> T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2) {
+template <class T, unsigned M0, unsigned M1, unsigned M2>
+T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2) {
   static const ModInt<M1> INV_M0_M1 = ModInt<M1>(M0).inv();
   static const ModInt<M2> INV_M0M1_M2 = (ModInt<M2>(M0) * M1).inv();
   const ModInt<M1> b1 = INV_M0_M1 * (a1 - a0.x);
-  const ModInt<M2> b2 = INV_M0M1_M2 * (a2 - (b1.x * M0 + a0.x));
+  const ModInt<M2> b2 = INV_M0M1_M2 * (a2 - (ModInt<M2>(b1.x) * M0 + a0.x));
   return (T(b2.x) * M1 + b1.x) * M0 + a0.x;
 }
-template <class T, unsigned M0, unsigned M1, unsigned M2, unsigned M3, unsigned M4> T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2, ModInt<M3> a3, ModInt<M4> a4) {
+template <class T, unsigned M0, unsigned M1, unsigned M2, unsigned M3, unsigned M4>
+T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2, ModInt<M3> a3, ModInt<M4> a4) {
   static const ModInt<M1> INV_M0_M1 = ModInt<M1>(M0).inv();
   static const ModInt<M2> INV_M0M1_M2 = (ModInt<M2>(M0) * M1).inv();
   static const ModInt<M3> INV_M0M1M2_M3 = (ModInt<M3>(M0) * M1 * M2).inv();
   static const ModInt<M4> INV_M0M1M2M3_M4 = (ModInt<M4>(M0) * M1 * M2 * M3).inv();
   const ModInt<M1> b1 = INV_M0_M1 * (a1 - a0.x);
-  const ModInt<M2> b2 = INV_M0M1_M2 * (a2 - (b1.x * M0 + a0.x));
+  const ModInt<M2> b2 = INV_M0M1_M2 * (a2 - (ModInt<M2>(b1.x) * M0 + a0.x));
   const ModInt<M3> b3 = INV_M0M1M2_M3 * (a3 - ((ModInt<M3>(b2.x) * M1 + b1.x) * M0 + a0.x));
   const ModInt<M4> b4 = INV_M0M1M2M3_M4 * (a4 - (((ModInt<M4>(b3.x) * M2 + b2.x) * M1 + b1.x) * M0 + a0.x));
   return (((T(b4.x) * M3 + b3.x) * M2 + b2.x) * M1 + b1.x) * M0 + a0.x;
@@ -177,7 +180,8 @@ template <class T, unsigned M0, unsigned M1, unsigned M2, unsigned M3, unsigned 
 
 // M0 M1 M2 = 789204840662082423367925761 (> 7.892 * 10^26)
 // OK for 2^22 * (2^32)^2 (< 7.738 * 10^25)
-template <unsigned M> vector<ModInt<M>> convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
+template <unsigned M> vector<ModInt<M>>
+convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   static constexpr unsigned M0 = decltype(FFT0)::M;
   static constexpr unsigned M1 = decltype(FFT1)::M;
   static constexpr unsigned M2 = decltype(FFT2)::M;
@@ -204,7 +208,8 @@ template <unsigned M> vector<ModInt<M>> convolve(const vector<ModInt<M>> &as, co
 
 // M0 M3 M4 M5 M6 = 797766583174034668024539679147517452591562753 (> 7.977 * 10^44)
 // OK for 2^21 * (2^64)^2 (< 7.137 * 10^44)
-vector<unsigned long long> convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
+vector<unsigned long long>
+convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
   static constexpr unsigned M0 = decltype(FFT0)::M;
   static constexpr unsigned M3 = decltype(FFT3)::M;
   static constexpr unsigned M4 = decltype(FFT4)::M;
@@ -260,12 +265,22 @@ void unittest() {
   }
   {
     using Mint = ModInt<1000000007>;
-    // constexpr int asLen = 100, bsLen = 200;
-    constexpr int asLen = 2, bsLen = 2;
+    constexpr int asLen = 100, bsLen = 200;
     vector<Mint> as(asLen), bs(bsLen);
     for (int i = 0; i < asLen; ++i) as[i] = 1234567890ULL * i * i;
-    for (int j = 0; j < bsLen; ++j) bs[j] = 1234567890ULL * j * j * j;
+    for (int j = 0; j < bsLen; ++j) bs[j] = 2345678901ULL * j * j * j;
     vector<Mint> cs(asLen + bsLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) {
+      cs[i + j] += as[i] * bs[j];
+    }
+    assert(convolve(as, bs) == cs);
+  }
+  {
+    constexpr int asLen = 400, bsLen = 300;
+    vector<unsigned long long> as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 123456789012345678ULL * i * i;
+    for (int j = 0; j < bsLen; ++j) bs[j] = 234567890123456781ULL * j * j * j;
+    vector<unsigned long long> cs(asLen + bsLen - 1, 0);
     for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) {
       cs[i + j] += as[i] * bs[j];
     }
