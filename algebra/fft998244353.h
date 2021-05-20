@@ -2,7 +2,6 @@
 #define LIBRA_ALGEBRA_FFT998244353_H_
 
 #include <assert.h>
-#include <string.h>
 #include <vector>
 
 #include "modint.h"
