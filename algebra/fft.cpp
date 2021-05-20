@@ -148,6 +148,8 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
   }
 };
 
+// M0 M1 M2 = 789204840662082423367925761 (> 7.892 * 10^26)
+// M0 M3 M4 M5 M6 = 797766583174034668024539679147517452591562753 (> 7.977 * 10^44)
 const Fft<998244353U, 3U, 23> FFT0;
 const Fft<897581057U, 3U, 23> FFT1;
 const Fft<880803841U, 26U, 23> FFT2;
@@ -178,8 +180,6 @@ T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2, ModInt<M3> a3, ModInt<M4> 
   return (((T(b4.x) * M3 + b3.x) * M2 + b2.x) * M1 + b1.x) * M0 + a0.x;
 }
 
-// M0 M1 M2 = 789204840662082423367925761 (> 7.892 * 10^26)
-// OK for 2^22 * (2^32)^2 (< 7.738 * 10^25)
 template <unsigned M> vector<ModInt<M>>
 convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   static constexpr unsigned M0 = decltype(FFT0)::M;
@@ -206,10 +206,40 @@ convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   return cs;
 }
 
-// M0 M3 M4 M5 M6 = 797766583174034668024539679147517452591562753 (> 7.977 * 10^44)
-// OK for 2^21 * (2^64)^2 (< 7.137 * 10^44)
-vector<unsigned long long>
-convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
+// Results must be in [-2^63, 2^63).
+vector<long long> convolve(const vector<long long> &as, const vector<long long> &bs) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M1 = decltype(FFT1)::M;
+  static constexpr unsigned M2 = decltype(FFT2)::M;
+  static const ModInt<M1> INV_M0_M1 = ModInt<M1>(M0).inv();
+  static const ModInt<M2> INV_M0M1_M2 = (ModInt<M2>(M0) * M1).inv();
+  if (as.empty() || bs.empty()) return {};
+  const int asLen = as.size(), bsLen = bs.size();
+  vector<ModInt<M0>> as0(asLen), bs0(bsLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs0[i] = bs[i];
+  const vector<ModInt<M0>> cs0 = FFT0.convolve(as0, bs0);
+  vector<ModInt<M1>> as1(asLen), bs1(bsLen);
+  for (int i = 0; i < asLen; ++i) as1[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs1[i] = bs[i];
+  const vector<ModInt<M1>> cs1 = FFT1.convolve(as1, bs1);
+  vector<ModInt<M2>> as2(asLen), bs2(bsLen);
+  for (int i = 0; i < asLen; ++i) as2[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs2[i] = bs[i];
+  const vector<ModInt<M2>> cs2 = FFT2.convolve(as2, bs2);
+  vector<long long> cs(asLen + bsLen - 1);
+  for (int i = 0; i < asLen + bsLen - 1; ++i) {
+    const ModInt<M1> d1 = INV_M0_M1 * (cs1[i] - cs0[i].x);
+    const ModInt<M2> d2 = INV_M0M1_M2 * (cs2[i] - (ModInt<M2>(d1.x) * M0 + cs0[i].x));
+    cs[i] = (d2.x > M2 - d2.x)
+        ? (-1ULL - ((static_cast<unsigned long long>(M2 - 1U - d2.x) * M1 + (M1 - 1U - d1.x)) * M0 + (M0 - 1U - cs0[i].x)))
+        : ((static_cast<unsigned long long>(d2.x) * M1 + d1.x) * M0 + cs0[i].x);
+  }
+  return cs;
+}
+
+// mod 2^64
+vector<unsigned long long> convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
   static constexpr unsigned M0 = decltype(FFT0)::M;
   static constexpr unsigned M3 = decltype(FFT3)::M;
   static constexpr unsigned M4 = decltype(FFT4)::M;
@@ -273,6 +303,28 @@ void unittest() {
     for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) {
       cs[i + j] += as[i] * bs[j];
     }
+    assert(convolve(as, bs) == cs);
+  }
+  {
+    const vector<long long> as{1};
+    const vector<long long> bs{
+        -9223372036854775807LL - 1,
+        -9223372036854775807LL,
+        -5000000000000000000LL,
+        -1LL,
+        0LL,
+        1LL,
+        5000000000000000000LL,
+        9223372036854775806LL,
+        9223372036854775807LL,
+    };
+    assert(convolve(as, bs) == bs);
+  }
+  {
+    const vector<long long> as{123456789LL, -234567890LL};
+    const vector<long long> bs{-314159265LL, 358979323LL, 846264338LL};
+    const vector<long long> cs{-38785094091500085LL, 118010110449974697LL,
+                               20272055464952212LL, -198506440146906820LL};
     assert(convolve(as, bs) == cs);
   }
   {
