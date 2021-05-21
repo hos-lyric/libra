@@ -43,7 +43,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
       }
     }
     if (m >>= 1) {
-      ModInt<M> prod = 1;
+      ModInt<M> prod = 1U;
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned x = (prod * as[i + m]).x;  // < M
@@ -55,7 +55,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
     }
     for (; m; ) {
       if (m >>= 1) {
-        ModInt<M> prod = 1;
+        ModInt<M> prod = 1U;
         for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
           for (int i = i0; i < i0 + m; ++i) {
             const unsigned x = (prod * as[i + m]).x;  // < M
@@ -66,7 +66,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
         }
       }
       if (m >>= 1) {
-        ModInt<M> prod = 1;
+        ModInt<M> prod = 1U;
         for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
           for (int i = i0; i < i0 + m; ++i) {
             const unsigned x = (prod * as[i + m]).x;  // < M
@@ -88,7 +88,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
     assert(!(n & (n - 1))); assert(1 <= n); assert(n <= 1 << K);
     int m = 1;
     if (m < n >> 1) {
-      ModInt<M> prod = 1;
+      ModInt<M> prod = 1U;
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned long long y = as[i].x + M - as[i + m].x;  // < 2 M
@@ -100,7 +100,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
       m <<= 1;
     }
     for (; m < n >> 1; m <<= 1) {
-      ModInt<M> prod = 1;
+      ModInt<M> prod = 1U;
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + (m >> 1); ++i) {
           const unsigned long long y = as[i].x + M2 - as[i + m].x;  // < 4 M

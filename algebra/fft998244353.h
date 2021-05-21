@@ -30,7 +30,7 @@ void fft(Mint *as, int n) {
     }
   }
   if (m >>= 1) {
-    Mint prod = 1;
+    Mint prod = 1U;
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + m; ++i) {
         const unsigned x = (prod * as[i + m]).x;  // < MO
@@ -42,7 +42,7 @@ void fft(Mint *as, int n) {
   }
   for (; m; ) {
     if (m >>= 1) {
-      Mint prod = 1;
+      Mint prod = 1U;
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned x = (prod * as[i + m]).x;  // < MO
@@ -53,7 +53,7 @@ void fft(Mint *as, int n) {
       }
     }
     if (m >>= 1) {
-      Mint prod = 1;
+      Mint prod = 1U;
       for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
         for (int i = i0; i < i0 + m; ++i) {
           const unsigned x = (prod * as[i + m]).x;  // < MO
@@ -76,7 +76,7 @@ void invFft(Mint *as, int n) {
   assert(!(n & (n - 1))); assert(1 <= n); assert(n <= 1 << FFT_MAX);
   int m = 1;
   if (m < n >> 1) {
-    Mint prod = 1;
+    Mint prod = 1U;
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + m; ++i) {
         const unsigned long long y = as[i].x + MO - as[i + m].x;  // < 2 MO
@@ -88,7 +88,7 @@ void invFft(Mint *as, int n) {
     m <<= 1;
   }
   for (; m < n >> 1; m <<= 1) {
-    Mint prod = 1;
+    Mint prod = 1U;
     for (int h = 0, i0 = 0; i0 < n; i0 += (m << 1)) {
       for (int i = i0; i < i0 + (m >> 1); ++i) {
         const unsigned long long y = as[i].x + MO2 - as[i + m].x;  // < 4 MO
