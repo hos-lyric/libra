@@ -146,6 +146,17 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
     as.resize(len);
     return as;
   }
+  vector<ModInt<M>> square(vector<ModInt<M>> as) const {
+    if (as.empty()) return {};
+    const int len = as.size() + as.size() - 1;
+    int n = 1;
+    for (; n < len; n <<= 1) {}
+    as.resize(n); fft(as);
+    for (int i = 0; i < n; ++i) as[i] *= as[i];
+    invFft(as);
+    as.resize(len);
+    return as;
+  }
 };
 
 // M0 M1 M2 = 789204840662082423367925761 (> 7.892 * 10^26, > 2^89)
@@ -180,8 +191,7 @@ T garner(ModInt<M0> a0, ModInt<M1> a1, ModInt<M2> a2, ModInt<M3> a3, ModInt<M4> 
   return (((T(b4.x) * M3 + b3.x) * M2 + b2.x) * M1 + b1.x) * M0 + a0.x;
 }
 
-template <unsigned M> vector<ModInt<M>>
-convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
+template <unsigned M> vector<ModInt<M>> convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   static constexpr unsigned M0 = decltype(FFT0)::M;
   static constexpr unsigned M1 = decltype(FFT1)::M;
   static constexpr unsigned M2 = decltype(FFT2)::M;
@@ -201,6 +211,27 @@ convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   const vector<ModInt<M2>> cs2 = FFT2.convolve(as2, bs2);
   vector<ModInt<M>> cs(asLen + bsLen - 1);
   for (int i = 0; i < asLen + bsLen - 1; ++i) {
+    cs[i] = garner<ModInt<M>>(cs0[i], cs1[i], cs2[i]);
+  }
+  return cs;
+}
+template <unsigned M> vector<ModInt<M>> square(const vector<ModInt<M>> &as) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M1 = decltype(FFT1)::M;
+  static constexpr unsigned M2 = decltype(FFT2)::M;
+  if (as.empty()) return {};
+  const int asLen = as.size();
+  vector<ModInt<M0>> as0(asLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i].x;
+  const vector<ModInt<M0>> cs0 = FFT0.square(as0);
+  vector<ModInt<M1>> as1(asLen);
+  for (int i = 0; i < asLen; ++i) as1[i] = as[i].x;
+  const vector<ModInt<M1>> cs1 = FFT1.square(as1);
+  vector<ModInt<M2>> as2(asLen);
+  for (int i = 0; i < asLen; ++i) as2[i] = as[i].x;
+  const vector<ModInt<M2>> cs2 = FFT2.square(as2);
+  vector<ModInt<M>> cs(asLen + asLen - 1);
+  for (int i = 0; i < asLen + asLen - 1; ++i) {
     cs[i] = garner<ModInt<M>>(cs0[i], cs1[i], cs2[i]);
   }
   return cs;
@@ -241,6 +272,35 @@ vector<unsigned long long> convolve(const vector<unsigned long long> &as, const 
   }
   return cs;
 }
+vector<unsigned long long> square(const vector<unsigned long long> &as) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M3 = decltype(FFT3)::M;
+  static constexpr unsigned M4 = decltype(FFT4)::M;
+  static constexpr unsigned M5 = decltype(FFT5)::M;
+  static constexpr unsigned M6 = decltype(FFT6)::M;
+  if (as.empty()) return {};
+  const int asLen = as.size();
+  vector<ModInt<M0>> as0(asLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
+  const vector<ModInt<M0>> cs0 = FFT0.square(as0);
+  vector<ModInt<M3>> as3(asLen);
+  for (int i = 0; i < asLen; ++i) as3[i] = as[i];
+  const vector<ModInt<M3>> cs3 = FFT3.square(as3);
+  vector<ModInt<M4>> as4(asLen);
+  for (int i = 0; i < asLen; ++i) as4[i] = as[i];
+  const vector<ModInt<M4>> cs4 = FFT4.square(as4);
+  vector<ModInt<M5>> as5(asLen);
+  for (int i = 0; i < asLen; ++i) as5[i] = as[i];
+  const vector<ModInt<M5>> cs5 = FFT5.square(as5);
+  vector<ModInt<M6>> as6(asLen);
+  for (int i = 0; i < asLen; ++i) as6[i] = as[i];
+  const vector<ModInt<M6>> cs6 = FFT6.square(as6);
+  vector<unsigned long long> cs(asLen + asLen - 1);
+  for (int i = 0; i < asLen + asLen - 1; ++i) {
+    cs[i] = garner<unsigned long long>(cs0[i], cs3[i], cs4[i], cs5[i], cs6[i]);
+  }
+  return cs;
+}
 
 // Results must be in [-448002610255888384, 448002611254132736].
 // (> 4.480 * 10^17, > 2^58)
@@ -260,6 +320,27 @@ vector<long long> convolveSmall2(const vector<long long> &as, const vector<long 
   const vector<ModInt<M1>> cs1 = FFT1.convolve(as1, bs1);
   vector<long long> cs(asLen + bsLen - 1);
   for (int i = 0; i < asLen + bsLen - 1; ++i) {
+    const ModInt<M1> d1 = INV_M0_M1 * (cs1[i] - cs0[i].x);
+    cs[i] = (d1.x > M1 - d1.x)
+        ? (-1ULL - (static_cast<unsigned long long>(M1 - 1U - d1.x) * M0 + (M0 - 1U - cs0[i].x)))
+        : (static_cast<unsigned long long>(d1.x) * M0 + cs0[i].x);
+  }
+  return cs;
+}
+vector<long long> squareSmall2(const vector<long long> &as) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M1 = decltype(FFT1)::M;
+  static const ModInt<M1> INV_M0_M1 = ModInt<M1>(M0).inv();
+  if (as.empty()) return {};
+  const int asLen = as.size();
+  vector<ModInt<M0>> as0(asLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
+  const vector<ModInt<M0>> cs0 = FFT0.square(as0);
+  vector<ModInt<M1>> as1(asLen);
+  for (int i = 0; i < asLen; ++i) as1[i] = as[i];
+  const vector<ModInt<M1>> cs1 = FFT1.square(as1);
+  vector<long long> cs(asLen + asLen - 1);
+  for (int i = 0; i < asLen + asLen - 1; ++i) {
     const ModInt<M1> d1 = INV_M0_M1 * (cs1[i] - cs0[i].x);
     cs[i] = (d1.x > M1 - d1.x)
         ? (-1ULL - (static_cast<unsigned long long>(M1 - 1U - d1.x) * M0 + (M0 - 1U - cs0[i].x)))
@@ -291,6 +372,33 @@ vector<long long> convolveSmall3(const vector<long long> &as, const vector<long 
   const vector<ModInt<M2>> cs2 = FFT2.convolve(as2, bs2);
   vector<long long> cs(asLen + bsLen - 1);
   for (int i = 0; i < asLen + bsLen - 1; ++i) {
+    const ModInt<M1> d1 = INV_M0_M1 * (cs1[i] - cs0[i].x);
+    const ModInt<M2> d2 = INV_M0M1_M2 * (cs2[i] - (ModInt<M2>(d1.x) * M0 + cs0[i].x));
+    cs[i] = (d2.x > M2 - d2.x)
+        ? (-1ULL - ((static_cast<unsigned long long>(M2 - 1U - d2.x) * M1 + (M1 - 1U - d1.x)) * M0 + (M0 - 1U - cs0[i].x)))
+        : ((static_cast<unsigned long long>(d2.x) * M1 + d1.x) * M0 + cs0[i].x);
+  }
+  return cs;
+}
+vector<long long> squareSmall3(const vector<long long> &as) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M1 = decltype(FFT1)::M;
+  static constexpr unsigned M2 = decltype(FFT2)::M;
+  static const ModInt<M1> INV_M0_M1 = ModInt<M1>(M0).inv();
+  static const ModInt<M2> INV_M0M1_M2 = (ModInt<M2>(M0) * M1).inv();
+  if (as.empty()) return {};
+  const int asLen = as.size();
+  vector<ModInt<M0>> as0(asLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
+  const vector<ModInt<M0>> cs0 = FFT0.square(as0);
+  vector<ModInt<M1>> as1(asLen);
+  for (int i = 0; i < asLen; ++i) as1[i] = as[i];
+  const vector<ModInt<M1>> cs1 = FFT1.square(as1);
+  vector<ModInt<M2>> as2(asLen);
+  for (int i = 0; i < asLen; ++i) as2[i] = as[i];
+  const vector<ModInt<M2>> cs2 = FFT2.square(as2);
+  vector<long long> cs(asLen + asLen - 1);
+  for (int i = 0; i < asLen + asLen - 1; ++i) {
     const ModInt<M1> d1 = INV_M0_M1 * (cs1[i] - cs0[i].x);
     const ModInt<M2> d2 = INV_M0M1_M2 * (cs2[i] - (ModInt<M2>(d1.x) * M0 + cs0[i].x));
     cs[i] = (d2.x > M2 - d2.x)
@@ -332,6 +440,38 @@ void unittest() {
     assert(convolve(as, bs) == cs);
   }
   {
+    using Mint = ModInt<1000000007>;
+    constexpr int asLen = 100;
+    vector<Mint> as(asLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 3456789012ULL * i * i;
+    vector<Mint> cs(asLen + asLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < asLen; ++j) {
+      cs[i + j] += as[i] * as[j];
+    }
+    assert(square(as) == cs);
+  }
+  {
+    constexpr int asLen = 400, bsLen = 300;
+    vector<unsigned long long> as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 123456789012345678ULL * i * i;
+    for (int j = 0; j < bsLen; ++j) bs[j] = 234567890123456781ULL * j * j * j;
+    vector<unsigned long long> cs(asLen + bsLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) {
+      cs[i + j] += as[i] * bs[j];
+    }
+    assert(convolve(as, bs) == cs);
+  }
+  {
+    constexpr int asLen = 400;
+    vector<unsigned long long> as(asLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 345678901234567890ULL * i * i;
+    vector<unsigned long long> cs(asLen + asLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < asLen; ++j) {
+      cs[i + j] += as[i] * as[j];
+    }
+    assert(square(as) == cs);
+  }
+  {
     const vector<long long> as{1};
     const vector<long long> bs{
         -448002610255888384LL,
@@ -358,6 +498,16 @@ void unittest() {
     assert(convolveSmall2(as, bs) == cs);
   }
   {
+    constexpr int asLen = 70;
+    vector<long long> as(asLen);
+    for (int i = 0; i < asLen; ++i) as[i] = i * i;
+    vector<long long> cs(asLen + asLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < asLen; ++j) {
+      cs[i + j] += as[i] * as[j];
+    }
+    assert(squareSmall2(as) == cs);
+  }
+  {
     const vector<long long> as{1};
     const vector<long long> bs{
         -9223372036854775807LL - 1,
@@ -380,15 +530,10 @@ void unittest() {
     assert(convolveSmall3(as, bs) == cs);
   }
   {
-    constexpr int asLen = 400, bsLen = 300;
-    vector<unsigned long long> as(asLen), bs(bsLen);
-    for (int i = 0; i < asLen; ++i) as[i] = 123456789012345678ULL * i * i;
-    for (int j = 0; j < bsLen; ++j) bs[j] = 234567890123456781ULL * j * j * j;
-    vector<unsigned long long> cs(asLen + bsLen - 1, 0);
-    for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) {
-      cs[i + j] += as[i] * bs[j];
-    }
-    assert(convolve(as, bs) == cs);
+    const vector<long long> as{-345678901LL, 456789012LL};
+    const vector<long long> cs{119493902596567801LL, -315804647314071624LL,
+                               208656201483936144LL};
+    assert(squareSmall3(as) == cs);
   }
 }
 

@@ -136,6 +136,17 @@ vector<Mint> convolve(vector<Mint> as, vector<Mint> bs) {
   as.resize(len);
   return as;
 }
+vector<Mint> square(vector<Mint> as) {
+  if (as.empty()) return {};
+  const int len = as.size() + as.size() - 1;
+  int n = 1;
+  for (; n < len; n <<= 1) {}
+  as.resize(n); fft(as);
+  for (int i = 0; i < n; ++i) as[i] *= as[i];
+  invFft(as);
+  as.resize(len);
+  return as;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 #endif  // LIBRA_ALGEBRA_FFT998244353_H_

@@ -91,6 +91,22 @@ void unittest_convolve() {
   }
 }
 
+void unittest_square() {
+  assert((vector<Mint>{}) == square({}));
+  assert((vector<Mint>{1, 4, 10, 12, 9}) == square({1, 2, 3}));
+  for (const int asLen : {321, 2000}) {
+    vector<Mint> as(asLen);
+    for (int i = 0; i < asLen; ++i) {
+      as[i] = xrand();
+    }
+    vector<Mint> cs(asLen + asLen - 1);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < asLen; ++j) {
+      cs[i + j] += as[i] * as[j];
+    }
+    assert(cs == square(as));
+  }
+}
+
 void solve(const int N, const unsigned expected) {
   static constexpr int NUM_CASES = 100;
   const auto timerBegin = std::chrono::high_resolution_clock::now();
@@ -130,5 +146,6 @@ int main() {
   unittest_fft();
   unittest_invFft();
   unittest_convolve();
+  unittest_square();
   return 0;
 }
