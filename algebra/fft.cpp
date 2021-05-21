@@ -206,6 +206,42 @@ convolve(const vector<ModInt<M>> &as, const vector<ModInt<M>> &bs) {
   return cs;
 }
 
+// mod 2^64
+vector<unsigned long long> convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
+  static constexpr unsigned M0 = decltype(FFT0)::M;
+  static constexpr unsigned M3 = decltype(FFT3)::M;
+  static constexpr unsigned M4 = decltype(FFT4)::M;
+  static constexpr unsigned M5 = decltype(FFT5)::M;
+  static constexpr unsigned M6 = decltype(FFT6)::M;
+  if (as.empty() || bs.empty()) return {};
+  const int asLen = as.size(), bsLen = bs.size();
+  vector<ModInt<M0>> as0(asLen), bs0(bsLen);
+  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs0[i] = bs[i];
+  const vector<ModInt<M0>> cs0 = FFT0.convolve(as0, bs0);
+  vector<ModInt<M3>> as3(asLen), bs3(bsLen);
+  for (int i = 0; i < asLen; ++i) as3[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs3[i] = bs[i];
+  const vector<ModInt<M3>> cs3 = FFT3.convolve(as3, bs3);
+  vector<ModInt<M4>> as4(asLen), bs4(bsLen);
+  for (int i = 0; i < asLen; ++i) as4[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs4[i] = bs[i];
+  const vector<ModInt<M4>> cs4 = FFT4.convolve(as4, bs4);
+  vector<ModInt<M5>> as5(asLen), bs5(bsLen);
+  for (int i = 0; i < asLen; ++i) as5[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs5[i] = bs[i];
+  const vector<ModInt<M5>> cs5 = FFT5.convolve(as5, bs5);
+  vector<ModInt<M6>> as6(asLen), bs6(bsLen);
+  for (int i = 0; i < asLen; ++i) as6[i] = as[i];
+  for (int i = 0; i < bsLen; ++i) bs6[i] = bs[i];
+  const vector<ModInt<M6>> cs6 = FFT6.convolve(as6, bs6);
+  vector<unsigned long long> cs(asLen + bsLen - 1);
+  for (int i = 0; i < asLen + bsLen - 1; ++i) {
+    cs[i] = garner<unsigned long long>(cs0[i], cs3[i], cs4[i], cs5[i], cs6[i]);
+  }
+  return cs;
+}
+
 // Results must be in [-448002610255888384, 448002611254132736].
 // (> 4.480 * 10^17, > 2^58)
 vector<long long> convolveSmall2(const vector<long long> &as, const vector<long long> &bs) {
@@ -260,42 +296,6 @@ vector<long long> convolveSmall3(const vector<long long> &as, const vector<long 
     cs[i] = (d2.x > M2 - d2.x)
         ? (-1ULL - ((static_cast<unsigned long long>(M2 - 1U - d2.x) * M1 + (M1 - 1U - d1.x)) * M0 + (M0 - 1U - cs0[i].x)))
         : ((static_cast<unsigned long long>(d2.x) * M1 + d1.x) * M0 + cs0[i].x);
-  }
-  return cs;
-}
-
-// mod 2^64
-vector<unsigned long long> convolve(const vector<unsigned long long> &as, const vector<unsigned long long> &bs) {
-  static constexpr unsigned M0 = decltype(FFT0)::M;
-  static constexpr unsigned M3 = decltype(FFT3)::M;
-  static constexpr unsigned M4 = decltype(FFT4)::M;
-  static constexpr unsigned M5 = decltype(FFT5)::M;
-  static constexpr unsigned M6 = decltype(FFT6)::M;
-  if (as.empty() || bs.empty()) return {};
-  const int asLen = as.size(), bsLen = bs.size();
-  vector<ModInt<M0>> as0(asLen), bs0(bsLen);
-  for (int i = 0; i < asLen; ++i) as0[i] = as[i];
-  for (int i = 0; i < bsLen; ++i) bs0[i] = bs[i];
-  const vector<ModInt<M0>> cs0 = FFT0.convolve(as0, bs0);
-  vector<ModInt<M3>> as3(asLen), bs3(bsLen);
-  for (int i = 0; i < asLen; ++i) as3[i] = as[i];
-  for (int i = 0; i < bsLen; ++i) bs3[i] = bs[i];
-  const vector<ModInt<M3>> cs3 = FFT3.convolve(as3, bs3);
-  vector<ModInt<M4>> as4(asLen), bs4(bsLen);
-  for (int i = 0; i < asLen; ++i) as4[i] = as[i];
-  for (int i = 0; i < bsLen; ++i) bs4[i] = bs[i];
-  const vector<ModInt<M4>> cs4 = FFT4.convolve(as4, bs4);
-  vector<ModInt<M5>> as5(asLen), bs5(bsLen);
-  for (int i = 0; i < asLen; ++i) as5[i] = as[i];
-  for (int i = 0; i < bsLen; ++i) bs5[i] = bs[i];
-  const vector<ModInt<M5>> cs5 = FFT5.convolve(as5, bs5);
-  vector<ModInt<M6>> as6(asLen), bs6(bsLen);
-  for (int i = 0; i < asLen; ++i) as6[i] = as[i];
-  for (int i = 0; i < bsLen; ++i) bs6[i] = bs[i];
-  const vector<ModInt<M6>> cs6 = FFT6.convolve(as6, bs6);
-  vector<unsigned long long> cs(asLen + bsLen - 1);
-  for (int i = 0; i < asLen + bsLen - 1; ++i) {
-    cs[i] = garner<unsigned long long>(cs0[i], cs3[i], cs4[i], cs5[i], cs6[i]);
   }
   return cs;
 }
