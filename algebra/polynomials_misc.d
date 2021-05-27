@@ -11,7 +11,7 @@ void prepareFac(int lim) {
   invFac = new Mint[lim];
   inv[1] = 1;
   foreach (i; 2 .. lim) {
-    inv[i] = -(Mint.M / i) * inv[cast(size_t)(Mint.M % i)];
+    inv[i] = -((Mint.M / i) * inv[cast(size_t)(Mint.M % i)]);
   }
   fac[0] = invFac[0] = 1;
   foreach (i; 1 .. lim) {

@@ -58,8 +58,10 @@ unittest {
 
   // opUnary
   a = 0;
+  assert((+a).x == 0);
   assert((-a).x == 0);
   a = MO - 1;
+  assert((+a).x == MO - 1);
   assert((-a).x == 1);
 
   // opBinary
@@ -83,6 +85,13 @@ unittest {
   assert(!a);
   a = MO + 1;
   assert(a);
+
+  // opEquals
+  a = 2;
+  b = MO + 2;
+  assert(a == b);
+  b = MO - 2;
+  assert(a != b);
 }
 
 void main() {

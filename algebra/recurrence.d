@@ -5,14 +5,19 @@ import modint;
 int[] pretty(int M)(ModInt!M[] as) {
   import std.algorithm : map;
   import std.array : array;
-  return as.map!(a => (a.x < M - a.x) ? a.x : -(M - a.x)).array;
+  return as.map!(a => (a.x < M - a.x) ? cast(int)(a.x) : -cast(int)(M - a.x)).array;
+}
+int[] pretty(int M)(const(ModInt!M)[] as) {
+  import std.algorithm : map;
+  import std.array : array;
+  return as.map!(a => (a.x < M - a.x) ? cast(int)(a.x) : -cast(int)(M - a.x)).array;
 }
 
 // Berlekamp-Massey
 //   F: field
 //   \sum_{j=1}^0 cs[j] as[i - j] = 0 (d <= i < |as|), cs[0] = 1
 //   M must be prime
-F[] findLinearRecurrence(F)(F[] as) {
+F[] findLinearRecurrence(F)(inout(F)[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
   int d, m;
@@ -46,6 +51,11 @@ ModInt!M[] findLinearRecurrence(int M)(long[] as) {
 
 unittest {
   enum MO = 998244353;
+  {
+    const as = [ModInt!MO(3), ModInt!MO(4), ModInt!MO(6), ModInt!MO(10)];
+    const cs = as.findLinearRecurrence;
+    assert([1, -3, 2] == cs.pretty);
+  }
   assert([1, -3, 2] == findLinearRecurrence!MO([3, 4, 6, 10]).pretty);
   assert([1, -3, 2] == findLinearRecurrence!MO([3, 4, 6, 10, 18, 34]).pretty);
   assert([1, 3, 0, -39, 36] ==
