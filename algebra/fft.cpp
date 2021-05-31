@@ -18,7 +18,7 @@ template <unsigned M_, unsigned G_, int K_> struct Fft {
   static constexpr unsigned G = G_;
   static constexpr int K = K_;
   ModInt<M> FFT_ROOTS[K + 1], INV_FFT_ROOTS[K + 1];
-  ModInt<M> FFT_RATIOS[K - 1], INV_FFT_RATIOS[K - 1];
+  ModInt<M> FFT_RATIOS[K], INV_FFT_RATIOS[K];
   Fft() {
     const ModInt<M> g(G);
     for (int k = 0; k <= K; ++k) {
