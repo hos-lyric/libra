@@ -409,6 +409,12 @@ vector<long long> squareSmall3(const vector<long long> &as) {
 }
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <chrono>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+
 void unittest() {
   {
     // const Fft<998244353, 2, 23> THIS_SHOULD_FAIL_IN_CONSTRUCTOR;
@@ -537,7 +543,105 @@ void unittest() {
   }
 }
 
+// -----------------------------------------------------------------------------
+
+unsigned xrand() {
+  static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
+  unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
+}
+
+void solve_UInt(const int N, const unsigned long long expected) {
+  static constexpr int NUM_CASES = 10;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  unsigned long long ans = 0;
+  for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+    vector<unsigned long long> as(N), bs(N);
+    for (int i = 0; i < N; ++i) {
+      as[i] = xrand();
+      as[i] |= static_cast<unsigned long long>(xrand()) << 32;
+      bs[i] = xrand();
+      bs[i] |= static_cast<unsigned long long>(xrand()) << 32;
+    }
+    const auto cs = convolve(as, bs);
+    assert(static_cast<int>(cs.size()) == 2 * N - 1);
+    for (int i = 0; i < 2 * N - 1; ++i) {
+      ans ^= cs[i];
+    }
+  }
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[UInt] " << NUM_CASES << " cases, N = " << N
+       << ": expected = " << expected << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == ans);
+}
+void measurement_UInt() {
+  solve_UInt(1, 11299539965873857103ULL);
+  solve_UInt(10, 8192769938738557359ULL);
+  solve_UInt(100, 16059599503681582065ULL);
+  solve_UInt(1000, 17921991051132454588ULL);
+  solve_UInt(10000, 5029812135485743581ULL);
+  solve_UInt(100000, 8184441232493384094ULL);
+  solve_UInt(1000000, 1527747156683225266ULL);
+  solve_UInt((1 << 18) + 1, 14150823564279018700ULL);
+  solve_UInt(1 << 19, 6867348852005155522ULL);
+  solve_UInt((1 << 19) + 1, 5033523924117732051ULL);
+  solve_UInt(1 << 20, 17190999267607652588ULL);
+  solve_UInt((1 << 20) + 1, 16947359581302113890ULL);
+  solve_UInt(1 << 21, 15901775446809640696ULL);
+  solve_UInt(177147, 2539055676773925292ULL);
+  solve_UInt(177147 + 1, 14309689244472422109ULL);
+  solve_UInt(531441, 4601517573642535777ULL);
+  solve_UInt(531441 + 1, 693446521193715319ULL);
+  solve_UInt(1594323, 2140580117845734008ULL);
+  solve_UInt(1594323 + 1, 38539588570175947ULL);
+/*
+[UInt] 10 cases, N = 1: expected = 11299539965873857103, actual = 11299539965873857103
+0 msec
+[UInt] 10 cases, N = 10: expected = 8192769938738557359, actual = 8192769938738557359
+0 msec
+[UInt] 10 cases, N = 100: expected = 16059599503681582065, actual = 16059599503681582065
+0 msec
+[UInt] 10 cases, N = 1000: expected = 17921991051132454588, actual = 17921991051132454588
+4 msec
+[UInt] 10 cases, N = 10000: expected = 5029812135485743581, actual = 5029812135485743581
+85 msec
+[UInt] 10 cases, N = 100000: expected = 8184441232493384094, actual = 8184441232493384094
+806 msec
+[UInt] 10 cases, N = 1000000: expected = 1527747156683225266, actual = 1527747156683225266
+7242 msec
+[UInt] 10 cases, N = 262145: expected = 14150823564279018700, actual = 14150823564279018700
+2955 msec
+[UInt] 10 cases, N = 524288: expected = 6867348852005155522, actual = 6867348852005155522
+3297 msec
+[UInt] 10 cases, N = 524289: expected = 5033523924117732051, actual = 5033523924117732051
+6370 msec
+[UInt] 10 cases, N = 1048576: expected = 17190999267607652588, actual = 17190999267607652588
+6993 msec
+[UInt] 10 cases, N = 1048577: expected = 16947359581302113890, actual = 16947359581302113890
+13350 msec
+[UInt] 10 cases, N = 2097152: expected = 15901775446809640696, actual = 15901775446809640696
+14863 msec
+[UInt] 10 cases, N = 177147: expected = 2539055676773925292, actual = 2539055676773925292
+1451 msec
+[UInt] 10 cases, N = 177148: expected = 14309689244472422109, actual = 14309689244472422109
+1451 msec
+[UInt] 10 cases, N = 531441: expected = 4601517573642535777, actual = 4601517573642535777
+6135 msec
+[UInt] 10 cases, N = 531442: expected = 693446521193715319, actual = 693446521193715319
+6125 msec
+[UInt] 10 cases, N = 1594323: expected = 2140580117845734008, actual = 2140580117845734008
+13945 msec
+[UInt] 10 cases, N = 1594324: expected = 38539588570175947, actual = 38539588570175947
+13908 msec
+*/
+  // @ DAIVRabbit
+}
+
 int main() {
   unittest();
+  measurement_UInt();
   return 0;
 }
