@@ -77,7 +77,7 @@ template <class R> inline void mulSub2(int q, R *as, R *bs, int r) {
 // DFT of size 3^p over R[y] / (1 + y^(3^q) + y^(2 3^q))
 template <class R> void fft(int m, R *as) {
   const int p = m / 2, q = m - m / 2;
-  vector<R> ratios(p, 0);
+  vector<int> ratios(p, 0);
   for (int g = 0; g < p - 1; ++g) ratios[g] = (2 * THREE[q] + 4 * THREE[q - g - 1]) % THREE[q + 1];
   vector<R> work1(2 * THREE[q]), work2(2 * THREE[q]);
   for (int l = p; --l >= 0; ) {
@@ -108,7 +108,7 @@ template <class R> void fft(int m, R *as) {
 // inverse DFT of size 3^p over R[y] / (1 + y^(3^q) + y^(2 3^q))
 template <class R> void invFft(int m, R *as) {
   const int p = m / 2, q = m - m / 2;
-  vector<R> invRatios(p, 0);
+  vector<int> invRatios(p, 0);
   for (int g = 0; g < p - 1; ++g) invRatios[g] = (4 * THREE[q] - 4 * THREE[q - g - 1]) % THREE[q + 1];
   vector<R> work1(2 * THREE[q]), work2(2 * THREE[q]);
   for (int l = 0; l < p; ++l) {
@@ -207,9 +207,45 @@ template <class R> vector<R> convolve(vector<R> as, vector<R> bs) {
 
 }  // namespace radix3
 
+template <> inline void radix3::div3<unsigned>(unsigned &a) {
+  a *= 2863311531U;
+}
 template <> inline void radix3::div3<unsigned long long>(unsigned long long &a) {
   a *= 12297829382473034411ULL;
 }
+////////////////////////////////////////////////////////////////////////////////
+
+////////////////////////////////////////////////////////////////////////////////
+#include <iostream>
+#include "nimber.h"
+
+struct Nim64 {
+  unsigned long long x;
+  constexpr Nim64() : x(0ULL) {}
+  constexpr Nim64(unsigned x_) : x(x_) {}
+  constexpr Nim64(unsigned long long x_) : x(x_) {}
+  constexpr Nim64(int x_) : x(x_) {}
+  constexpr Nim64(long long x_) : x(x_) {}
+  Nim64 &operator+=(const Nim64 &a) { x ^= a.x; return *this; }
+  Nim64 &operator-=(const Nim64 &a) { x ^= a.x; return *this; }
+  Nim64 &operator*=(const Nim64 &a) { x = nim::mul(x, a.x); return *this; }
+  // TODO: operator/=, pow, inv
+  Nim64 operator+() const { return *this; }
+  Nim64 operator-() const { return *this; }
+  Nim64 operator+(const Nim64 &a) const { return (Nim64(*this) += a); }
+  Nim64 operator-(const Nim64 &a) const { return (Nim64(*this) -= a); }
+  Nim64 operator*(const Nim64 &a) const { return (Nim64(*this) *= a); }
+  // TODO: operator/
+  explicit operator bool() const { return x; }
+  bool operator==(const Nim64 &a) const { return (x == a.x); }
+  bool operator!=(const Nim64 &a) const { return (x != a.x); }
+  friend std::ostream &operator<<(std::ostream &os, const Nim64 &a) { return os << a.x; }
+};
+
+template <> inline void radix3::div3<Nim64>(Nim64 &) {}
+template <> inline void radix3::add2<Nim64>(int, Nim64 *, Nim64 *) {}
+template <> inline void radix3::mulAdd2<Nim64>(int, Nim64 *, Nim64 *, int) {}
+template <> inline void radix3::mulSub2<Nim64>(int, Nim64 *, Nim64 *, int) {}
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <chrono>
@@ -217,6 +253,21 @@ template <> inline void radix3::div3<unsigned long long>(unsigned long long &a) 
 
 using std::cerr;
 using std::endl;
+
+void unittest_unsigned() {
+  using namespace radix3;
+  // convolve
+  for (int m = 1; m <= 8; ++m) {
+    cerr << "unittest_unsigned() convolve m = " << m << endl;
+    const int asLen = THREE[m] - 2, bsLen = THREE[m] + 1;
+    vector<unsigned> as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 1U * i;
+    for (int j = 0; j < bsLen; ++j) bs[j] = 1U * j * j;
+    vector<unsigned> cs(asLen + bsLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) cs[i + j] += as[i] * bs[j];
+    assert(convolve(as, bs) == cs);
+  }
+}
 
 void unittest_UInt() {
   using namespace radix3;
@@ -328,6 +379,21 @@ void unittest_UInt() {
   }
 }
 
+void unittest_Nim64() {
+  using namespace radix3;
+  // convolve
+  for (int m = 1; m <= 8; ++m) {
+    cerr << "unittest_Nim64() convolve m = " << m << endl;
+    const int asLen = THREE[m] - 2, bsLen = THREE[m] + 1;
+    vector<Nim64> as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = 1234567890123456789ULL * i * i;
+    for (int j = 0; j < bsLen; ++j) bs[j] = 9876543210987654321ULL * j * j * j;
+    vector<Nim64> cs(asLen + bsLen - 1, 0);
+    for (int i = 0; i < asLen; ++i) for (int j = 0; j < bsLen; ++j) cs[i + j].x ^= nim::mul(as[i].x, bs[j].x);
+    assert(convolve(as, bs) == cs);
+  }
+}
+
 // -----------------------------------------------------------------------------
 
 unsigned xrand() {
@@ -426,7 +492,9 @@ void measurement_UInt() {
 }
 
 int main() {
+  unittest_unsigned();
   unittest_UInt();
+  unittest_Nim64();
   measurement_UInt();
   return 0;
 }
