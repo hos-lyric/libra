@@ -12,182 +12,178 @@ namespace radix3 {
 
 constexpr int THREE[20] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467};
 
-template <class R> inline void div3(R &a);
+template <class R> inline constexpr void div3(R &a);
 
-template <int Q, class R> inline void zero(R *as) {
-  memset(as, 0, (2 * THREE[Q]) * sizeof(R));
+template <class R> inline void zero(int q, R *as) {
+  memset(as, 0, (2 * THREE[q]) * sizeof(R));
 }
-template <int Q, class R> inline void cpy(R *as, R *bs) {
-  memcpy(as, bs, (2 * THREE[Q]) * sizeof(R));
+template <class R> inline void cpy(int q, R *as, R *bs) {
+  memcpy(as, bs, (2 * THREE[q]) * sizeof(R));
 }
-template <int Q, class R> inline void add(R *as, R *bs) {
-  for (int j = 0; j < 2 * THREE[Q]; ++j) as[j] += bs[j];
+template <class R> inline void add(int q, R *as, R *bs) {
+  for (int j = 0; j < 2 * THREE[q]; ++j) as[j] += bs[j];
 }
-template <int Q, class R> inline void add2(R *as, R *bs) {
-  for (int j = 0; j < 2 * THREE[Q]; ++j) as[j] += 2 * bs[j];
+template <class R> inline void add2(int q, R *as, R *bs) {
+  for (int j = 0; j < 2 * THREE[q]; ++j) as[j] += 2 * bs[j];
 }
-template <int Q, class R> inline void mulAdd(R *as, R *bs, int r) {
-  if (r >= THREE[Q + 1]) r -= THREE[Q + 1];
-  const int j2 = max(2 * THREE[Q] - r, 0);
-  const int j3 = min(THREE[Q + 1] - r, 2 * THREE[Q]);
+template <class R> inline void mulAdd(int q, R *as, R *bs, int r) {
+  if (r >= THREE[q + 1]) r -= THREE[q + 1];
+  const int j2 = max(2 * THREE[q] - r, 0);
+  const int j3 = min(THREE[q + 1] - r, 2 * THREE[q]);
   for (int j = 0; j < j2; ++j) as[j + r] += bs[j];
-  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[Q]] -= bs[j]; as[j + r - THREE[Q]] -= bs[j]; }
-  for (int j = j3; j < 2 * THREE[Q]; ++j) as[j + r - THREE[Q + 1]] += bs[j];
+  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[q]] -= bs[j]; as[j + r - THREE[q]] -= bs[j]; }
+  for (int j = j3; j < 2 * THREE[q]; ++j) as[j + r - THREE[q + 1]] += bs[j];
 }
-template <int Q, class R> inline void mulAdd2(R *as, R *bs, int r) {
-  if (r >= THREE[Q + 1]) r -= THREE[Q + 1];
-  const int j2 = max(2 * THREE[Q] - r, 0);
-  const int j3 = min(THREE[Q + 1] - r, 2 * THREE[Q]);
+template <class R> inline void mulAdd2(int q, R *as, R *bs, int r) {
+  if (r >= THREE[q + 1]) r -= THREE[q + 1];
+  const int j2 = max(2 * THREE[q] - r, 0);
+  const int j3 = min(THREE[q + 1] - r, 2 * THREE[q]);
   for (int j = 0; j < j2; ++j) as[j + r] += 2 * bs[j];
-  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[Q]] -= 2 * bs[j]; as[j + r - THREE[Q]] -= 2 * bs[j]; }
-  for (int j = j3; j < 2 * THREE[Q]; ++j) as[j + r - THREE[Q + 1]] += 2 * bs[j];
+  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[q]] -= 2 * bs[j]; as[j + r - THREE[q]] -= 2 * bs[j]; }
+  for (int j = j3; j < 2 * THREE[q]; ++j) as[j + r - THREE[q + 1]] += 2 * bs[j];
 }
-template <int Q, class R> inline void mulSub(R *as, R *bs, int r) {
-  if (r >= THREE[Q + 1]) r -= THREE[Q + 1];
-  const int j2 = max(2 * THREE[Q] - r, 0);
-  const int j3 = min(THREE[Q + 1] - r, 2 * THREE[Q]);
+template <class R> inline void mulSub(int q, R *as, R *bs, int r) {
+  if (r >= THREE[q + 1]) r -= THREE[q + 1];
+  const int j2 = max(2 * THREE[q] - r, 0);
+  const int j3 = min(THREE[q + 1] - r, 2 * THREE[q]);
   for (int j = 0; j < j2; ++j) as[j + r] -= bs[j];
-  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[Q]] += bs[j]; as[j + r - THREE[Q]] += bs[j]; }
-  for (int j = j3; j < 2 * THREE[Q]; ++j) as[j + r - THREE[Q + 1]] -= bs[j];
+  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[q]] += bs[j]; as[j + r - THREE[q]] += bs[j]; }
+  for (int j = j3; j < 2 * THREE[q]; ++j) as[j + r - THREE[q + 1]] -= bs[j];
 }
-template <int Q, class R> inline void mulSub2(R *as, R *bs, int r) {
-  if (r >= THREE[Q + 1]) r -= THREE[Q + 1];
-  const int j2 = max(2 * THREE[Q] - r, 0);
-  const int j3 = min(THREE[Q + 1] - r, 2 * THREE[Q]);
+template <class R> inline void mulSub2(int q, R *as, R *bs, int r) {
+  if (r >= THREE[q + 1]) r -= THREE[q + 1];
+  const int j2 = max(2 * THREE[q] - r, 0);
+  const int j3 = min(THREE[q + 1] - r, 2 * THREE[q]);
   for (int j = 0; j < j2; ++j) as[j + r] -= 2 * bs[j];
-  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[Q]] += 2 * bs[j]; as[j + r - THREE[Q]] += 2 * bs[j]; }
-  for (int j = j3; j < 2 * THREE[Q]; ++j) as[j + r - THREE[Q + 1]] -= 2 * bs[j];
+  for (int j = j2; j < j3; ++j) { as[j + r - 2 * THREE[q]] += 2 * bs[j]; as[j + r - THREE[q]] += 2 * bs[j]; }
+  for (int j = j3; j < 2 * THREE[q]; ++j) as[j + r - THREE[q + 1]] -= 2 * bs[j];
 }
 
 // DFT of size 3^p over R[y] / (1 + y^(3^q) + y^(2 3^q))
-template <int M, class R> void fft(R *as) {
-  static constexpr int P = M / 2, Q = M - M / 2;
-  static R ratios[P] = {};
-  for (int g = 0; g < P - 1; ++g) ratios[g] = (2 * THREE[Q] + 4 * THREE[Q - g - 1]) % THREE[Q + 1];
-  static R work1[2 * THREE[Q]], work2[2 * THREE[Q]];
-  for (int l = P; --l >= 0; ) {
+template <class R> void fft(int m, R *as) {
+  const int p = m / 2, q = m - m / 2;
+  vector<R> ratios(p, 0);
+  for (int g = 0; g < p - 1; ++g) ratios[g] = (2 * THREE[q] + 4 * THREE[q - g - 1]) % THREE[q + 1];
+  vector<R> work1(2 * THREE[q]), work2(2 * THREE[q]);
+  for (int l = p; --l >= 0; ) {
     int prod = 0;
-    for (int h = 0, i0 = 0; i0 < THREE[P]; i0 += THREE[l + 1]) {
+    for (int h = 0, i0 = 0; i0 < THREE[p]; i0 += THREE[l + 1]) {
       for (int i = i0; i < i0 + THREE[l]; ++i) {
-        R *a0 = as + 2 * THREE[Q] * i;
-        R *a1 = as + 2 * THREE[Q] * (i + THREE[l]);
-        R *a2 = as + 2 * THREE[Q] * (i + 2 * THREE[l]);
-        zero<Q>(work1);
-        mulAdd<Q>(work1, a1, prod);
-        zero<Q>(work2);
-        mulAdd<Q>(work2, a2, 2 * prod);
-        cpy<Q>(a1, a0);
-        mulAdd<Q>(a1, work1, THREE[Q]);
-        mulAdd<Q>(a1, work2, 2 * THREE[Q]);
-        cpy<Q>(a2, a0);
-        mulAdd<Q>(a2, work1, 2 * THREE[Q]);
-        mulAdd<Q>(a2, work2, THREE[Q]);
-        add<Q>(a0, work1);
-        add<Q>(a0, work2);
+        R *a0 = as + 2 * THREE[q] * i;
+        R *a1 = as + 2 * THREE[q] * (i + THREE[l]);
+        R *a2 = as + 2 * THREE[q] * (i + 2 * THREE[l]);
+        zero(q, work1.data());
+        mulAdd(q, work1.data(), a1, prod);
+        zero(q, work2.data());
+        mulAdd(q, work2.data(), a2, 2 * prod);
+        cpy(q, a1, a0);
+        mulAdd(q, a1, work1.data(), THREE[q]);
+        mulAdd(q, a1, work2.data(), 2 * THREE[q]);
+        cpy(q, a2, a0);
+        mulAdd(q, a2, work1.data(), 2 * THREE[q]);
+        mulAdd(q, a2, work2.data(), THREE[q]);
+        add(q, a0, work1.data());
+        add(q, a0, work2.data());
       }
       int g = 0;
       for (int hh = ++h; hh % 3 == 0; hh /= 3) ++g;
-      if ((prod += ratios[g]) >= THREE[Q + 1]) prod -= THREE[Q + 1];
+      if ((prod += ratios[g]) >= THREE[q + 1]) prod -= THREE[q + 1];
     }
   }
 }
 
 // inverse DFT of size 3^p over R[y] / (1 + y^(3^q) + y^(2 3^q))
-template <int M, class R> void invFft(R *as) {
-  static constexpr int P = M / 2, Q = M - M / 2;
-  static R invRatios[P] = {};
-  for (int g = 0; g < P - 1; ++g) invRatios[g] = (4 * THREE[Q] - 4 * THREE[Q - g - 1]) % THREE[Q + 1];
-  static R work1[2 * THREE[Q]], work2[2 * THREE[Q]];
-  for (int l = 0; l < P; ++l) {
+template <class R> void invFft(int m, R *as) {
+  const int p = m / 2, q = m - m / 2;
+  vector<R> invRatios(p, 0);
+  for (int g = 0; g < p - 1; ++g) invRatios[g] = (4 * THREE[q] - 4 * THREE[q - g - 1]) % THREE[q + 1];
+  vector<R> work1(2 * THREE[q]), work2(2 * THREE[q]);
+  for (int l = 0; l < p; ++l) {
     int prod = 0;
-    for (int h = 0, i0 = 0; i0 < THREE[P]; i0 += THREE[l + 1]) {
+    for (int h = 0, i0 = 0; i0 < THREE[p]; i0 += THREE[l + 1]) {
       for (int i = i0; i < i0 + THREE[l]; ++i) {
-        R *a0 = as + 2 * THREE[Q] * i;
-        R *a1 = as + 2 * THREE[Q] * (i + THREE[l]);
-        R *a2 = as + 2 * THREE[Q] * (i + 2 * THREE[l]);
-        cpy<Q>(work1, a0);
-        mulAdd<Q>(work1, a1, 2 * THREE[Q]);
-        mulAdd<Q>(work1, a2, THREE[Q]);
-        cpy<Q>(work2, a0);
-        mulAdd<Q>(work2, a1, THREE[Q]);
-        mulAdd<Q>(work2, a2, 2 * THREE[Q]);
-        add<Q>(a0, a1);
-        add<Q>(a0, a2);
-        zero<Q>(a1);
-        mulAdd<Q>(a1, work1, prod);
-        zero<Q>(a2);
-        mulAdd<Q>(a2, work2, 2 * prod);
+        R *a0 = as + 2 * THREE[q] * i;
+        R *a1 = as + 2 * THREE[q] * (i + THREE[l]);
+        R *a2 = as + 2 * THREE[q] * (i + 2 * THREE[l]);
+        cpy(q, work1.data(), a0);
+        mulAdd(q, work1.data(), a1, 2 * THREE[q]);
+        mulAdd(q, work1.data(), a2, THREE[q]);
+        cpy(q, work2.data(), a0);
+        mulAdd(q, work2.data(), a1, THREE[q]);
+        mulAdd(q, work2.data(), a2, 2 * THREE[q]);
+        add(q, a0, a1);
+        add(q, a0, a2);
+        zero(q, a1);
+        mulAdd(q, a1, work1.data(), prod);
+        zero(q, a2);
+        mulAdd(q, a2, work2.data(), 2 * prod);
       }
       int g = 0;
       for (int hh = ++h; hh % 3 == 0; hh /= 3) ++g;
-      if ((prod += invRatios[g]) >= THREE[Q + 1]) prod -= THREE[Q + 1];
+      if ((prod += invRatios[g]) >= THREE[q + 1]) prod -= THREE[q + 1];
     }
   }
   R inv3 = 1;
-  for (int l = 0; l < P; ++l) div3(inv3);
-  for (int k = 0; k < 2 * THREE[M]; ++k) as[k] *= inv3;
+  for (int l = 0; l < p; ++l) div3(inv3);
+  for (int k = 0; k < 2 * THREE[m]; ++k) as[k] *= inv3;
 }
 
 // a <- a b mod (1 + x^(3^m) + x^(2 3^m))
-template <int M, class R> void inplaceConvolve(R *as, R *bs) {
-  if (M <= 3) {
-    static R cs[4 * THREE[M] - 1];
-    memset(cs, 0, (4 * THREE[M] - 1) * sizeof(R));
-    for (int ka = 0; ka < 2 * THREE[M]; ++ka) for (int kb = 0; kb < 2 * THREE[M]; ++kb) cs[ka + kb] += as[ka] * bs[kb];
-    for (int k = 4 * THREE[M] - 1; --k >= 2 * THREE[M]; ) {
-      cs[k - 2 * THREE[M]] -= cs[k];
-      cs[k - THREE[M]] -= cs[k];
+template <class R> void inplaceConvolve(int m, R *as, R *bs) {
+  if (m <= 3) {
+    vector<R> cs(4 * THREE[m] - 1, 0);
+    for (int ka = 0; ka < 2 * THREE[m]; ++ka) for (int kb = 0; kb < 2 * THREE[m]; ++kb) cs[ka + kb] += as[ka] * bs[kb];
+    for (int k = 4 * THREE[m] - 1; --k >= 2 * THREE[m]; ) {
+      cs[k - 2 * THREE[m]] -= cs[k];
+      cs[k - THREE[m]] -= cs[k];
     }
-    memcpy(as, cs, (2 * THREE[M]) * sizeof(R));
+    memcpy(as, cs.data(), (2 * THREE[m]) * sizeof(R));
   } else {
     // y := x^(3^p)
     // (R[y] / (1 + y^(3^q) + y^(2 3^q)))[x]
-    static constexpr int P = M / 2, Q = M - M / 2;
-    static R as0[2 * THREE[M]], bs0[2 * THREE[M]], as1[2 * THREE[M]], bs1[2 * THREE[M]];
-    for (int j = 0; j < 2 * THREE[Q]; ++j) for (int i = 0; i < THREE[P]; ++i) as0[2 * THREE[Q] * i + j] = as[THREE[P] * j + i];
-    for (int j = 0; j < 2 * THREE[Q]; ++j) for (int i = 0; i < THREE[P]; ++i) bs0[2 * THREE[Q] * i + j] = bs[THREE[P] * j + i];
+    const int p = m / 2, q = m - m / 2;
+    vector<R> as0(2 * THREE[m]), bs0(2 * THREE[m]), as1(2 * THREE[m], 0), bs1(2 * THREE[m], 0);
+    for (int j = 0; j < 2 * THREE[q]; ++j) for (int i = 0; i < THREE[p]; ++i) as0[2 * THREE[q] * i + j] = as[THREE[p] * j + i];
+    for (int j = 0; j < 2 * THREE[q]; ++j) for (int i = 0; i < THREE[p]; ++i) bs0[2 * THREE[q] * i + j] = bs[THREE[p] * j + i];
     // x <- y^(3^q/3^p) x
-    zero<M>(as1);
-    zero<M>(bs1);
-    for (int i = 0; i < THREE[P]; ++i) mulAdd<Q>(as1 + 2 * THREE[Q] * i, as0 + 2 * THREE[Q] * i, THREE[Q - P] * i);
-    for (int i = 0; i < THREE[P]; ++i) mulAdd<Q>(bs1 + 2 * THREE[Q] * i, bs0 + 2 * THREE[Q] * i, THREE[Q - P] * i);
-    fft<M>(as0);
-    fft<M>(bs0);
-    for (int i = 0; i < THREE[P]; ++i) inplaceConvolve<Q>(bs0 + 2 * THREE[Q] * i, as0 + 2 * THREE[Q] * i);
-    invFft<M>(bs0);
-    fft<M>(as1);
-    fft<M>(bs1);
-    for (int i = 0; i < THREE[P]; ++i) inplaceConvolve<Q>(bs1 + 2 * THREE[Q] * i, as1 + 2 * THREE[Q] * i);
-    invFft<M>(bs1);
-    zero<M>(as);
-    for (int i = 0; i < THREE[P]; ++i) {
+    for (int i = 0; i < THREE[p]; ++i) mulAdd(q, as1.data() + 2 * THREE[q] * i, as0.data() + 2 * THREE[q] * i, THREE[q - p] * i);
+    for (int i = 0; i < THREE[p]; ++i) mulAdd(q, bs1.data() + 2 * THREE[q] * i, bs0.data() + 2 * THREE[q] * i, THREE[q - p] * i);
+    fft(m, as0.data());
+    fft(m, bs0.data());
+    for (int i = 0; i < THREE[p]; ++i) inplaceConvolve(q, bs0.data() + 2 * THREE[q] * i, as0.data() + 2 * THREE[q] * i);
+    invFft(m, bs0.data());
+    fft(m, as1.data());
+    fft(m, bs1.data());
+    for (int i = 0; i < THREE[p]; ++i) inplaceConvolve(q, bs1.data() + 2 * THREE[q] * i, as1.data() + 2 * THREE[q] * i);
+    invFft(m, bs1.data());
+    zero(m, as);
+    for (int i = 0; i < THREE[p]; ++i) {
       // b0 = c0 + c1
       // b1 = y^(3^q/3^p i) c0 + y^(3^q/3^p i + 3^q) c1
       // c0 = (1/3) (2 + y^(3^q)) (-y^(3^q) b0 + y^(-3^q/3^p i) b1)
       // c1 = (1/3) (2 + y^(3^q)) (b0 - y^(-3^q/3^p i) b1)
-      R *b0 = bs0 + 2 * THREE[Q] * i;
-      R *b1 = bs1 + 2 * THREE[Q] * i;
-      for (int j = 0; j < 2 * THREE[Q]; ++j) div3(b0[j]);
-      for (int j = 0; j < 2 * THREE[Q]; ++j) div3(b1[j]);
-      zero<Q>(as0);
-      mulSub2<Q>(as0, b0, THREE[Q]);
-      mulSub<Q>(as0, b0, 2 * THREE[Q]);
-      mulAdd2<Q>(as0, b1, THREE[Q + 1] - THREE[Q - P] * i);
-      mulAdd<Q>(as0, b1, THREE[Q + 1] - THREE[Q - P] * i + THREE[Q]);
-      zero<Q>(as1);
-      add2<Q>(as1, b0);
-      mulAdd<Q>(as1, b0, THREE[Q]);
-      mulSub2<Q>(as1, b1, THREE[Q + 1] - THREE[Q - P] * i);
-      mulSub<Q>(as1, b1, THREE[Q + 1] - THREE[Q - P] * i + THREE[Q]);
-      for (int j = 0; j < 2 * THREE[Q]; ++j) as[THREE[P] * j + i] += as0[j];
-      for (int j = 0; j < 2 * THREE[Q] - 1; ++j) as[THREE[P] * j + i + THREE[P]] += as1[j];
-      as[i] -= as1[2 * THREE[Q] - 1];
-      as[i + THREE[M]] -= as1[2 * THREE[Q] - 1];
+      R *b0 = bs0.data() + 2 * THREE[q] * i;
+      R *b1 = bs1.data() + 2 * THREE[q] * i;
+      for (int j = 0; j < 2 * THREE[q]; ++j) div3(b0[j]);
+      for (int j = 0; j < 2 * THREE[q]; ++j) div3(b1[j]);
+      zero(q, as0.data());
+      mulSub2(q, as0.data(), b0, THREE[q]);
+      mulSub(q, as0.data(), b0, 2 * THREE[q]);
+      mulAdd2(q, as0.data(), b1, THREE[q + 1] - THREE[q - p] * i);
+      mulAdd(q, as0.data(), b1, THREE[q + 1] - THREE[q - p] * i + THREE[q]);
+      zero(q, as1.data());
+      add2(q, as1.data(), b0);
+      mulAdd(q, as1.data(), b0, THREE[q]);
+      mulSub2(q, as1.data(), b1, THREE[q + 1] - THREE[q - p] * i);
+      mulSub(q, as1.data(), b1, THREE[q + 1] - THREE[q - p] * i + THREE[q]);
+      for (int j = 0; j < 2 * THREE[q]; ++j) as[THREE[p] * j + i] += as0[j];
+      for (int j = 0; j < 2 * THREE[q] - 1; ++j) as[THREE[p] * j + i + THREE[p]] += as1[j];
+      as[i] -= as1[2 * THREE[q] - 1];
+      as[i + THREE[m]] -= as1[2 * THREE[q] - 1];
     }
   }
 }
 
-/*
 template <class R> vector<R> convolve(vector<R> as, vector<R> bs) {
   if (as.empty() || bs.empty()) return {};
   const int len = as.size() + bs.size() - 1;
@@ -199,36 +195,10 @@ template <class R> vector<R> convolve(vector<R> as, vector<R> bs) {
   as.resize(len);
   return as;
 }
-*/
-template <class R> vector<R> convolve(vector<R> as, vector<R> bs) {
-  if (as.empty() || bs.empty()) return {};
-  const int len = as.size() + bs.size() - 1;
-  if (false) {}
-#define reg(M) else if (len <= 2 * THREE[M]) { as.resize(2 * THREE[M], 0); bs.resize(2 * THREE[M], 0); inplaceConvolve<M>(as.data(), bs.data()); }
-  reg(0)
-  reg(1)
-  reg(2)
-  reg(3)
-  reg(4)
-  reg(5)
-  reg(6)
-  reg(7)
-  reg(8)
-  reg(9)
-  reg(10)
-  reg(11)
-  reg(12)
-  reg(13)
-  reg(14)
-#undef reg
-  else { assert(false); }
-  as.resize(len);
-  return as;
-}
 
 }  // namespace radix3
 
-template <> void radix3::div3<unsigned long long>(unsigned long long &a) {
+template <> constexpr void radix3::div3<unsigned long long>(unsigned long long &a) {
   a *= 12297829382473034411ULL;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -286,7 +256,7 @@ void unittest_UInt() {
     */
     vector<UInt> cs;
     cs = as;
-    fft<4>(cs.data());
+    fft(4, cs.data());
     /*
     cerr << "fft(as) = " << endl;
     for (int i = 0; i < 9; ++i) {
@@ -297,7 +267,7 @@ void unittest_UInt() {
     */
     assert(cs == bs);
     cs = bs;
-    invFft<4>(cs.data());
+    invFft(4, cs.data());
     /*
     cerr << "invFft(bs) = " << endl;
     for (int i = 0; i < 9; ++i) {
@@ -329,10 +299,10 @@ void unittest_UInt() {
     }
     vector<UInt> cs;
     cs = as;
-    fft<7>(cs.data());
+    fft(7, cs.data());
     assert(cs == bs);
     cs = bs;
-    invFft<7>(cs.data());
+    invFft(7, cs.data());
     assert(cs == as);
   }
 
