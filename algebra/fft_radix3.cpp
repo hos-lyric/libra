@@ -12,7 +12,7 @@ namespace radix3 {
 
 constexpr int THREE[20] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467};
 
-template <class R> inline constexpr void div3(R &a);
+template <class R> inline void div3(R &a);
 
 template <class R> inline void zero(int q, R *as) {
   memset(as, 0, (2 * THREE[q]) * sizeof(R));
@@ -25,6 +25,21 @@ template <class R> inline void add(int q, R *as, R *bs) {
 }
 template <class R> inline void add2(int q, R *as, R *bs) {
   for (int j = 0; j < 2 * THREE[q]; ++j) as[j] += 2 * bs[j];
+}
+template <class R> inline void mulSet(int q, R *as, R *bs, int r) {
+  if (r >= THREE[q + 1]) r -= THREE[q + 1];
+  if (r < THREE[q]) {
+    memcpy(as + r, bs, (2 * THREE[q] - r) * sizeof(R));
+    for (int j = 2 * THREE[q] - r; j < 2 * THREE[q]; ++j) { as[j + r - 2 * THREE[q]] = -bs[j]; as[j + r - THREE[q]] -= bs[j]; }
+  } else if (r < 2 * THREE[q]) {
+    memcpy(as + r, bs, (2 * THREE[q] - r) * sizeof(R));
+    memcpy(as, bs + (THREE[q + 1] - r), (r - THREE[q]) * sizeof(R));
+    for (int j = 2 * THREE[q] - r; j < THREE[q]; ++j) { as[j + r - 2 * THREE[q]] -= bs[j]; as[j + r - THREE[q]] = -bs[j]; }
+    for (int j = THREE[q]; j < THREE[q + 1] - r; ++j) { as[j + r - 2 * THREE[q]] = -bs[j]; as[j + r - THREE[q]] -= bs[j]; }
+  } else {
+    memcpy(as, bs + (THREE[q + 1] - r), (r - THREE[q]) * sizeof(R));
+    for (int j = 0; j < THREE[q + 1] - r; ++j) { as[j + r - 2 * THREE[q]] -= bs[j]; as[j + r - THREE[q]] = -bs[j]; }
+  }
 }
 template <class R> inline void mulAdd(int q, R *as, R *bs, int r) {
   if (r >= THREE[q + 1]) r -= THREE[q + 1];
@@ -72,10 +87,8 @@ template <class R> void fft(int m, R *as) {
         R *a0 = as + 2 * THREE[q] * i;
         R *a1 = as + 2 * THREE[q] * (i + THREE[l]);
         R *a2 = as + 2 * THREE[q] * (i + 2 * THREE[l]);
-        zero(q, work1.data());
-        mulAdd(q, work1.data(), a1, prod);
-        zero(q, work2.data());
-        mulAdd(q, work2.data(), a2, 2 * prod);
+        mulSet(q, work1.data(), a1, prod);
+        mulSet(q, work2.data(), a2, 2 * prod);
         cpy(q, a1, a0);
         mulAdd(q, a1, work1.data(), THREE[q]);
         mulAdd(q, a1, work2.data(), 2 * THREE[q]);
@@ -113,10 +126,8 @@ template <class R> void invFft(int m, R *as) {
         mulAdd(q, work2.data(), a2, 2 * THREE[q]);
         add(q, a0, a1);
         add(q, a0, a2);
-        zero(q, a1);
-        mulAdd(q, a1, work1.data(), prod);
-        zero(q, a2);
-        mulAdd(q, a2, work2.data(), 2 * prod);
+        mulSet(q, a1, work1.data(), prod);
+        mulSet(q, a2, work2.data(), 2 * prod);
       }
       int g = 0;
       for (int hh = ++h; hh % 3 == 0; hh /= 3) ++g;
@@ -166,14 +177,12 @@ template <class R> void inplaceConvolve(int m, R *as, R *bs) {
       R *b1 = bs1.data() + 2 * THREE[q] * i;
       for (int j = 0; j < 2 * THREE[q]; ++j) div3(b0[j]);
       for (int j = 0; j < 2 * THREE[q]; ++j) div3(b1[j]);
-      zero(q, as0.data());
+      mulSet(q, as0.data(), b1, THREE[q + 1] - THREE[q - p] * i + THREE[q]);
       mulSub2(q, as0.data(), b0, THREE[q]);
       mulSub(q, as0.data(), b0, 2 * THREE[q]);
       mulAdd2(q, as0.data(), b1, THREE[q + 1] - THREE[q - p] * i);
-      mulAdd(q, as0.data(), b1, THREE[q + 1] - THREE[q - p] * i + THREE[q]);
-      zero(q, as1.data());
+      mulSet(q, as1.data(), b0, THREE[q]);
       add2(q, as1.data(), b0);
-      mulAdd(q, as1.data(), b0, THREE[q]);
       mulSub2(q, as1.data(), b1, THREE[q + 1] - THREE[q - p] * i);
       mulSub(q, as1.data(), b1, THREE[q + 1] - THREE[q - p] * i + THREE[q]);
       for (int j = 0; j < 2 * THREE[q]; ++j) as[THREE[p] * j + i] += as0[j];
@@ -198,7 +207,7 @@ template <class R> vector<R> convolve(vector<R> as, vector<R> bs) {
 
 }  // namespace radix3
 
-template <> constexpr void radix3::div3<unsigned long long>(unsigned long long &a) {
+template <> inline void radix3::div3<unsigned long long>(unsigned long long &a) {
   a *= 12297829382473034411ULL;
 }
 ////////////////////////////////////////////////////////////////////////////////
@@ -374,6 +383,44 @@ void measurement_UInt() {
   solve_UInt(1594323, 2140580117845734008ULL);
   solve_UInt(1594323 + 1, 38539588570175947ULL);
 /*
+[UInt] 10 cases, N = 1: expected = 11299539965873857103, actual = 11299539965873857103
+0 msec
+[UInt] 10 cases, N = 10: expected = 8192769938738557359, actual = 8192769938738557359
+0 msec
+[UInt] 10 cases, N = 100: expected = 16059599503681582065, actual = 16059599503681582065
+0 msec
+[UInt] 10 cases, N = 1000: expected = 17921991051132454588, actual = 17921991051132454588
+8 msec
+[UInt] 10 cases, N = 10000: expected = 5029812135485743581, actual = 5029812135485743581
+106 msec
+[UInt] 10 cases, N = 100000: expected = 8184441232493384094, actual = 8184441232493384094
+1067 msec
+[UInt] 10 cases, N = 1000000: expected = 1527747156683225266, actual = 1527747156683225266
+12643 msec
+[UInt] 10 cases, N = 262145: expected = 14150823564279018700, actual = 14150823564279018700
+2807 msec
+[UInt] 10 cases, N = 524288: expected = 6867348852005155522, actual = 6867348852005155522
+2824 msec
+[UInt] 10 cases, N = 524289: expected = 5033523924117732051, actual = 5033523924117732051
+2830 msec
+[UInt] 10 cases, N = 1048576: expected = 17190999267607652588, actual = 17190999267607652588
+12291 msec
+[UInt] 10 cases, N = 1048577: expected = 16947359581302113890, actual = 16947359581302113890
+12318 msec
+[UInt] 10 cases, N = 2097152: expected = 15901775446809640696, actual = 15901775446809640696
+42222 msec
+[UInt] 10 cases, N = 177147: expected = 2539055676773925292, actual = 2539055676773925292
+892 msec
+[UInt] 10 cases, N = 177148: expected = 14309689244472422109, actual = 14309689244472422109
+2793 msec
+[UInt] 10 cases, N = 531441: expected = 4601517573642535777, actual = 4601517573642535777
+2815 msec
+[UInt] 10 cases, N = 531442: expected = 693446521193715319, actual = 693446521193715319
+12307 msec
+[UInt] 10 cases, N = 1594323: expected = 2140580117845734008, actual = 2140580117845734008
+12356 msec
+[UInt] 10 cases, N = 1594324: expected = 38539588570175947, actual = 38539588570175947
+42223 msec
 */
   // @ DAIVRabbit
 }
