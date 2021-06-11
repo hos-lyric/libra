@@ -105,7 +105,7 @@ Mint eval(Mint x, Mint y) {
   return as[(1 << n) - 1];
 }
 
-}  // namespace calc
+}  // namespace tutte
 ////////////////////////////////////////////////////////////////////////////////
 
 void unittest() {
