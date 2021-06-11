@@ -12,13 +12,13 @@ using Mint = ModInt<MO>;
 // T_G(x, y) := \sum_{A\subseteq E} (x - 1)^(k(A) - k(E)) (y - 1)^(k(A) + |A| - |V|)
 //   chromatic_G(z) = (-1)^(|V| - k(G)) z^k(G) T_G(1 - z, 0)
 //   T_G(0, 2) = the number of strongly connected orientations
-//   T_G(1, 1) = the number of spanning forests (i.e. k(G) connected components))
-//   T_G(1, 2) = the number of spanning subgraphs (i.e. k(G) connected components))
+//   T_G(1, 1) = the number of spanning forests (i.e. k(G) connected components)
+//   T_G(1, 2) = the number of spanning subgraphs (i.e. k(G) connected components)
 //   T_G(2, 0) = the number of acyclic orientations
 //   T_G(2, 1) = the number of forests
 //   T_G(2, 2) = 2^|E|
 
-// tutte::eval assumes that the graph is simple.
+// tutte::eval assumes that G is simple.
 
 ////////////////////////////////////////////////////////////////////////////////
 namespace tutte {
