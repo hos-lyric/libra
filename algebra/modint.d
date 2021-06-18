@@ -21,7 +21,7 @@ struct ModInt(uint M_) {
     } else static if (op == "^^") {
       if (a < 0) return this = inv()^^(-a);
       ModInt b = this, c = 1U;
-      for (; a; a >>= 1) { if (a & 1) c *= b; b *= b; }
+      for (long e = a; e; e >>= 1) { if (e & 1) c *= b; b *= b; }
       return this = c;
     } else {
       return mixin("this " ~ op ~ "= ModInt(a)");

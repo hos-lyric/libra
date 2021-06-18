@@ -36,6 +36,12 @@ unittest {
   a ^^= -2;
   static assert((1 + MO) % 4 == 0);
   assert(a.x == (1 + MO) / 4);
+  {
+    a = 2;
+    const b = 3;
+    a ^^= b;
+    assert(a.x == 8);
+  }
   a = 10;
   a += (2 * MO + 20);
   assert(a.x == 30);
