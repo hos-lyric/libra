@@ -13,8 +13,14 @@ unittest {
   auto a = Mint(10);
   (a = 2 * MO + 11) = 2 * MO + 12;
   assert(a.x == 12);
+  {
+    const b = -1L;
+    a = b;
+    assert(a.x == MO - 1);
+  }
 
   // opOpAssign(ModInt)
+  a = 12;
   a += Mint(MO - 10);
   assert(a.x == 2);
   (a -= Mint(10)) -= Mint(10);

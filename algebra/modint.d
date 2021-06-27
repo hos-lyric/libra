@@ -9,7 +9,7 @@ struct ModInt(uint M_) {
   this(ulong x_) { x = x_ % M; }
   this(int x_) { x = ((x_ %= cast(int)(M)) < 0) ? (x_ + cast(int)(M)) : x_; }
   this(long x_) { x = cast(uint)(((x_ %= cast(long)(M)) < 0) ? (x_ + cast(long)(M)) : x_); }
-  ref ModInt opAssign(T)(T a) if (is(T == uint) || is(T == ulong) || is(T == int) || is(T == long)) { return this = ModInt(a); }
+  ref ModInt opAssign(T)(inout(T) a) if (is(T == uint) || is(T == ulong) || is(T == int) || is(T == long)) { return this = ModInt(a); }
   ref ModInt opOpAssign(string op, T)(T a) {
     static if (is(T == ModInt)) {
       static if (op == "+") { x = ((x += a.x) >= M) ? (x - M) : x; }
