@@ -44,9 +44,9 @@ bool isPrime(Int n) {
   const Int d = (n - 1) >> s;
   // http://miller-rabin.appspot.com/
   for (const Int base : {2, 325, 9375, 28178, 450775, 9780504, 1795265022}) {
-    __int128_t a = base % n;
+    __int128 a = base % n;
     if (a == 0) continue;
-    a = power<__int128_t>(a, d, n);
+    a = power<__int128>(a, d, n);
     if (a == 1 || a == n - 1) continue;
     bool ok = false;
     for (int i = 0; i < s - 1; ++i) {
@@ -63,18 +63,31 @@ bool isPrime(Int n) {
 
 // Factorize n using Pollard's rho algorithm
 vector<Int> factorize(Int n) {
+  static constexpr int BLOCK = 256;
   if (n <= 1) return {};
   if (isPrime(n)) return {n};
   if (n % 2 == 0) return merge({2}, factorize(n / 2));
-  for (Int c = 1; ; ++c) {
-    Int x = 2, y = 2, d;
-    do {
-      x = (static_cast<__int128_t>(x) * x + c) % n;
-      y = (static_cast<__int128_t>(y) * y + c) % n;
-      y = (static_cast<__int128_t>(y) * y + c) % n;
-      d = gcd(x - y, n);
-    } while (d == 1);
-    if (d < n) return merge(factorize(d), factorize(n / d));
+  for (Int c = 2; ; ++c) {
+    Int x, y = 2, y0, z = 1, d = 1;
+    for (int l = 1; d == 1; l <<= 1) {
+      x = y;
+      for (int i = 0; i < l; ++i) y = (static_cast<__int128>(y) * y + c) % n;
+      for (int i = 0; i < l; i += BLOCK) {
+        y0 = y;
+        for (int j = 0; j < BLOCK && j < l - i; ++j) {
+          y = (static_cast<__int128>(y) * y + c) % n;
+          z = (static_cast<__int128>(z) * (y - x)) % n;
+        }
+        if ((d = gcd(z, n)) != 1) break;
+      }
+    }
+    if (d == n) {
+      for (y = y0; ; ) {
+        y = (static_cast<__int128>(y) * y + c) % n;
+        if ((d = gcd(y - x, n)) != 1) break;
+      }
+    }
+    if (d != n) return merge(factorize(d), factorize(n / d));
   }
 }
 
