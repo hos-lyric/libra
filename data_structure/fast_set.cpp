@@ -103,7 +103,47 @@ void unittest() {
   assert(s.prev(0) == -1);
 }
 
+
+// https://judge.yosupo.jp/problem/predecessor_problem
+char T[10'000'010];
+
 int main() {
-  unittest();
+  // unittest();
+  
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    scanf("%s", T);
+    Set<4> s(N);
+    for (int i = 0; i < N; ++i) {
+      if (T[i] == '1') {
+        s.insert(i);
+      }
+    }
+    for (; Q--; ) {
+      int typ, k;
+      scanf("%d%d", &typ, &k);
+      switch (typ) {
+        case 0: {
+          s.insert(k);
+        } break;
+        case 1: {
+          s.erase(k);
+        } break;
+        case 2: {
+          const bool ans = s.contains(k);
+          puts(ans ? "1" : "0");
+        } break;
+        case 3: {
+          const int ans = s.next(k);
+          printf("%d\n", (ans >= N) ? -1 : ans);
+        } break;
+        case 4: {
+          const int ans = s.prev(k);
+          printf("%d\n", ans);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
   return 0;
 }
