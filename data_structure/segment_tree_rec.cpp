@@ -1,9 +1,15 @@
 #include <assert.h>
+#include <utility>
 #include <vector>
 
+using std::declval;
 using std::vector;
 
-// TODO
+// T: monoid representing information of an interval.
+//   T()  should return the identity.
+//   T(S s)  should represent a single element of the array.
+//   T::push(T &l, T &r)  should push the lazy update.
+//   T::merge(const T &l, const T &r)  should merge two intervals.
 template <class T> struct SegmentTreeRec {
   int logN, n;
   vector<T> ts;
@@ -33,13 +39,7 @@ template <class T> struct SegmentTreeRec {
     ts[u].merge(ts[u << 1], ts[u << 1 | 1]);
   }
 
-  template <class F, class... Args> void chRec(int u, F f, const Args &... args) {
-    if ((ts[u].*f)(args...)) return;
-    push(u);
-    chRec(u << 1, f, args...);
-    chRec(u << 1 | 1, f, args...);
-    merge(u);
-  }
+  // Applies T::f(args...) to [a, b).
   template <class F, class... Args> void ch(int a, int b, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return;
@@ -67,8 +67,18 @@ template <class T> struct SegmentTreeRec {
       }
     }
   }
+  template <class F, class... Args> void chRec(int u, F f, const Args &... args) {
+    if ((ts[u].*f)(args...)) return;
+    push(u);
+    chRec(u << 1, f, args...);
+    chRec(u << 1 | 1, f, args...);
+    merge(u);
+  }
 
-  template <class Op, class E, class F, class... Args> auto get(int a, int b, Op op, E e, F f, const Args &... args) {
+  // Calculates T::f(args...) of a monoid type for [a, b).
+  //   op(-, -)  should calculate the product.
+  //   e()  should return the identity.
+  template <class Op, class E, class F, class... Args> decltype((declval<T>().*F())()) get(int a, int b, Op op, E e, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
     a += n; b += n;
@@ -94,6 +104,170 @@ template <class T> struct SegmentTreeRec {
 
 #include <stdio.h>
 #include <algorithm>
+
+unsigned xrand() {
+  static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
+  unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+// https://acm.hdu.edu.cn/showproblem.php?pid=5306
+// update range  a[i] <- min(a[i], t)
+// get  max a[l, r)
+// get  sum a[l, r)
+
+namespace hdu5306 {
+
+using std::max;
+
+constexpr long long INF = 1001001001001001001LL;
+
+struct Node {
+  long long mx, mx2, mxNum, sz, sum;
+  // change mx to lz
+  long long lz;
+  Node() : mx(-INF), mx2(-INF), mxNum(0), sz(0), sum(0), lz(INF) {}
+  Node(long long val) : mx(val), mx2(-INF), mxNum(1), sz(1), sum(val), lz(INF) {}
+  void push(Node &l, Node &r) {
+    if (lz != INF) {
+      if (!l.chmin(lz)) assert(false);
+      if (!r.chmin(lz)) assert(false);
+      lz = INF;
+    }
+  }
+  void merge(const Node &l, const Node &r) {
+    mx = max(l.mx, r.mx);
+    mx2 = max((l.mx == mx) ? l.mx2 : l.mx, (r.mx == mx) ? r.mx2 : r.mx);
+    mxNum = ((l.mx == mx) ? l.mxNum : 0) + ((r.mx == mx) ? r.mxNum : 0);
+    sz = l.sz + r.sz;
+    sum = l.sum + r.sum;
+  }
+  bool chmin(long long val) {
+    if (val <= mx2) {
+      return false;
+    } else if (val < mx) {
+      sum -= mxNum * (mx - val);
+      mx = val;
+      lz = val;
+      return true;
+    } else {
+      return true;
+    }
+  }
+  long long getMax() const {
+    return mx;
+  }
+  long long getSum() const {
+    return sum;
+  }
+};
+
+long long opMax(long long l, long long r) { return max(l, r); }
+long long eMax() { return -INF; }
+long long opSum(long long l, long long r) { return l + r; }
+long long eSum() { return 0; }
+
+void unittest() {
+  {
+    SegmentTreeRec<Node> seg(vector<long long>{1, 2, 3, 4, 5});
+    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 5);
+    assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 15);
+    seg.ch(2, 5, &Node::chmin, 3);
+    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 3);
+    assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 12);
+  }
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr long long MIN_N = 1;
+    constexpr long long MAX_N = 1000;
+    constexpr int Q = 1000;
+    constexpr long long MIN_VAL = -1000;
+    constexpr long long MAX_VAL = 1000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<long long> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      // printf("as =");
+      // for (int i = 0; i < N; ++i) printf(" %lld", as[i]);
+      // puts("");
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % N;
+          r = 1 + xrand() % N;
+          if (l < r) {
+            break;
+          }
+        }
+        switch (xrand() % 3) {
+          case 0: {
+            const long long t = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("0 %d %d %lld\n", l, r, t);
+            for (int i = l; i < r; ++i) if (as[i] > t) as[i] = t;
+            seg.ch(l, r, &Node::chmin, t);
+            break;
+          } break;
+          case 1: {
+            long long expected = -INF;
+            for (int i = l; i < r; ++i) if (expected < as[i]) expected = as[i];
+            const long long actual = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+            // printf("1 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          case 2: {
+            long long expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const long long actual = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+            // printf("2 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
+      }
+    }
+  }
+}
+
+void solve() {
+  for (int numCases; ~scanf("%d", &numCases); ) for (; numCases--; ) {
+    int N, Q;
+    scanf("%d%d", &N, &Q);
+    vector<long long> A(N);
+    for (int i = 0; i < N; ++i) {
+      scanf("%lld", &A[i]);
+    }
+    SegmentTreeRec<Node> seg(A);
+    for (int q = 0; q < Q; ++q) {
+      int typ, l, r;
+      scanf("%d%d%d", &typ, &l, &r);
+      --l;
+      switch (typ) {
+        case 0: {
+          long long t;
+          scanf("%lld", &t);
+          seg.ch(l, r, &Node::chmin, t);
+        } break;
+        case 1: {
+          const long long res = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+          printf("%lld\n", res);
+        } break;
+        case 2: {
+          const long long res = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+          printf("%lld\n", res);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
+}  // namespace hdu5306
+
+////////////////////////////////////////////////////////////////////////////////
 
 namespace yukicoder880 {
 
@@ -126,13 +300,14 @@ long long gcd(long long a, long long b) {
 
 struct Node {
   long long lcm, mx, sz, sum;
+  // assign lz
   long long lz;
   Node() : lcm(1), mx(0), sz(0), sum(0), lz(-1) {}
   Node(long long val) : lcm(val), mx(val), sz(1), sum(val), lz(-1) {}
   void push(Node &l, Node &r) {
     if (lz != -1) {
-      l.assign(lz);
-      r.assign(lz);
+      if (!l.assign(lz)) assert(false);
+      if (!r.assign(lz)) assert(false);
       lz = -1;
     }
   }
@@ -173,8 +348,7 @@ long long eSum() { return 0; }
 
 void unittest() {
   {
-    const vector<long long> as{1, 6, 8, 7, 3};
-    SegmentTreeRec<Node> seg(as);
+    SegmentTreeRec<Node> seg(vector<long long>{1, 6, 8, 7, 3});
     assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 8);
     assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 25);
     seg.ch(0, 5, &Node::chgcd, 6);
@@ -271,6 +445,8 @@ void solve() {
 int main() {
   // yukicoder880::unittest();
   // yukicoder880::brute();
-  yukicoder880::solve();
+  // yukicoder880::solve();
+  // hdu5306::unittest();
+  hdu5306::solve();
   return 0;
 }
