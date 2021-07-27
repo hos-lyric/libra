@@ -209,7 +209,6 @@ void unittest() {
             // printf("0 %d %d %lld\n", l, r, t);
             for (int i = l; i < r; ++i) if (as[i] > t) as[i] = t;
             seg.ch(l, r, &Node::chmin, t);
-            break;
           } break;
           case 1: {
             long long expected = -INF;
@@ -361,41 +360,61 @@ void unittest() {
     assert(seg.get(1, 3, &opMax, &eMax, &Node::getMax) == 10);
     assert(seg.get(3, 5, &opSum, &eSum, &Node::getSum) == 11);
   }
-}
-
-void brute() {
-  int N, Q;
-  for (; ~scanf("%d%d", &N, &Q); ) {
-    vector<long long> A(N);
-    for (int i = 0; i < N; ++i) {
-      scanf("%lld", &A[i]);
-    }
-    for (int q = 0; q < Q; ++q) {
-      int typ, l, r;
-      scanf("%d%d%d", &typ, &l, &r);
-      --l;
-      switch (typ) {
-        case 1: {
-          long long x;
-          scanf("%lld", &x);
-          for (int i = l; i < r; ++i) A[i] = x;
-        } break;
-        case 2: {
-          long long x;
-          scanf("%lld", &x);
-          for (int i = l; i < r; ++i) A[i] = gcd(A[i], x);
-        } break;
-        case 3: {
-          long long mx = 0;
-          for (int i = l; i < r; ++i) if (mx < A[i]) mx = A[i];
-          printf("%lld\n", mx);
-        } break;
-        case 4: {
-          long long sum = 0;
-          for (int i = l; i < r; ++i) sum += A[i];
-          printf("%lld\n", sum);
-        } break;
-        default: assert(false);
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr long long MIN_N = 1;
+    constexpr long long MAX_N = 1000;
+    constexpr int Q = 1000;
+    constexpr long long MIN_VAL = 1;
+    constexpr long long MAX_VAL = 1000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<long long> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      // printf("as =");
+      // for (int i = 0; i < N; ++i) printf(" %lld", as[i]);
+      // puts("");
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % N;
+          r = 1 + xrand() % N;
+          if (l < r) {
+            break;
+          }
+        }
+        switch (1 + xrand() % 4) {
+          case 1: {
+            const long long x = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("1 %d %d %lld\n", l, r, x);
+            for (int i = l; i < r; ++i) as[i] = x;
+            seg.ch(l, r, &Node::assign, x);
+          } break;
+          case 2: {
+            const long long x = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("2 %d %d %lld\n", l, r, x);
+            for (int i = l; i < r; ++i) as[i] = gcd(as[i], x);
+            seg.ch(l, r, &Node::chgcd, x);
+          } break;
+          case 3: {
+            long long expected = -INF;
+            for (int i = l; i < r; ++i) if (expected < as[i]) expected = as[i];
+            const long long actual = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+            // printf("3 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          case 4: {
+            long long expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const long long actual = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+            // printf("4 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
       }
     }
   }
@@ -443,10 +462,9 @@ void solve() {
 ////////////////////////////////////////////////////////////////////////////////
 
 int main() {
-  // yukicoder880::unittest();
-  // yukicoder880::brute();
+  yukicoder880::unittest();
   // yukicoder880::solve();
-  // hdu5306::unittest();
-  hdu5306::solve();
+  hdu5306::unittest();
+  // hdu5306::solve();
   return 0;
 }
