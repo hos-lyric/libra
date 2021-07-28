@@ -78,7 +78,8 @@ template <class T> struct SegmentTreeRec {
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
-  template <class Op, class E, class F, class... Args> decltype((declval<T>().*F())()) get(int a, int b, Op op, E e, F f, const Args &... args) {
+  // Replace auto with decltype((std::declval<T>().*F())()) for C++11. Watch out for return types!
+  template <class Op, class E, class F, class... Args> auto get(int a, int b, Op op, E e, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
     a += n; b += n;
@@ -112,12 +113,12 @@ unsigned xrand() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace hdu_5306 {
+
 // https://acm.hdu.edu.cn/showproblem.php?pid=5306
 // update range  a[i] <- min(a[i], t)
 // get  max a[l, r)
 // get  sum a[l, r)
-
-namespace hdu5306 {
 
 using std::max;
 
@@ -163,27 +164,29 @@ struct Node {
   }
 };
 
-long long opMax(long long l, long long r) { return max(l, r); }
-long long eMax() { return -INF; }
-long long opSum(long long l, long long r) { return l + r; }
-long long eSum() { return 0; }
+long long getMax(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](long long l, long long r) { return max(l, r); }, [&]() { return -INF; }, &Node::getMax);
+}
+long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+}
 
 void unittest() {
   {
     SegmentTreeRec<Node> seg(vector<long long>{1, 2, 3, 4, 5});
-    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 5);
-    assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 15);
+    assert(getMax(seg, 0, 5) == 5);
+    assert(getSum(seg, 0, 5) == 15);
     seg.ch(2, 5, &Node::chmin, 3);
-    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 3);
-    assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 12);
+    assert(getMax(seg, 0, 5) == 3);
+    assert(getSum(seg, 0, 5) == 12);
   }
   {
     constexpr int NUM_CASES = 1000;
     constexpr long long MIN_N = 1;
     constexpr long long MAX_N = 1000;
     constexpr int Q = 1000;
-    constexpr long long MIN_VAL = -1000;
-    constexpr long long MAX_VAL = 1000;
+    constexpr long long MIN_VAL = -1000000000;
+    constexpr long long MAX_VAL = 1000000000;
     for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
       const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
       vector<long long> as(N);
@@ -213,14 +216,14 @@ void unittest() {
           case 1: {
             long long expected = -INF;
             for (int i = l; i < r; ++i) if (expected < as[i]) expected = as[i];
-            const long long actual = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+            const long long actual = getMax(seg, l, r);
             // printf("1 %d %d: %lld %lld\n", l, r, expected, actual);
             assert(expected == actual);
           } break;
           case 2: {
             long long expected = 0;
             for (int i = l; i < r; ++i) expected += as[i];
-            const long long actual = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+            const long long actual = getSum(seg, l, r);
             // printf("2 %d %d: %lld %lld\n", l, r, expected, actual);
             assert(expected == actual);
           } break;
@@ -251,11 +254,11 @@ void solve() {
           seg.ch(l, r, &Node::chmin, t);
         } break;
         case 1: {
-          const long long res = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+          const long long res = getMax(seg, l, r);
           printf("%lld\n", res);
         } break;
         case 2: {
-          const long long res = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+          const long long res = getSum(seg, l, r);
           printf("%lld\n", res);
         } break;
         default: assert(false);
@@ -264,11 +267,261 @@ void solve() {
   }
 }
 
-}  // namespace hdu5306
+}  // namespace hdu_5306
 
 ////////////////////////////////////////////////////////////////////////////////
 
-namespace yukicoder880 {
+namespace yosupo_range_chmin_chmax_add_range_sum {
+
+// https://judge.yosupo.jp/problem/range_chmin_chmax_add_range_sum
+// update range  a[i] <- min(a[i], b)
+// update range  a[i] <- max(a[i], b)
+// update range  a[i] <- a[i] + b
+// get  sum a[l, r)
+
+using std::max;
+using std::min;
+
+constexpr long long INF = 1001001001001001001LL;
+
+// x -> min(max(x + a, b), c)
+// invariant: b <= c
+struct Func {
+  long long a, b, c;
+  Func() : a(0), b(-INF), c(+INF) {}
+  Func(long long a, long long b, long long c) : a(a), b(b), c(c) {}
+  void add(long long val) {
+    a += val;
+    b += val;
+    c += val;
+  }
+  void chmin(long long val) {
+    if (b > val) b = val;
+    if (c > val) c = val;
+  }
+  void chmax(long long val) {
+    if (b < val) b = val;
+    if (c < val) c = val;
+  }
+};
+
+struct Node {
+  long long mn, mn2, mx, mx2, sum;
+  long long mnNum, mxNum, sz;
+  Func lz;
+  Node() : mn(+INF), mn2(+INF), mx(-INF), mx2(-INF), sum(0), mnNum(0), mxNum(0), sz(0), lz() {}
+  Node(long long val) : mn(val), mn2(+INF), mx(val), mx2(-INF), sum(val), mnNum(1), mxNum(1), sz(1), lz() {}
+  void push(Node &l, Node &r) {
+    if (!l.ch(lz)) assert(false);
+    if (!r.ch(lz)) assert(false);
+    lz = Func();
+  }
+  void merge(const Node &l, const Node &r) {
+    mn = min(l.mn, r.mn);
+    mn2 = min((l.mn == mn) ? l.mn2 : l.mn, (r.mn == mn) ? r.mn2 : r.mn);
+    mnNum = ((l.mn == mn) ? l.mnNum : 0) + ((r.mn == mn) ? r.mnNum : 0);
+    mx = max(l.mx, r.mx);
+    mx2 = max((l.mx == mx) ? l.mx2 : l.mx, (r.mx == mx) ? r.mx2 : r.mx);
+    mxNum = ((l.mx == mx) ? l.mxNum : 0) + ((r.mx == mx) ? r.mxNum : 0);
+    sum = l.sum + r.sum;
+    sz = l.sz + r.sz;
+  }
+  bool ch(const Func &f) {
+    if (!add(f.a)) return false;
+    if (!chmax(f.b)) return false;
+    if (!chmin(f.c)) return false;
+    return true;
+  }
+  bool chmin(long long val) {
+    if (val < +INF) {
+      if (val <= mx2) {
+        return false;
+      } else if (val < mx) {
+        if (mn == mx) mn = val;
+        if (mn2 == mx) mn2 = val;
+        sum -= mxNum * (mx - val);
+        mx = val;
+        lz.chmin(val);
+      }
+    }
+    return true;
+  }
+  long long chmax(long long val) {
+    if (val > -INF) {
+      if (val >= mn2) {
+        return false;
+      } else if (val > mn) {
+        if (mx == mn) mx = val;
+        if (mx2 == mn) mx2 = val;
+        sum += mnNum * (val - mn);
+        mn = val;
+        lz.chmax(val);
+      }
+    }
+    return true;
+  }
+  bool add(long long val) {
+    if (val != 0) {
+      mn += val;
+      if (mn2 < +INF) mn2 += val;
+      mx += val;
+      if (mx2 > -INF) mx2 += val;
+      sum += sz * val;
+      lz.add(val);
+    }
+    return true;
+  }
+  long long getSum() const {
+    return sum;
+  }
+};
+
+long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+}
+
+void unittest() {
+  {
+    constexpr long long MIN_VAL = -10;
+    constexpr long long MAX_VAL = 10;
+    for (long long a = MIN_VAL; a <= MAX_VAL; ++a) for (long long b = MIN_VAL; b <= MAX_VAL; ++b) for (long long c = MIN_VAL; c <= MAX_VAL; ++c) {
+      if (b <= c) {
+        for (long long d = MIN_VAL; d <= MAX_VAL; ++d) {
+          for (long long x = MIN_VAL; x <= MAX_VAL; ++x) {
+            {
+              Func f(a, b, c);
+              f.add(d);
+              assert(f.b <= f.c);
+              assert(min(max(x + a, b), c) + d == min(max(x + f.a, f.b), f.c));
+            }
+            {
+              Func f(a, b, c);
+              f.chmin(d);
+              assert(f.b <= f.c);
+              assert(min(min(max(x + a, b), c), d) == min(max(x + f.a, f.b), f.c));
+            }
+            {
+              Func f(a, b, c);
+              f.chmax(d);
+              assert(f.b <= f.c);
+              assert(max(min(max(x + a, b), c), d) == min(max(x + f.a, f.b), f.c));
+            }
+          }
+        }
+      }
+    }
+  }
+  {
+    SegmentTreeRec<Node> seg(vector<long long>{1, 2, 3, 4, 5});
+    assert(getSum(seg, 0, 5) == 15);
+    seg.ch(2, 4, &Node::add, 100);
+    assert(getSum(seg, 0, 3) == 106);
+    seg.ch(1, 3, &Node::chmin, 10);
+    assert(getSum(seg, 2, 5) == 119);
+    seg.ch(2, 5, &Node::chmax, 20);
+    assert(getSum(seg, 0, 5) == 147);
+  }
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr long long MIN_N = 1;
+    constexpr long long MAX_N = 1000;
+    constexpr int Q = 1000;
+    constexpr long long MIN_VAL = -1000000000;
+    constexpr long long MAX_VAL = 1000000000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<long long> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      // printf("as =");
+      // for (int i = 0; i < N; ++i) printf(" %lld", as[i]);
+      // puts("");
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % N;
+          r = 1 + xrand() % N;
+          if (l < r) {
+            break;
+          }
+        }
+        switch (xrand() % 4) {
+          case 0: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("0 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) if (as[i] > b) as[i] = b;
+            seg.ch(l, r, &Node::chmin, b);
+          } break;
+          case 1: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("1 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) if (as[i] < b) as[i] = b;
+            seg.ch(l, r, &Node::chmax, b);
+          } break;
+          case 2: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("2 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) as[i] += b;
+            seg.ch(l, r, &Node::add, b);
+          } break;
+          case 3: {
+            long long expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const long long actual = getSum(seg, l, r);
+            // printf("3 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
+      }
+    }
+  }
+}
+
+void solve() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    vector<long long> A(N);
+    for (int i = 0; i < N; ++i) {
+      scanf("%lld", &A[i]);
+    }
+    SegmentTreeRec<Node> seg(A);
+    for (int q = 0; q < Q; ++q) {
+      int typ, l, r;
+      scanf("%d%d%d", &typ, &l, &r);
+      switch (typ) {
+        case 0: {
+          long long b;
+          scanf("%lld", &b);
+          seg.ch(l, r, &Node::chmin, b);
+        } break;
+        case 1: {
+          long long b;
+          scanf("%lld", &b);
+          seg.ch(l, r, &Node::chmax, b);
+        } break;
+        case 2: {
+          long long b;
+          scanf("%lld", &b);
+          seg.ch(l, r, &Node::add, b);
+        } break;
+        case 3: {
+          const long long res = getSum(seg, l, r);
+          printf("%lld\n", res);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
+}  // namespace yosupo_range_chmin_chmax_add_range_sum
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace yukicoder_880 {
 
 // https://yukicoder.me/problems/no/880
 // update range  a[i] <- x
@@ -280,7 +533,7 @@ using std::max;
 using std::min;
 using std::swap;
 
-constexpr long long INF = 1001001001;
+constexpr long long INF = 1001001001001001001LL;
 
 long long gcd(long long a, long long b) {
   if (a < 0) a = -a;
@@ -340,25 +593,27 @@ struct Node {
   }
 };
 
-long long opMax(long long l, long long r) { return max(l, r); }
-long long eMax() { return 0; }
-long long opSum(long long l, long long r) { return l + r; }
-long long eSum() { return 0; }
+long long getMax(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](long long l, long long r) { return max(l, r); }, [&]() { return 0LL; }, &Node::getMax);
+}
+long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+}
 
 void unittest() {
   {
     SegmentTreeRec<Node> seg(vector<long long>{1, 6, 8, 7, 3});
-    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 8);
-    assert(seg.get(0, 5, &opSum, &eSum, &Node::getSum) == 25);
+    assert(getMax(seg, 0, 5) == 8);
+    assert(getSum(seg, 0, 5) == 25);
     seg.ch(0, 5, &Node::chgcd, 6);
-    assert(seg.get(0, 5, &opMax, &eMax, &Node::getMax) == 6);
-    assert(seg.get(1, 4, &opSum, &eSum, &Node::getSum) == 9);
+    assert(getMax(seg, 0, 5) == 6);
+    assert(getSum(seg, 1, 4) == 9);
     seg.ch(0, 5, &Node::assign, 10);
-    assert(seg.get(0, 4, &opMax, &eMax, &Node::getMax) == 10);
-    assert(seg.get(2, 5, &opSum, &eSum, &Node::getSum) == 30);
+    assert(getMax(seg, 0, 4) == 10);
+    assert(getSum(seg, 2, 5) == 30);
     seg.ch(2, 4, &Node::chgcd, 3);
-    assert(seg.get(1, 3, &opMax, &eMax, &Node::getMax) == 10);
-    assert(seg.get(3, 5, &opSum, &eSum, &Node::getSum) == 11);
+    assert(getMax(seg, 1, 3) == 10);
+    assert(getSum(seg, 3, 5) == 11);
   }
   {
     constexpr int NUM_CASES = 1000;
@@ -366,7 +621,7 @@ void unittest() {
     constexpr long long MAX_N = 1000;
     constexpr int Q = 1000;
     constexpr long long MIN_VAL = 1;
-    constexpr long long MAX_VAL = 1000;
+    constexpr long long MAX_VAL = 1000000000;
     for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
       const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
       vector<long long> as(N);
@@ -402,14 +657,14 @@ void unittest() {
           case 3: {
             long long expected = -INF;
             for (int i = l; i < r; ++i) if (expected < as[i]) expected = as[i];
-            const long long actual = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+            const long long actual = getMax(seg, l, r);
             // printf("3 %d %d: %lld %lld\n", l, r, expected, actual);
             assert(expected == actual);
           } break;
           case 4: {
             long long expected = 0;
             for (int i = l; i < r; ++i) expected += as[i];
-            const long long actual = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+            const long long actual = getSum(seg, l, r);
             // printf("4 %d %d: %lld %lld\n", l, r, expected, actual);
             assert(expected == actual);
           } break;
@@ -444,11 +699,11 @@ void solve() {
           seg.ch(l, r, &Node::chgcd, x);
         } break;
         case 3: {
-          const long long res = seg.get(l, r, &opMax, &eMax, &Node::getMax);
+          const long long res = getMax(seg, l, r);
           printf("%lld\n", res);
         } break;
         case 4: {
-          const long long res = seg.get(l, r, &opSum, &eSum, &Node::getSum);
+          const long long res = getSum(seg, l, r);
           printf("%lld\n", res);
         } break;
         default: assert(false);
@@ -457,14 +712,20 @@ void solve() {
   }
 }
 
-}  // namespace yukicoder880
+}  // namespace yukicoder_880
 
 ////////////////////////////////////////////////////////////////////////////////
 
+void unittests() {
+  hdu_5306::unittest();
+  yosupo_range_chmin_chmax_add_range_sum::unittest();
+  yukicoder_880::unittest();
+}
+
 int main() {
-  yukicoder880::unittest();
-  // yukicoder880::solve();
-  hdu5306::unittest();
-  // hdu5306::solve();
+  unittests();
+  // hdu_5306::solve();
+  // yosupo_range_chmin_chmax_add_range_sum::solve();
+  // yukicoder_880::solve();
   return 0;
 }
