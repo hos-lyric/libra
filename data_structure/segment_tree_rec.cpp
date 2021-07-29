@@ -1,8 +1,6 @@
 #include <assert.h>
-#include <utility>
 #include <vector>
 
-using std::declval;
 using std::vector;
 
 // T: monoid representing information of an interval.
@@ -40,6 +38,7 @@ template <class T> struct SegmentTreeRec {
   }
 
   // Applies T::f(args...) to [a, b).
+  //   f should return true if for success.  It must succeed for a single element.
   template <class F, class... Args> void ch(int a, int b, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return;
@@ -116,9 +115,10 @@ unsigned xrand() {
 namespace hdu_5306 {
 
 // https://acm.hdu.edu.cn/showproblem.php?pid=5306
-// update range  a[i] <- min(a[i], t)
-// get  max a[l, r)
-// get  sum a[l, r)
+//   update range  a[i] <- min(a[i], t)
+//   get  max a[l, r)
+//   get  sum a[l, r)
+// O((N + Q) log N)
 
 using std::max;
 
@@ -182,8 +182,8 @@ void unittest() {
   }
   {
     constexpr int NUM_CASES = 1000;
-    constexpr long long MIN_N = 1;
-    constexpr long long MAX_N = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
     constexpr int Q = 1000;
     constexpr long long MIN_VAL = -1000000000;
     constexpr long long MAX_VAL = 1000000000;
@@ -274,10 +274,11 @@ void solve() {
 namespace yosupo_range_chmin_chmax_add_range_sum {
 
 // https://judge.yosupo.jp/problem/range_chmin_chmax_add_range_sum
-// update range  a[i] <- min(a[i], b)
-// update range  a[i] <- max(a[i], b)
-// update range  a[i] <- a[i] + b
-// get  sum a[l, r)
+//   update range  a[i] <- min(a[i], b)
+//   update range  a[i] <- max(a[i], b)
+//   update range  a[i] <- a[i] + b
+//   get  sum a[l, r)
+// O((N + Q) (log N)^2)
 
 using std::max;
 using std::min;
@@ -423,8 +424,8 @@ void unittest() {
   }
   {
     constexpr int NUM_CASES = 1000;
-    constexpr long long MIN_N = 1;
-    constexpr long long MAX_N = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
     constexpr int Q = 1000;
     constexpr long long MIN_VAL = -1000000000;
     constexpr long long MAX_VAL = 1000000000;
@@ -524,10 +525,11 @@ void solve() {
 namespace yukicoder_880 {
 
 // https://yukicoder.me/problems/no/880
-// update range  a[i] <- x
-// update range  a[i] <- gcd(a[i], x)
-// get  max a[l, r)
-// get  sum a[l, r)
+//   update range  a[i] <- x
+//   update range  a[i] <- gcd(a[i], x)
+//   get  max a[l, r)
+//   get  sum a[l, r)
+// O((N + Q) log N (log max (a[i], x))^2)
 
 using std::max;
 using std::min;
@@ -617,8 +619,8 @@ void unittest() {
   }
   {
     constexpr int NUM_CASES = 1000;
-    constexpr long long MIN_N = 1;
-    constexpr long long MAX_N = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
     constexpr int Q = 1000;
     constexpr long long MIN_VAL = 1;
     constexpr long long MAX_VAL = 1000000000;
@@ -716,10 +718,364 @@ void solve() {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+namespace uoj_671_slow {
+
+// https://uoj.ac/problem/671
+//   update range  a[i] <- floor(a[i] / v)
+//   update range  a[i] <- a[i] & v
+//   get  sum a[l, r)
+// O(N w^2 + Q log N)
+
+using std::max;
+
+using u128 = unsigned __int128;
+
+u128 in() {
+  static char buf[40];
+  scanf("%s", buf);
+  u128 x = 0;
+  for (char *p = buf; *p; ++p) x = x << 4 | ((*p >= 'a') ? (10 + (*p - 'a')) : (*p - '0'));
+  return x;
+}
+void out(u128 x) {
+  if (x >> 4) out(x >> 4);
+  x &= 15;
+  putchar((x >= 10) ? ('a' + (x - 10)) : ('0' + x));
+}
+
+struct Node {
+  u128 sum, bor;
+  int sz;
+  Node() : sum(0), bor(0), sz(0) {}
+  Node(u128 val) : sum(val), bor(val), sz(1) {}
+  void push(Node &, Node &) {}
+  void merge(const Node &l, const Node &r) {
+    sum = l.sum + r.sum;
+    bor = l.bor | r.bor;
+    sz = l.sz + r.sz;
+  }
+  bool chdiv(u128 val) {
+    if (bor == 0 || val == 1) {
+      return true;
+    } else if (sz == 1) {
+      sum = bor = sum / val;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  bool chand(u128 val) {
+    if (!(bor & ~val)) {
+      return true;
+    } else if (sz == 1) {
+      sum = bor = sum & val;
+      return true;
+    } else {
+      return false;
+    }
+  }
+  u128 getSum() const {
+    return sum;
+  }
+};
+
+u128 getSum(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](u128 l, u128 r) { return l + r; }, [&]() { return (u128)0; }, &Node::getSum);
+}
+
+void unittest() {
+  {
+    SegmentTreeRec<Node> seg(vector<u128>{1, 9, 1, 9, 1});
+    assert(getSum(seg, 1, 3) == 10);
+    seg.ch(0, 3, &Node::chand, 5);
+    assert(getSum(seg, 0, 5) == 13);
+    seg.ch(0, 5, &Node::chdiv, 3);
+    assert(getSum(seg, 0, 5) == 3);
+  }
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
+    constexpr int Q = 1000;
+    constexpr u128 MIN_VAL = 1;
+    constexpr u128 MAX_VAL = 1000000000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<u128> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % N;
+          r = 1 + xrand() % N;
+          if (l < r) {
+            break;
+          }
+        }
+        switch (1 + xrand() % 3) {
+          case 1: {
+            const u128 v = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            for (int i = l; i < r; ++i) as[i] /= v;
+            seg.ch(l, r, &Node::chdiv, v);
+          } break;
+          case 2: {
+            const u128 v = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            for (int i = l; i < r; ++i) as[i] &= v;
+            seg.ch(l, r, &Node::chand, v);
+          } break;
+          case 3: {
+            u128 expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const u128 actual = getSum(seg, l, r);
+            assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
+      }
+    }
+  }
+}
+
+void solve() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    vector<u128> A(N);
+    for (int i = 0; i < N; ++i) {
+      A[i] = in();
+    }
+    SegmentTreeRec<Node> seg(A);
+    for (int q = 0; q < Q; ++q) {
+      int typ, l, r;
+      scanf("%d%d%d", &typ, &l, &r);
+      --l;
+      switch (typ) {
+        case 1: {
+          const u128 v = in();
+          seg.ch(l, r, &Node::chdiv, v);
+        } break;
+        case 2: {
+          const u128 v = in();
+          seg.ch(l, r, &Node::chand, v);
+        } break;
+        case 3: {
+          const u128 res = getSum(seg, l, r);
+          out(res);
+          putchar('\n');
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
+}  // namespace uoj_671_slow
+
+////////////////////////////////////////////////////////////////////////////////
+
+namespace uoj_671 {
+
+// https://uoj.ac/problem/671
+//   update range  a[i] <- floor(a[i] / v)
+//   update range  a[i] <- a[i] & v
+//   get  sum a[l, r)
+// O(N w + Q (log N)^2)
+
+using std::max;
+
+using u128 = unsigned __int128;
+
+u128 in() {
+  static char buf[40];
+  scanf("%s", buf);
+  u128 x = 0;
+  for (char *p = buf; *p; ++p) x = x << 4 | ((*p >= 'a') ? (10 + (*p - 'a')) : (*p - '0'));
+  return x;
+}
+void out(u128 x) {
+  if (x >> 4) out(x >> 4);
+  x &= 15;
+  putchar((x >= 10) ? ('a' + (x - 10)) : ('0' + x));
+}
+
+// 4 seg.n
+u128 pool_[1 << 21], *pool = pool_;
+
+struct Node {
+  bool any;
+  // cnt[i] for 2^i occurrences of each bit  (0 <= i < len = log_2(sz) + 1)
+  int len;
+  u128 *cnt;
+  // &= lz
+  u128 lz;
+  Node() : any(0), len(0), cnt(nullptr), lz(~(u128)0) {}
+  Node(u128 val) : any(val), lz(~(u128)0) {
+    alloc(1);
+    cnt[0] = val;
+  }
+  void alloc(int len_) {
+    len = len_;
+    cnt = pool;
+    pool += len;
+  }
+  void push(Node &l, Node &r) {
+    if (~lz) {
+      l.chand(lz);
+      r.chand(lz);
+      lz = ~(u128)0;
+    }
+  }
+  void merge(const Node &l, const Node &r) {
+    if (len == 0) alloc(l.len + 1);
+    any = l.any || r.any;
+    if (r.len == 0) {
+      for (int i = 0; i < len - 1; ++i) cnt[i] = l.cnt[i];
+      cnt[len - 1] = 0;
+    } else {
+      u128 carry = 0;
+      for (int i = 0; i < len - 1; ++i) {
+        const u128 tmp0 = l.cnt[i] ^ r.cnt[i];
+        const u128 tmp1 = l.cnt[i] & r.cnt[i];
+        cnt[i] = tmp0 ^ carry;
+        carry = tmp1 | (tmp0 & carry);
+      }
+      cnt[len - 1] = carry;
+    }
+  }
+  bool chdiv(u128 val) {
+    if (!any || val == 1) {
+      return true;
+    } else if (len == 1) {
+      cnt[0] /= val;
+      any = cnt[0];
+      return true;
+    } else {
+      return false;
+    }
+  }
+  bool chand(u128 val) {
+    for (int i = 0; i < len; ++i) {
+      cnt[i] &= val;
+      any = any || cnt[i];
+    }
+    lz &= val;
+    return true;
+  }
+  u128 getSum() const {
+    u128 sum = 0;
+    for (int i = 0; i < len; ++i) {
+      sum += cnt[i] << i;
+    }
+    return sum;
+  }
+};
+
+u128 getSum(SegmentTreeRec<Node> &seg, int a, int b) {
+  return seg.get(a, b, [&](u128 l, u128 r) { return l + r; }, [&]() { return (u128)0; }, &Node::getSum);
+}
+
+void unittest() {
+  {
+    pool = pool_;
+    SegmentTreeRec<Node> seg(vector<u128>{1, 9, 1, 9, 1});
+    assert(getSum(seg, 1, 3) == 10);
+    seg.ch(0, 3, &Node::chand, 5);
+    assert(getSum(seg, 0, 5) == 13);
+    seg.ch(0, 5, &Node::chdiv, 3);
+    assert(getSum(seg, 0, 5) == 3);
+  }
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
+    constexpr int Q = 1000;
+    constexpr u128 MIN_VAL = 1;
+    constexpr u128 MAX_VAL = 1000000000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<u128> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      pool = pool_;
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % N;
+          r = 1 + xrand() % N;
+          if (l < r) {
+            break;
+          }
+        }
+        switch (1 + xrand() % 3) {
+          case 1: {
+            const u128 v = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            for (int i = l; i < r; ++i) as[i] /= v;
+            seg.ch(l, r, &Node::chdiv, v);
+          } break;
+          case 2: {
+            const u128 v = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            for (int i = l; i < r; ++i) as[i] &= v;
+            seg.ch(l, r, &Node::chand, v);
+          } break;
+          case 3: {
+            u128 expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const u128 actual = getSum(seg, l, r);
+            assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
+      }
+    }
+  }
+}
+
+void solve() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    vector<u128> A(N);
+    for (int i = 0; i < N; ++i) {
+      A[i] = in();
+    }
+    SegmentTreeRec<Node> seg(A);
+    for (int q = 0; q < Q; ++q) {
+      int typ, l, r;
+      scanf("%d%d%d", &typ, &l, &r);
+      --l;
+      switch (typ) {
+        case 1: {
+          const u128 v = in();
+          seg.ch(l, r, &Node::chdiv, v);
+        } break;
+        case 2: {
+          const u128 v = in();
+          seg.ch(l, r, &Node::chand, v);
+        } break;
+        case 3: {
+          const u128 res = getSum(seg, l, r);
+          out(res);
+          putchar('\n');
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
+}  // namespace uoj_671
+
+////////////////////////////////////////////////////////////////////////////////
+
 void unittests() {
   hdu_5306::unittest();
   yosupo_range_chmin_chmax_add_range_sum::unittest();
   yukicoder_880::unittest();
+  uoj_671_slow::unittest();
+  uoj_671::unittest();
 }
 
 int main() {
@@ -727,5 +1083,7 @@ int main() {
   // hdu_5306::solve();
   // yosupo_range_chmin_chmax_add_range_sum::solve();
   // yukicoder_880::solve();
+  // uoj_671_slow::solve();
+  // uoj_671::solve();
   return 0;
 }
