@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <vector>
 
@@ -8,7 +7,7 @@ using std::vector;
 // [0, n), 1 <= n <= 2^(6D)
 template <int D> struct Set {
   int n;
-  vector<uint64_t> a[D];
+  vector<unsigned long long> a[D];
   Set() {}
   Set(int n_) : n(n_) {
     static_assert(1 <= D && D <= 6, "Set: 1 <= D <= 6 must hold");
@@ -43,7 +42,7 @@ template <int D> struct Set {
     for (int d = 0; d < D; ++d) {
       const int q = x >> 6, r = x & 63;
       if (static_cast<size_t>(q) >= a[d].size()) break;
-      const uint64_t upper = a[d][q] >> r;
+      const unsigned long long upper = a[d][q] >> r;
       if (upper) {
         x += __builtin_ctzll(upper);
         for (int e = d - 1; e >= 0; --e) x = x << 6 | __builtin_ctzll(a[e][x]);
@@ -58,7 +57,7 @@ template <int D> struct Set {
     for (int d = 0; d < D; ++d) {
       if (x < 0) break;
       const int q = x >> 6, r = x & 63;
-      const uint64_t lower = a[d][q] << (63 - r);
+      const unsigned long long lower = a[d][q] << (63 - r);
       if (lower) {
         x -= __builtin_clzll(lower);
         for (int e = d - 1; e >= 0; --e) x = x << 6 | (63 - __builtin_clzll(a[e][x]));
@@ -105,7 +104,7 @@ void unittest() {
 
 
 // https://judge.yosupo.jp/problem/predecessor_problem
-char T[10'000'010];
+char T[10000010];
 
 int main() {
   // unittest();
