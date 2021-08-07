@@ -7,6 +7,7 @@ using std::vector;
 
 // det(a + x I)
 // O(n^3)
+//   Call by value: Modifies a (Watch out when using C array!)
 template <class T> vector<T> charPoly(vector<vector<T>> a) {
   const int n = a.size();
   // upper Hessenberg
@@ -70,6 +71,7 @@ template <class T> vector<T> charPolyDivFree(const vector<vector<T>> &a) {
 
 // det(a + x b)
 // O(n^3)
+//   Call by value: Modifies a, b (Watch out when using C array!)
 template <class T> vector<T> detPoly(vector<vector<T>> a, vector<vector<T>> b) {
   const int n = a.size();
   T prod = 1;
@@ -121,6 +123,65 @@ template <class T> vector<T> detPoly(vector<vector<T>> a, vector<vector<T>> b) {
   return gs;
 }
 
+// det(a[0] + x a[1] + ... + x^m a[m])
+// O((m n)^3)
+//   Call by value: Modifies a (Watch out when using C array!)
+template <class T> vector<T> detPoly(vector<vector<vector<T>>> a) {
+  assert(!a.empty());
+  const int m = a.size() - 1, n = a[0].size();
+  T prod = 1;
+  int off = 0;
+  for (int h = 0; h < n; ++h) {
+    for (; ; ) {
+      if (a[m][h][h]) break;
+      for (int j = h + 1; j < n; ++j) {
+        if (a[m][h][j]) {
+          prod *= -1;
+          for (int d = 0; d <= m; ++d) for (int i = 0; i < n; ++i) {
+            swap(a[d][i][h], a[d][i][j]);
+          }
+          break;
+        }
+      }
+      if (a[m][h][h]) break;
+      if (++off > m * n) return vector<T>(m * n + 1, 0);
+      for (int d = m; --d >= 0; ) for (int j = 0; j < n; ++j) {
+        a[d + 1][h][j] = a[d][h][j];
+      }
+      for (int j = 0; j < n; ++j) {
+        a[0][h][j] = 0;
+      }
+      for (int i = 0; i < h; ++i) {
+        const T t = a[m][h][i];
+        for (int d = 0; d <= m; ++d) for (int j = 0; j < n; ++j) {
+          a[d][h][j] -= t * a[d][i][j];
+        }
+      }
+    }
+    prod *= a[m][h][h];
+    const T s = 1 / a[m][h][h];
+    for (int d = 0; d <= m; ++d) for (int j = 0; j < n; ++j) {
+      a[d][h][j] *= s;
+    }
+    for (int i = 0; i < n; ++i) if (h != i) {
+      const T t = a[m][i][h];
+      for (int d = 0; d <= m; ++d) for (int j = 0; j < n; ++j) {
+        a[d][i][j] -= t * a[d][h][j];
+      }
+    }
+  }
+  vector<vector<T>> b(m * n, vector<T>(m * n, 0));
+  for (int i = 0; i < (m - 1) * n; ++i) b[i][n + i] = -1;
+  for (int d = 0; d < m; ++d) {
+    for (int i = 0; i < n; ++i) for (int j = 0; j < n; ++j) {
+      b[(m - 1) * n + i][d * n + j] = a[d][i][j];
+    }
+  }
+  const vector<T> fs = charPoly(b);
+  vector<T> gs(m * n + 1, 0);
+  for (int i = 0; off + i <= m * n; ++i) gs[i] = prod * fs[off + i];
+  return gs;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 void unittest() {
@@ -200,6 +261,7 @@ void unittest() {
     const vector<Mint> ps = detPoly(a, b);
     assert(ps.size() == 0 + 1);
     assert(ps[0].x == 1);
+    assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{{20}};
@@ -208,6 +270,7 @@ void unittest() {
     assert(ps.size() == 1 + 1);
     assert(ps[0].x == 20);
     assert(ps[1].x == 33);
+    assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
@@ -226,6 +289,7 @@ void unittest() {
     assert(ps[1].x == MO - 15);
     assert(ps[2].x == 132);
     assert(ps[3].x == MO - 15);
+    assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
@@ -244,6 +308,7 @@ void unittest() {
     assert(ps[1].x == MO - 76);
     assert(ps[2].x == 46);
     assert(ps[3].x == 0);
+    assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
@@ -265,6 +330,117 @@ void unittest() {
     assert(ps[2].x == MO - 5875);
     assert(ps[3].x == 646);
     assert(ps[4].x == 0);
+    assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
+  }
+  {
+    const vector<vector<vector<Mint>>> a{
+        {
+            {2, 0, 3},
+            {0, 4, 8},
+            {1, 5, 4},
+        }, {
+            {-1, -2, -9},
+            {-7, 3, 4},
+            {8, 6, -5},
+        }, {
+            {2, 4, 7},
+            {8, 6, 8},
+            {5, 1, 0},
+        }
+    };
+    const vector<Mint> ps = detPoly(a);
+    assert(ps.size() == 6 + 1);
+    assert(ps[0].x == MO - 60);
+    assert(ps[1].x == MO - 318);
+    assert(ps[2].x == 188);
+    assert(ps[3].x == 17);
+    assert(ps[4].x == MO - 488);
+    assert(ps[5].x == 304);
+    assert(ps[6].x == MO - 10);
+  }
+  {
+    const vector<vector<vector<Mint>>> a{
+        {
+            {2, 0, 3},
+            {0, 4, 8},
+            {1, 5, 4},
+        }, {
+            {-1, -2, -9},
+            {-7, 3, 4},
+            {8, -1, 5},
+        }, {
+            {12, 8, 12},
+            {8, 6, 8},
+            {-16, -12, -16},
+        }
+    };
+    const vector<Mint> ps = detPoly(a);
+    assert(ps.size() == 6 + 1);
+    assert(ps[0].x == MO - 60);
+    assert(ps[1].x == MO - 126);
+    assert(ps[2].x == 459);
+    assert(ps[3].x == MO - 122);
+    assert(ps[4].x == 294);
+    assert(ps[5].x == 152);
+    assert(ps[6].x == 0);
+  }
+  {
+    const vector<vector<vector<Mint>>> a{
+        {
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+        }, {
+            {0, 1, 0, 0},
+            {0, 0, 1, 0},
+            {0, 1, 0, 0},
+            {0, 0, 0, 1},
+        }, {
+            {0, 0, 0, 1},
+            {0, 1, 1, 0},
+            {0, 0, 0, 0},
+            {0, 1, 0, 0},
+        }, {
+            {1, 0, 0, 0},
+            {0, 1, 1, 0},
+            {1, 1, 0, 0},
+            {0, 0, 0, 1},
+        }, {
+            {0, 0, 0, 1},
+            {0, 0, 1, 0},
+            {0, 1, 0, 1},
+            {0, 1, 1, 0},
+        }, {
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+            {0, 0, 0, 0},
+        }
+    };
+    const vector<Mint> ps = detPoly(a);
+    assert(ps.size() == 20 + 1);
+    assert(ps[0].x == 0);
+    assert(ps[1].x == 0);
+    assert(ps[2].x == 0);
+    assert(ps[3].x == 0);
+    assert(ps[4].x == 0);
+    assert(ps[5].x == 0);
+    assert(ps[6].x == 0);
+    assert(ps[7].x == 0);
+    assert(ps[8].x == MO - 2);
+    assert(ps[9].x == MO - 3);
+    assert(ps[10].x == MO - 5);
+    assert(ps[11].x == MO - 5);
+    assert(ps[12].x == MO - 3);
+    assert(ps[13].x == MO - 3);
+    assert(ps[14].x == MO - 1);
+    assert(ps[15].x == 0);
+    assert(ps[16].x == 0);
+    assert(ps[17].x == 0);
+    assert(ps[18].x == 0);
+    assert(ps[19].x == 0);
+    assert(ps[20].x == 0);
   }
 }
 
