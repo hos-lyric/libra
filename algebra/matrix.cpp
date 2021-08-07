@@ -31,7 +31,7 @@ template <class T> vector<T> charPolyDivFree(const vector<vector<T>> &a) {
 
 // det(a + x I)
 // O(n^3)
-//   Call by value: Modifies a (Watch out when using C array!)
+//   Call by value: Modifies a (Watch out when using C-style array!)
 template <class T> vector<T> charPoly(vector<vector<T>> a) {
   const int n = a.size();
   // upper Hessenberg
@@ -71,7 +71,7 @@ template <class T> vector<T> charPoly(vector<vector<T>> a) {
 
 // det(a + x b)
 // O(n^3)
-//   Call by value: Modifies a, b (Watch out when using C array!)
+//   Call by value: Modifies a, b (Watch out when using C-style array!)
 template <class T> vector<T> detPoly(vector<vector<T>> a, vector<vector<T>> b) {
   const int n = a.size();
   T prod = 1;
@@ -125,7 +125,7 @@ template <class T> vector<T> detPoly(vector<vector<T>> a, vector<vector<T>> b) {
 
 // det(a[0] + x a[1] + ... + x^m a[m])
 // O((m n)^3)
-//   Call by value: Modifies a (Watch out when using C array!)
+//   Call by value: Modifies a (Watch out when using C-style array!)
 template <class T> vector<T> detPoly(vector<vector<vector<T>>> a) {
   assert(!a.empty());
   const int m = a.size() - 1, n = a[0].size();
