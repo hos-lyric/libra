@@ -229,14 +229,16 @@ struct Poly : public vector<Mint> {
     for (int i = m; i < n; ++i) hs[i] = -polyWork0[i];
     return hs;
   }
-  // (4 (floor(log_2 k) - ceil(log_2 |fs|)) + 16) E(|fs|)
+  // (4 (floor(log_2 k) - ceil(log_2 |f|)) + 16) E(|f|)  for  |t| < |f|
   // [x^k] (t(x) / f(x)) = [x^k] ((t(x) f(-x)) / (f(x) f(-x))
   // polyWork0: half of (2 m)-th roots of unity, inversed, bit-reversed
   Mint divAt(const Poly &fs, long long k) const {
     assert(k >= 0);
     if (size() >= fs.size()) {
-      // TODO: operator%
-      assert(false);
+      const Poly qs = *this / fs;  // 13 E(deg(t) - deg(f) + 1)
+      Poly rs = *this - fs * qs;  // 3 E(|t|)
+      rs.resize(rs.deg() + 1);
+      return qs.at(k) + rs.divAt(fs, k);
     }
     int h = 0, m = 1;
     for (; m < fs.size(); ++h, m <<= 1) {}
@@ -814,6 +816,44 @@ void unittest() {
     assert(as.divAt(bs, 19) == Mint(-72477705834111867LL) / 1048576);
     assert(as.divAt(bs, 20) == Mint(531148740030089567LL) / 2097152);
     assert(as.divAt(bs, 21) == Mint(-3892493295581025139LL) / 4194304);
+  }
+  {
+    const Poly as{3, 4, 5};
+    const Poly bs{2};
+    assert(as.divAt(bs, 0) == Mint(3) / 2);
+    assert(as.divAt(bs, 1) == 2);
+    assert(as.divAt(bs, 2) == Mint(5) / 2);
+    assert(as.divAt(bs, 3) == 0);
+    assert(as.divAt(bs, 1000000000000000000LL) == 0);
+  }
+  {
+    const Poly as{6, 11, 6, 1};
+    const Poly bs{2, 3, 1};
+    assert(as.divAt(bs, 0) == 3);
+    assert(as.divAt(bs, 1) == 1);
+    assert(as.divAt(bs, 2) == 0);
+    assert(as.divAt(bs, 1000000000000000000LL) == 0);
+  }
+  {
+    const Poly as{0, 0, 1};
+    const Poly bs{1, -1};
+    assert(as.divAt(bs, 0) == 0);
+    assert(as.divAt(bs, 1) == 0);
+    assert(as.divAt(bs, 2) == 1);
+    assert(as.divAt(bs, 1000000000000000000LL) == 1);
+  }
+  {
+    const Poly as{2, 7, 1, 8, 2, 8, 1, 8};
+    const Poly bs{3, 1, 4, 1, 5, 9};
+    assert(as.divAt(bs, 0) == Mint(2) / 3);
+    assert(as.divAt(bs, 1) == Mint(19) / 9);
+    assert(as.divAt(bs, 2) == Mint(-34) / 27);
+    assert(as.divAt(bs, 9) == Mint(-643505) / 59049);
+    assert(as.divAt(bs, 10) == Mint(2232638) / 177147);
+    assert(as.divAt(bs, 11) == Mint(1470211) / 531441);
+    assert(as.divAt(bs, 19) == Mint(-886795940249LL) / 3486784401LL);
+    assert(as.divAt(bs, 20) == Mint(5797239474476LL) / 10460353203LL);
+    assert(as.divAt(bs, 21) == Mint(-2953308028676LL) / 31381059609LL);
   }
   // log
   {
