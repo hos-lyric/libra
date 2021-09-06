@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-#include "fft998244353.h"
+#include "fft_998244353.h"
 #include "modint.h"
 
 using std::max;

@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-#include "fft998244353.h"
+#include "fft_998244353.h"
 
 using std::cerr;
 using std::endl;

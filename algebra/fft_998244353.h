@@ -1,5 +1,5 @@
-#ifndef LIBRA_ALGEBRA_FFT998244353_H_
-#define LIBRA_ALGEBRA_FFT998244353_H_
+#ifndef LIBRA_ALGEBRA_FFT_998244353_H_
+#define LIBRA_ALGEBRA_FFT_998244353_H_
 
 #include <assert.h>
 #include <vector>
@@ -149,4 +149,4 @@ vector<Mint> square(vector<Mint> as) {
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-#endif  // LIBRA_ALGEBRA_FFT998244353_H_
+#endif  // LIBRA_ALGEBRA_FFT_998244353_H_
