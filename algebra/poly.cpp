@@ -155,7 +155,7 @@ struct Poly : public vector<Mint> {
   friend Poly operator*(const Mint &a, const Poly &f) { return f * a; }
 
   Poly square(int n) const {
-    const int nt = size();
+    const int nt = min(n, size());
     int nn;
     for (nn = 1; nn < nt + nt - 1; nn <<= 1) {}
     Poly f = *this;
@@ -164,7 +164,7 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < nn; ++i) f[i] *= f[i] * inv[nn];
     std::reverse(f.begin() + 1, f.end());
     FFT.fft(f);
-    f.resize(nt + nt - 1);
+    f.resize(n);
     return f;
   }
 

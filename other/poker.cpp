@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <utility>
 #include <vector>
 
@@ -56,6 +57,13 @@ int parseCard(const char *str) {
   for (s = 0; s < 4; ++s) if (SUITS_STR[s] == str[0]) break;
   assert(s < 4);
   return (r - 2) << 2 | s;
+}
+
+// Read a card from standard input.
+int readCard() {
+  static char buf[3];
+  scanf("%s", buf);
+  return parseCard(buf);
 }
 
 // Returns the best poker hand with the tie-breaker in [0, 2^20).

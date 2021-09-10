@@ -62,7 +62,7 @@ class Fft(int M_, int G, int K) {
       }
     }
   }
-  T[] convolute(T)(inout(T)[] as, inout(T)[] bs) const if (isIntegral!T) {
+  T[] convolve(T)(inout(T)[] as, inout(T)[] bs) const if (isIntegral!T) {
     const na = cast(int)(as.length), nb = cast(int)(bs.length);
     int n, invN = 1;
     for (n = 1; n < na + nb - 1; n <<= 1) {
@@ -81,7 +81,7 @@ class Fft(int M_, int G, int K) {
     foreach (i; 0 .. na + nb - 1) cs[i] = cast(T)(xs[i]);
     return cs;
   }
-  ModInt!M[] convolute(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) const {
+  ModInt!M[] convolve(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) const {
     const na = cast(int)(as.length), nb = cast(int)(bs.length);
     int n, invN = 1;
     for (n = 1; n < na + nb - 1; n <<= 1) {
@@ -100,7 +100,7 @@ class Fft(int M_, int G, int K) {
     foreach (i; 0 .. na + nb - 1) cs[i].x = xs[i];
     return cs;
   }
-  int[] convolute(int M1)(inout(ModInt!M1)[] as, inout(ModInt!M1)[] bs) const
+  int[] convolve(int M1)(inout(ModInt!M1)[] as, inout(ModInt!M1)[] bs) const
       if (M != M1) {
     const na = cast(int)(as.length), nb = cast(int)(bs.length);
     int n, invN = 1;
@@ -149,10 +149,10 @@ void initFft3() {
 }
 // for negative result, if (!(0 <= c && c < <bound>)) add MMM:
 //   enum MMM = 1L * Fft3_0.M * Fft3_1.M * Fft3_2.M;
-long[] convolute(inout(long)[] as, inout(long)[] bs) {
-  const cs0 = FFT3_0.convolute(as, bs);
-  const cs1 = FFT3_1.convolute(as, bs);
-  const cs2 = FFT3_2.convolute(as, bs);
+long[] convolve(inout(long)[] as, inout(long)[] bs) {
+  const cs0 = FFT3_0.convolve(as, bs);
+  const cs1 = FFT3_1.convolve(as, bs);
+  const cs2 = FFT3_2.convolve(as, bs);
   auto cs = new long[cs0.length];
   foreach (i; 0 .. cs0.length) {
     long d0 = cs0[i] % Fft3_0.M;
@@ -165,10 +165,10 @@ long[] convolute(inout(long)[] as, inout(long)[] bs) {
   }
   return cs;
 }
-long[] convolute(inout(long)[] as, inout(long)[] bs, long m) {
-  const cs0 = FFT3_0.convolute(as, bs);
-  const cs1 = FFT3_1.convolute(as, bs);
-  const cs2 = FFT3_2.convolute(as, bs);
+long[] convolve(inout(long)[] as, inout(long)[] bs, long m) {
+  const cs0 = FFT3_0.convolve(as, bs);
+  const cs1 = FFT3_1.convolve(as, bs);
+  const cs2 = FFT3_2.convolve(as, bs);
   auto cs = new long[cs0.length];
   foreach (i; 0 .. cs0.length) {
     long d0 = cs0[i] % Fft3_0.M;
@@ -182,10 +182,10 @@ long[] convolute(inout(long)[] as, inout(long)[] bs, long m) {
   }
   return cs;
 }
-ModInt!M[] convolute(int M)(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) {
-  const cs0 = FFT3_0.convolute(as, bs);
-  const cs1 = FFT3_1.convolute(as, bs);
-  const cs2 = FFT3_2.convolute(as, bs);
+ModInt!M[] convolve(int M)(inout(ModInt!M)[] as, inout(ModInt!M)[] bs) {
+  const cs0 = FFT3_0.convolve(as, bs);
+  const cs1 = FFT3_1.convolve(as, bs);
+  const cs2 = FFT3_2.convolve(as, bs);
   auto cs = new ModInt!M[cs0.length];
   foreach (i; 0 .. cs0.length) {
     long d0 = cs0[i] % Fft3_0.M;
@@ -206,7 +206,7 @@ unittest {
   int[] as = [31, 41, 59, 26, 53];
   const(int)[] bs = [58, 9, 79, 32, 38, 46];
   const cs = [52, 38, 32, 62, 80, 31, 29, 63, 9, 13];
-  assert(fft.convolute(as, bs) == cs);
+  assert(fft.convolve(as, bs) == cs);
 }
 
 unittest {
@@ -215,7 +215,7 @@ unittest {
   auto fft = new Fft0;
   auto as = [Mint(1), Mint(1)];
   auto bs = [Mint(-1), Mint(-1), Mint(-1)];
-  assert(fft.convolute(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
+  assert(fft.convolve(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
 }
 
 unittest {
@@ -224,9 +224,9 @@ unittest {
   enum bs = [4 * 10L^^7, 5 * 10L^^7, 6 * 10L^^7, 7 * 10L^^7];
   enum cs = [4 * 10L^^17, 13 * 10L^^17, 28 * 10L^^17, 34 * 10L^^17,
              32 * 10L^^17, 21 * 10L^^17];
-  assert(convolute(as, bs) == cs);
+  assert(convolve(as, bs) == cs);
   enum m = 1_234_567_890_123L;
-  const res = convolute(as, bs, m);
+  const res = convolve(as, bs, m);
   assert(res.length == 6);
   foreach (i; 0 .. 6) {
     assert(res[i] == cs[i] % m);
@@ -239,7 +239,7 @@ unittest {
   alias Mint = ModInt!MO;
   auto as = [Mint(1), Mint(1)];
   auto bs = [Mint(-1), Mint(-1), Mint(-1)];
-  assert(convolute(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
+  assert(convolve(as, bs) == [Mint(-1), Mint(-2), Mint(-2), Mint(-1)]);
 }
 
 void main() {}
