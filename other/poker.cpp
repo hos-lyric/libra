@@ -28,7 +28,7 @@ constexpr char SUITS_STR[5] = "CDHS";
 enum Poker {
   HIGH_CARD,
   ONE_PAIR,
-  TWO_PAIRS,
+  TWO_PAIR,
   THREE_OF_A_KIND,
   STRAIGHT,
   FLUSH,
@@ -39,7 +39,7 @@ enum Poker {
 constexpr char POKER_STR[9][20] = {
   "HIGH_CARD",
   "ONE_PAIR",
-  "TWO_PAIRS",
+  "TWO_PAIR",
   "THREE_OF_A_KIND",
   "STRAIGHT",
   "FLUSH",
@@ -110,14 +110,14 @@ pair<Poker, int> poker(const vector<int> &cards) {
     const int r3 = bsr(ds[3]);
     return make_pair(THREE_OF_A_KIND, r3 << 16 | highBits(a ^ 1 << r3, 2));
   }
-  // 2. TWO_PAIRS: larger pair, smaller pair, other card
+  // 2. TWO_PAIR: larger pair, smaller pair, other card
   // 1. ONE_PAIR: pair, 3 highest other cards
   if (ds[2]) {
     const int r2 = bsr(ds[2]);
     const int d = ds[2] ^ 1 << r2;
     if (d) {
       const int r22 = bsr(d);
-      return make_pair(TWO_PAIRS, r2 << 8 | r22 << 4 | bsr(a ^ 1 << r2 ^ 1 << r22));
+      return make_pair(TWO_PAIR, r2 << 8 | r22 << 4 | bsr(a ^ 1 << r2 ^ 1 << r22));
     }
     return make_pair(ONE_PAIR, r2 << 16 | highBits(a ^ 1 << r2, 3));
   }
@@ -150,9 +150,9 @@ void unittest(bool stress) {
   test("CA", "DA", "HA", "SK", "CQ", THREE_OF_A_KIND, 14 << 16 | 1 << 13 | 1 << 12);
   test("C5", "D5", "H5", "S4", "D8", THREE_OF_A_KIND, 5 << 16 | 1 << 8 | 1 << 4);
   test("C2", "H2", "S2", "H3", "H4", THREE_OF_A_KIND, 2 << 16 | 1 << 4 | 1 << 3);
-  test("CA", "DA", "CK", "DK", "CQ", TWO_PAIRS, 14 << 8 | 13 << 4 | 12);
-  test("CT", "HT", "C6", "D6", "H8", TWO_PAIRS, 10 << 8 | 6 << 4 | 8);
-  test("C2", "D2", "H3", "S3", "C4", TWO_PAIRS, 3 << 8 | 2 << 4 | 4);
+  test("CA", "DA", "CK", "DK", "CQ", TWO_PAIR, 14 << 8 | 13 << 4 | 12);
+  test("CT", "HT", "C6", "D6", "H8", TWO_PAIR, 10 << 8 | 6 << 4 | 8);
+  test("C2", "D2", "H3", "S3", "C4", TWO_PAIR, 3 << 8 | 2 << 4 | 4);
   test("CA", "SA", "CK", "SQ", "CJ", ONE_PAIR, 14 << 16 | 1 << 13 | 1 << 12 | 1 << 11);
   test("CA", "S9", "C9", "S6", "C3", ONE_PAIR, 9 << 16 | 1 << 14 | 1 << 6 | 1 << 3);
   test("D2", "H2", "C8", "S5", "C4", ONE_PAIR, 2 << 16 | 1 << 8 | 1 << 5 | 1 << 4);
@@ -180,7 +180,7 @@ void unittest(bool stress) {
     assert(freq[FLUSH] == 5108);
     assert(freq[STRAIGHT] == 10200);
     assert(freq[THREE_OF_A_KIND] == 54912);
-    assert(freq[TWO_PAIRS] == 123552);
+    assert(freq[TWO_PAIR] == 123552);
     assert(freq[ONE_PAIR] == 1098240);
     assert(freq[HIGH_CARD] == 1302540);
   }
@@ -232,7 +232,7 @@ void unittest(bool stress) {
     assert(freq[FLUSH] == 4047644);
     assert(freq[STRAIGHT] == 6180020);
     assert(freq[THREE_OF_A_KIND] == 6461620);
-    assert(freq[TWO_PAIRS] == 31433400);
+    assert(freq[TWO_PAIR] == 31433400);
     assert(freq[ONE_PAIR] == 58627800);
     assert(freq[HIGH_CARD] == 23294460);
   }
