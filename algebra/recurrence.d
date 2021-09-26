@@ -12,7 +12,7 @@ int[] pretty(uint M)(const(ModInt!M[]) as) {
 
 // Berlekamp-Massey
 //   F: field
-//   \sum_{j=1}^0 cs[j] as[i - j] = 0 (d <= i < |as|), cs[0] = 1//   M must be prime
+//   \sum_{j=1}^0 cs[j] as[i - j] = 0 (d <= i < |as|), cs[0] = 1
 F[] findLinearRecurrence(F)(inout(F)[] as) {
   import std.algorithm : min;
   const n = cast(int)(as.length);
