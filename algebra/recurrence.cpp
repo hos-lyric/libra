@@ -30,7 +30,6 @@ vector<vector<ModInt<M>>> findPRecurrence(const vector<ModInt<M>> &as, int e,
       pw *= i;
     }
   }
-// for(int i=0;i<m;++i){printf("bss[%d] =",i);for(int j=0;j<n;++j){printf(" %u",bss[i][j].x);}puts("");}
   int r = 0;
   vector<int> hs;
   for (int h = 0; h < n; ++h) {
@@ -50,7 +49,6 @@ vector<vector<ModInt<M>>> findPRecurrence(const vector<ModInt<M>> &as, int e,
       hs.push_back(h);
     }
   }
-// for(int i=0;i<m;++i){printf("bss[%d] =",i);for(int j=0;j<n;++j){printf(" %u",bss[i][j].x);}puts("");}
   if (hs.empty()) {
     if (verbose) {
       fprintf(stderr, "[findPRecurrence] Not found: d = %d, e = %d.\n", d0, e);
