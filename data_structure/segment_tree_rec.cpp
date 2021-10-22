@@ -39,7 +39,8 @@ template <class T> struct SegmentTreeRec {
 
   // Applies T::f(args...) to [a, b).
   //   f should return true on success. It must succeed for a single element.
-  template <class F, class... Args> void ch(int a, int b, F f, const Args &... args) {
+  template <class F, class... Args>
+  void ch(int a, int b, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return;
     a += n; b += n;
@@ -66,7 +67,8 @@ template <class T> struct SegmentTreeRec {
       }
     }
   }
-  template <class F, class... Args> void chRec(int u, F f, const Args &... args) {
+  template <class F, class... Args>
+  void chRec(int u, F f, const Args &... args) {
     if ((ts[u].*f)(args...)) return;
     push(u);
     chRec(u << 1, f, args...);
@@ -77,8 +79,10 @@ template <class T> struct SegmentTreeRec {
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
-  // Replace `auto` with `decltype((std::declval<T>().*F())())` for C++11. Watch out for return types!
-  template <class Op, class E, class F, class... Args> auto get(int a, int b, Op op, E e, F f, const Args &... args) {
+  // Replace `auto` with `decltype((std::declval<T>().*F())())` for C++11.
+  //   Watch out for return types of lambda expressions!
+  template <class Op, class E, class F, class... Args>
+  auto get(int a, int b, Op op, E e, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
     a += n; b += n;
@@ -165,10 +169,16 @@ struct Node {
 };
 
 long long getMax(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](long long l, long long r) { return max(l, r); }, [&]() { return -INF; }, &Node::getMax);
+  return seg.get(a, b,
+                 [&](long long l, long long r) -> long long { return max(l, r); },
+                 [&]() -> long long { return -INF; },
+                 &Node::getMax);
 }
 long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+  return seg.get(a, b,
+                 [&](long long l, long long r) -> long long { return l + r; },
+                 [&]() -> long long { return 0LL; },
+                 &Node::getSum);
 }
 
 void unittest() {
@@ -378,7 +388,10 @@ struct Node {
 };
 
 long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+  return seg.get(a, b,
+                 [&](long long l, long long r) -> long long { return l + r; },
+                 [&]() -> long long { return 0LL; },
+                 &Node::getSum);
 }
 
 void unittest() {
@@ -596,10 +609,16 @@ struct Node {
 };
 
 long long getMax(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](long long l, long long r) { return max(l, r); }, [&]() { return 0LL; }, &Node::getMax);
+  return seg.get(a, b,
+                 [&](long long l, long long r) -> long long { return max(l, r); },
+                 [&]() -> long long { return 0LL; },
+                 &Node::getMax);
 }
 long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](long long l, long long r) { return l + r; }, [&]() { return 0LL; }, &Node::getSum);
+  return seg.get(a, b,
+                 [&](long long l, long long r) -> long long { return l + r; },
+                 [&]() -> long long { return 0LL; },
+                 &Node::getSum);
 }
 
 void unittest() {
@@ -780,7 +799,10 @@ struct Node {
 };
 
 u128 getSum(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](u128 l, u128 r) { return l + r; }, [&]() { return (u128)0; }, &Node::getSum);
+  return seg.get(a, b,
+                 [&](u128 l, u128 r) -> u128 { return l + r; },
+                 [&]() -> u128 { return (u128)0; },
+                 &Node::getSum);
 }
 
 void unittest() {
@@ -973,7 +995,10 @@ struct Node {
 };
 
 u128 getSum(SegmentTreeRec<Node> &seg, int a, int b) {
-  return seg.get(a, b, [&](u128 l, u128 r) { return l + r; }, [&]() { return (u128)0; }, &Node::getSum);
+  return seg.get(a, b,
+                 [&](u128 l, u128 r) -> u128 { return l + r; },
+                 [&]() -> u128 { return (u128)0; },
+                 &Node::getSum);
 }
 
 void unittest() {
