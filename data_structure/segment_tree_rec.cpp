@@ -440,7 +440,7 @@ struct Node {
   long long getSum() const {
     return sum;
   }
-  bool accSum(long long &acc, long long tar) {
+  bool accSum(long long &acc, long long tar) const {
     if (acc + sum >= tar) return true;
     acc += sum;
     return false;
