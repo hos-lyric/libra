@@ -40,7 +40,7 @@ template <class T> struct SegmentTreeRec {
   // Applies T::f(args...) to [a, b).
   //   f should return true on success. It must succeed for a single element.
   template <class F, class... Args>
-  void ch(int a, int b, F f, const Args &... args) {
+  void ch(int a, int b, F f, Args &&... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return;
     a += n; b += n;
@@ -68,7 +68,7 @@ template <class T> struct SegmentTreeRec {
     }
   }
   template <class F, class... Args>
-  void chRec(int u, F f, const Args &... args) {
+  void chRec(int u, F f, Args &&... args) {
     if ((ts[u].*f)(args...)) return;
     push(u);
     chRec(u << 1, f, args...);
@@ -79,10 +79,13 @@ template <class T> struct SegmentTreeRec {
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
-  // Replace `auto` with `decltype((std::declval<T>().*F())())` for C++11.
-  //   Watch out for return types of lambda expressions!
   template <class Op, class E, class F, class... Args>
-  auto get(int a, int b, Op op, E e, F f, const Args &... args) {
+#if __cplusplus >= 201402L
+  auto
+#else
+  decltype((std::declval<T>().*F())())
+#endif
+  get(int a, int b, Op op, E e, F f, Args &&... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
     a += n; b += n;
@@ -101,6 +104,58 @@ template <class T> struct SegmentTreeRec {
       if (bb & 1) prodR = op((ts[--bb].*f)(args...), prodR);
     }
     return op(prodL, prodR);
+  }
+
+  // Find min b s.t. T::f(args...) returns true,
+  // when called for the partition of [a, b) from left to right.
+  //   Returns n + 1 if there is no such b.
+  template <class F, class... Args>
+  int findRight(int a, F f, Args &&... args) {
+    assert(0 <= a); assert(a <= n);
+    if ((T().*f)(args...)) return a;
+    if (a == n) return n + 1;
+    a += n;
+    for (int h = logN; h; --h) push(a >> h);
+    for (; ; a >>= 1) {
+      if (a & 1) {
+        if ((ts[a].*f)(args...)) {
+          for (; a < n; ) {
+            push(a);
+            a <<= 1;
+            if (!(ts[a].*f)(args...)) ++a;
+          }
+          return a - n + 1;
+        }
+        ++a;
+        if (!(a & (a - 1))) return n + 1;
+      }
+    }
+  }
+
+  // Find max a s.t. T::f(args...) returns true,
+  // when called for the partition of [a, b) from right to left.
+  //   Returns -1 if there is no such a.
+  template <class F, class... Args>
+  int findLeft(int b, F f, Args &&... args) {
+    assert(0 <= b); assert(b <= n);
+    if ((T().*f)(args...)) return b;
+    if (b == 0) return -1;
+    b += n;
+    for (int h = logN; h; --h) push((b - 1) >> h);
+    for (; ; b >>= 1) {
+      if ((b & 1) || b == 2) {
+        if ((ts[b - 1].*f)(args...)) {
+          for (; b <= n; ) {
+            push(b - 1);
+            b <<= 1;
+            if (!(ts[b - 1].*f)(args...)) --b;
+          }
+          return b - n - 1;
+        }
+        --b;
+        if (!(b & (b - 1))) return -1;
+      }
+    }
   }
 };
 
@@ -385,6 +440,11 @@ struct Node {
   long long getSum() const {
     return sum;
   }
+  bool accSum(long long &acc, long long tar) {
+    if (acc + sum >= tar) return true;
+    acc += sum;
+    return false;
+  }
 };
 
 long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
@@ -394,7 +454,18 @@ long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
                  &Node::getSum);
 }
 
+// (sum of [a, b]) >= target
+long long findRight(SegmentTreeRec<Node> &seg, int a, long long tar) {
+  long long acc = 0;
+  return seg.findRight(a, &Node::accSum, acc, tar);
+}
+long long findLeft(SegmentTreeRec<Node> &seg, int b, long long tar) {
+  long long acc = 0;
+  return seg.findLeft(b, &Node::accSum, acc, tar);
+}
+
 void unittest() {
+  // Func
   {
     constexpr long long MIN_VAL = -10;
     constexpr long long MAX_VAL = 10;
@@ -425,16 +496,30 @@ void unittest() {
       }
     }
   }
+  // small
   {
     SegmentTreeRec<Node> seg(vector<long long>{1, 2, 3, 4, 5});
+    // [1, 2, 3, 4, 5]
     assert(getSum(seg, 0, 5) == 15);
+    assert(findRight(seg, 1, 4) == 3);
+    assert(findLeft(seg, 3, 5) == 1);
     seg.ch(2, 4, &Node::add, 100);
+    // [1, 2, 103, 104, 5]
     assert(getSum(seg, 0, 3) == 106);
+    assert(findRight(seg, 0, 210) == 4);
+    assert(findLeft(seg, 5, 216) == -1);
     seg.ch(1, 3, &Node::chmin, 10);
+    // [1, 2, 10, 104, 5]
     assert(getSum(seg, 2, 5) == 119);
+    assert(findRight(seg, 2, 120) == seg.n + 1);
+    assert(findLeft(seg, 4, 117) == 0);
     seg.ch(2, 5, &Node::chmax, 20);
+    // [1, 2, 20, 104, 5]
     assert(getSum(seg, 0, 5) == 147);
+    assert(findRight(seg, 3, 100) == 4);
+    assert(findLeft(seg, 2, 2) == 1);
   }
+  // large without findRight, findLeft
   {
     constexpr int NUM_CASES = 1000;
     constexpr int MIN_N = 1;
@@ -486,6 +571,98 @@ void unittest() {
             const long long actual = getSum(seg, l, r);
             // printf("3 %d %d: %lld %lld\n", l, r, expected, actual);
             assert(expected == actual);
+          } break;
+          default: assert(false);
+        }
+      }
+    }
+  }
+  // large with findRight, findLeft
+  {
+    constexpr int NUM_CASES = 1000;
+    constexpr int MIN_N = 1;
+    constexpr int MAX_N = 100;
+    constexpr int Q = 1000;
+    constexpr long long MIN_VAL = 0;
+    constexpr long long MAX_VAL = 1000000000;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      const int N = MIN_N + xrand() % (MAX_N - MIN_N + 1);
+      vector<long long> as(N);
+      for (int i = 0; i < N; ++i) {
+        as[i] = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+      }
+      // printf("as =");
+      // for (int i = 0; i < N; ++i) printf(" %lld", as[i]);
+      // puts("");
+      SegmentTreeRec<Node> seg(as);
+      for (int q = 0; q < Q; ++q) {
+        int l, r;
+        for (; ; ) {
+          l = xrand() % (N + 1);
+          r = xrand() % (N + 1);
+          if (l <= r) {
+            break;
+          }
+        }
+        switch (xrand() % 6) {
+          case 0: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("0 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) if (as[i] > b) as[i] = b;
+            seg.ch(l, r, &Node::chmin, b);
+          } break;
+          case 1: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("1 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) if (as[i] < b) as[i] = b;
+            seg.ch(l, r, &Node::chmax, b);
+          } break;
+          case 2: {
+            const long long b = MIN_VAL + xrand() % (MAX_VAL - MIN_VAL + 1);
+            // printf("2 %d %d %lld\n", l, r, b);
+            for (int i = l; i < r; ++i) as[i] += b;
+            seg.ch(l, r, &Node::add, b);
+          } break;
+          case 3: {
+            long long expected = 0;
+            for (int i = l; i < r; ++i) expected += as[i];
+            const long long actual = getSum(seg, l, r);
+            // printf("3 %d %d: %lld %lld\n", l, r, expected, actual);
+            assert(expected == actual);
+          } break;
+          case 4: {
+            if (l == r || as[r - 1] > 0) {
+              long long b = 0;
+              for (int i = l; i < r; ++i) b += as[i];
+              if (l != r) b -= xrand() % as[r - 1];
+              const int actual = findRight(seg, l, b);
+              // printf("4 %d %lld: %d %d\n", l, b, r, actual);
+              assert(r == actual);
+            } else {
+              long long b = 0;
+              for (int i = l; i < N; ++i) b += as[i];
+              b += 1 + xrand() % MAX_VAL;
+              const int actual = findRight(seg, l, b);
+              // printf("4 %d %lld: %d %d\n", l, b, seg.n + 1, actual);
+              assert(seg.n + 1 == actual);
+            }
+          } break;
+          case 5: {
+            if (l == r || as[l] > 0) {
+              long long b = 0;
+              for (int i = r; --i >= l; ) b += as[i];
+              if (l != r) b -= xrand() % as[l];
+              const int actual = findLeft(seg, r, b);
+              // printf("5 %d %lld: %d %d\n", r, b, l, actual);
+              assert(l == actual);
+            } else {
+              long long b = 0;
+              for (int i = r; --i >= 0; ) b += as[i];
+              b += 1 + xrand() % MAX_VAL;
+              const int actual = findLeft(seg, r, b);
+              // printf("5 %d %lld: %d %d\n", l, b, -1, actual);
+              assert(-1 == actual);
+            }
           } break;
           default: assert(false);
         }
