@@ -38,7 +38,7 @@ template <class T> struct SegmentTreeRec {
   }
 
   // Applies T::f(args...) to [a, b).
-  //   f should return true if for success.  It must succeed for a single element.
+  //   f should return true on success. It must succeed for a single element.
   template <class F, class... Args> void ch(int a, int b, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return;
@@ -77,7 +77,7 @@ template <class T> struct SegmentTreeRec {
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
-  // Replace auto with decltype((std::declval<T>().*F())()) for C++11. Watch out for return types!
+  // Replace `auto` with `decltype((std::declval<T>().*F())())` for C++11. Watch out for return types!
   template <class Op, class E, class F, class... Args> auto get(int a, int b, Op op, E e, F f, const Args &... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
