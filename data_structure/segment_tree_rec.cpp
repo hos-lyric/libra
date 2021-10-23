@@ -455,11 +455,11 @@ long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
 }
 
 // (sum of [a, b]) >= target
-long long findRight(SegmentTreeRec<Node> &seg, int a, long long tar) {
+int findRight(SegmentTreeRec<Node> &seg, int a, long long tar) {
   long long acc = 0;
   return seg.findRight(a, &Node::accSum, acc, tar);
 }
-long long findLeft(SegmentTreeRec<Node> &seg, int b, long long tar) {
+int findLeft(SegmentTreeRec<Node> &seg, int b, long long tar) {
   long long acc = 0;
   return seg.findLeft(b, &Node::accSum, acc, tar);
 }

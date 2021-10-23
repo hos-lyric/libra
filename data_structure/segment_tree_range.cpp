@@ -206,11 +206,11 @@ long long getSum(SegmentTreeRange<Node> &seg, int a, int b) {
 }
 
 // (sum of [a, b]) >= target
-long long findRight(SegmentTreeRange<Node> &seg, int a, long long tar) {
+int findRight(SegmentTreeRange<Node> &seg, int a, long long tar) {
   long long acc = 0;
   return seg.findRight(a, &Node::accSum, acc, tar);
 }
-long long findLeft(SegmentTreeRange<Node> &seg, int b, long long tar) {
+int findLeft(SegmentTreeRange<Node> &seg, int b, long long tar) {
   long long acc = 0;
   return seg.findLeft(b, &Node::accSum, acc, tar);
 }
