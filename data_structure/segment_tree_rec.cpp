@@ -454,7 +454,7 @@ long long getSum(SegmentTreeRec<Node> &seg, int a, int b) {
                  &Node::getSum);
 }
 
-// (sum of [a, b]) >= target
+// (sum of [a, b)) >= target
 int findRight(SegmentTreeRec<Node> &seg, int a, long long tar) {
   long long acc = 0;
   return seg.findRight(a, &Node::accSum, acc, tar);

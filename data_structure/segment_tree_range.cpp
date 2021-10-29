@@ -205,7 +205,7 @@ long long getSum(SegmentTreeRange<Node> &seg, int a, int b) {
                  &Node::getSum);
 }
 
-// (sum of [a, b]) >= target
+// (sum of [a, b)) >= target
 int findRight(SegmentTreeRange<Node> &seg, int a, long long tar) {
   long long acc = 0;
   return seg.findRight(a, &Node::accSum, acc, tar);
@@ -322,7 +322,7 @@ void unittest() {
 
 namespace yosupo_range_affine_range_sum {
 
-// https://old.yosupo.jp/problem/range_affine_range_sum
+// https://judge.yosupo.jp/problem/range_affine_range_sum
 //   update range  a[i] <- b a[i] + c
 //   get  sum a[l, r)
 
