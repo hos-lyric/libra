@@ -12,6 +12,7 @@ using std::priority_queue;
 using std::vector;
 
 // Minimum cost flow by successive shortest paths.
+// Assumes that there exists no negative-cost cycle.
 // TODO: Check the range of intermediate values.
 template <class Flow, class Cost> struct MinCostFlow {
   // Watch out when using types other than int and long long.
@@ -38,11 +39,11 @@ template <class Flow, class Cost> struct MinCostFlow {
   vector<bool> vis;
   vector<int> pari;
 
-  // Finds shortest paths from vertex s.
+  // Finds a shortest path from s to t in the residual graph.
   // O((n + m) log m) time.
   //   Assumes that the members above are set.
   //   The distance to a vertex might not be determined if it is >= dist[t].
-  //   You can pass t = -1.
+  //   You can pass t = -1 to find a shortest path to each vertex.
   void shortest(int s, int t) {
     using Entry = pair<Cost, int>;
     priority_queue<Entry, vector<Entry>, std::greater<Entry>> que;
@@ -63,7 +64,9 @@ template <class Flow, class Cost> struct MinCostFlow {
   }
 
   // Finds a minimum cost flow from s to t of amount min{(max flow), limFlow}.
-  // O(min{(max flow), limFlow} (n + m) log m) time if Flow is an integral type.
+  //   Bellman-Ford takes O(n m) time, or O(m) time if there is no negative-cost
+  //   edge, or cannot stop if there exists a negative-cost cycle.
+  //   min{(max flow), limFlow} shortest paths if Flow is an integral type.
   pair<Flow, Cost> run(int s, int t, Flow limFlow = FLOW_INF) {
     assert(0 <= s); assert(s < n);
     assert(0 <= t); assert(t < n);
