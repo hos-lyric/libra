@@ -41,6 +41,20 @@ template <class T> struct SegmentTreePoint {
     for (; a >>= 1; ) merge(a);
   }
 
+  // Calculates the product for [a, b).
+  T get(int a, int b) {
+    assert(0 <= a); assert(a <= b); assert(b <= n);
+    if (a == b) return T();
+    a += n; b += n;
+    T prodL, prodR, t;
+    for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
+      if (aa & 1) { t.merge(prodL, ts[aa++]); prodL = t; }
+      if (bb & 1) { t.merge(ts[--bb], prodR); prodR = t; }
+    }
+    t.merge(prodL, prodR);
+    return t;
+  }
+
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
@@ -325,29 +339,20 @@ struct Node {
     a = a_;
     b = b_;
   }
-  Node get() const {
-    return *this;
-  }
   long long eval(long long x) const {
     return (x * a + b) % MO;
   }
 };
 
-Node get(SegmentTreePoint<Node> &seg, int a, int b) {
-  return seg.get(a, b,
-                 [&](const Node &l, const Node &r) -> Node { Node t; t.merge(l, r); return t; },
-                 [&]() -> Node { return Node(); },
-                 &Node::get);
-}
-
 void unittest() {
   {
-    SegmentTreePoint<Node> seg(vector<Node>{Node{1, 2}, Node{3, 4}, Node{5, 6}, Node{7, 8}, Node{9, 10}});
-    assert(get(seg, 0, 5).eval(11) == 14005);
-    assert(get(seg, 2, 4).eval(12) == 470);
+    SegmentTreePoint<Node> seg(vector<Node>{
+        Node{1, 2}, Node{3, 4}, Node{5, 6}, Node{7, 8}, Node{9, 10}});
+    assert(seg.get(0, 5).eval(11) == 14005);
+    assert(seg.get(2, 4).eval(12) == 470);
     seg.ch(1, &Node::ch, 13, 14);
-    assert(get(seg, 0, 4).eval(15) == 8275);
-    assert(get(seg, 2, 5).eval(16) == 5500);
+    assert(seg.get(0, 4).eval(15) == 8275);
+    assert(seg.get(2, 5).eval(16) == 5500);
   }
 }
 
@@ -373,7 +378,7 @@ void solve() {
           int l, r;
           long long x;
           scanf("%d%d%lld", &l, &r, &x);
-          const Node res = get(seg, l, r);
+          const Node res = seg.get(l, r);
           const long long ans = res.eval(x);
           printf("%lld\n", ans);
         } break;

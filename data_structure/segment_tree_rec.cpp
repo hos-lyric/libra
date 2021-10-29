@@ -76,6 +76,29 @@ template <class T> struct SegmentTreeRec {
     merge(u);
   }
 
+  // Calculates the product for [a, b).
+  T get(int a, int b) {
+    assert(0 <= a); assert(a <= b); assert(b <= n);
+    if (a == b) return T();
+    a += n; b += n;
+    for (int h = logN; h; --h) {
+      const int aa = a >> h, bb = b >> h;
+      if (aa == bb) {
+        if ((aa << h) != a || (bb << h) != b) push(aa);
+      } else {
+        if ((aa << h) != a) push(aa);
+        if ((bb << h) != b) push(bb);
+      }
+    }
+    T prodL, prodR, t;
+    for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
+      if (aa & 1) { t.merge(prodL, ts[aa++]); prodL = t; }
+      if (bb & 1) { t.merge(ts[--bb], prodR); prodR = t; }
+    }
+    t.merge(prodL, prodR);
+    return t;
+  }
+
   // Calculates T::f(args...) of a monoid type for [a, b).
   //   op(-, -)  should calculate the product.
   //   e()  should return the identity.
@@ -501,20 +524,26 @@ void unittest() {
     SegmentTreeRec<Node> seg(vector<long long>{1, 2, 3, 4, 5});
     // [1, 2, 3, 4, 5]
     assert(getSum(seg, 0, 5) == 15);
+    assert(seg.get(0, 5).sum == 15);
     assert(findRight(seg, 1, 4) == 3);
     assert(findLeft(seg, 3, 5) == 1);
     seg.ch(2, 4, &Node::add, 100);
     // [1, 2, 103, 104, 5]
+    assert(seg.get(0, 3).mn == 1);
+    assert(seg.get(0, 3).mx == 103);
     assert(getSum(seg, 0, 3) == 106);
     assert(findRight(seg, 0, 210) == 4);
     assert(findLeft(seg, 5, 216) == -1);
     seg.ch(1, 3, &Node::chmin, 10);
     // [1, 2, 10, 104, 5]
     assert(getSum(seg, 2, 5) == 119);
+    assert(seg.get(2, 5).mn2 == 10);
+    assert(seg.get(2, 5).mx2 == 10);
     assert(findRight(seg, 2, 120) == seg.n + 1);
     assert(findLeft(seg, 4, 117) == 0);
     seg.ch(2, 5, &Node::chmax, 20);
     // [1, 2, 20, 104, 5]
+    assert(seg.get(0, 5).sum == 147);
     assert(getSum(seg, 0, 5) == 147);
     assert(findRight(seg, 3, 100) == 4);
     assert(findLeft(seg, 2, 2) == 1);
