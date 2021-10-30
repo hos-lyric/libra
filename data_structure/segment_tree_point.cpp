@@ -33,9 +33,15 @@ template <class T> struct SegmentTreePoint {
     ts[u].merge(ts[u << 1], ts[u << 1 | 1]);
   }
 
+  // Changes the value of point a to s.
+  template <class S> void ch(int a, const S &s) {
+    assert(0 <= a); assert(a < n);
+    ts[a += n] = T(s);
+    for (; a >>= 1; ) merge(a);
+  }
+
   // Applies T::f(args...) to point a.
-  template <class F, class... Args>
-  void ch(int a, F f, Args &&... args) {
+  template <class F, class... Args> void ch(int a, F f, Args &&... args) {
     assert(0 <= a); assert(a < n);
     (ts[a += n].*f)(args...);
     for (; a >>= 1; ) merge(a);
@@ -79,8 +85,7 @@ template <class T> struct SegmentTreePoint {
   // Find min b s.t. T::f(args...) returns true,
   // when called for the partition of [a, b) from left to right.
   //   Returns n + 1 if there is no such b.
-  template <class F, class... Args>
-  int findRight(int a, F f, Args &&... args) {
+  template <class F, class... Args> int findRight(int a, F f, Args &&... args) {
     assert(0 <= a); assert(a <= n);
     if ((T().*f)(args...)) return a;
     if (a == n) return n + 1;
@@ -103,8 +108,7 @@ template <class T> struct SegmentTreePoint {
   // Find max a s.t. T::f(args...) returns true,
   // when called for the partition of [a, b) from right to left.
   //   Returns -1 if there is no such a.
-  template <class F, class... Args>
-  int findLeft(int b, F f, Args &&... args) {
+  template <class F, class... Args> int findLeft(int b, F f, Args &&... args) {
     assert(0 <= b); assert(b <= n);
     if ((T().*f)(args...)) return b;
     if (b == 0) return -1;
@@ -229,7 +233,7 @@ void unittest() {
     assert(findLeftMin(seg, 5, 1) == -1);
     assert(findRightMax(seg, 0, 3) == 1);
     assert(findLeftMax(seg, 5, 1) == 4);
-    seg.ch(3, &Node::ch, 10);
+    seg.ch(3, 10);
     // [100, 2, 3, 10, 5]
     assert(getMin(seg, 3, 5) == 5);
     assert(getMax(seg, 3, 5) == 10);
