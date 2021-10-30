@@ -41,7 +41,8 @@ template <class T> struct SegmentTreePoint {
   }
 
   // Applies T::f(args...) to point a.
-  template <class F, class... Args> void ch(int a, F f, Args &&... args) {
+  template <class F, class... Args>
+  void ch(int a, F f, Args &&... args) {
     assert(0 <= a); assert(a < n);
     (ts[a += n].*f)(args...);
     for (; a >>= 1; ) merge(a);
@@ -85,46 +86,42 @@ template <class T> struct SegmentTreePoint {
   // Find min b s.t. T::f(args...) returns true,
   // when called for the partition of [a, b) from left to right.
   //   Returns n + 1 if there is no such b.
-  template <class F, class... Args> int findRight(int a, F f, Args &&... args) {
+  template <class F, class... Args>
+  int findRight(int a, F f, Args &&... args) {
     assert(0 <= a); assert(a <= n);
     if ((T().*f)(args...)) return a;
     if (a == n) return n + 1;
     a += n;
-    for (; ; a >>= 1) {
-      if (a & 1) {
-        if ((ts[a].*f)(args...)) {
-          for (; a < n; ) {
-            a <<= 1;
-            if (!(ts[a].*f)(args...)) ++a;
-          }
-          return a - n + 1;
+    for (; ; a >>= 1) if (a & 1) {
+      if ((ts[a].*f)(args...)) {
+        for (; a < n; ) {
+          if (!(ts[a <<= 1].*f)(args...)) ++a;
         }
-        ++a;
-        if (!(a & (a - 1))) return n + 1;
+        return a - n + 1;
       }
+      ++a;
+      if (!(a & (a - 1))) return n + 1;
     }
   }
 
   // Find max a s.t. T::f(args...) returns true,
   // when called for the partition of [a, b) from right to left.
   //   Returns -1 if there is no such a.
-  template <class F, class... Args> int findLeft(int b, F f, Args &&... args) {
+  template <class F, class... Args>
+  int findLeft(int b, F f, Args &&... args) {
     assert(0 <= b); assert(b <= n);
     if ((T().*f)(args...)) return b;
     if (b == 0) return -1;
     b += n;
-    for (; ; b >>= 1) {
-      if ((b & 1) || b == 2) {
-        if ((ts[b - 1].*f)(args...)) {
-          for (; b <= n; ) {
-            b <<= 1;
-            if (!(ts[b - 1].*f)(args...)) --b;
-          }
-          return b - n - 1;
+    for (; ; b >>= 1) if ((b & 1) || b == 2) {
+      if ((ts[b - 1].*f)(args...)) {
+        for (; b <= n; ) {
+          if (!(ts[(b <<= 1) - 1].*f)(args...)) --b;
         }
-        --b;
-        if (!(b & (b - 1))) return -1;
+        return b - n - 1;
       }
+      --b;
+      if (!(b & (b - 1))) return -1;
     }
   }
 };

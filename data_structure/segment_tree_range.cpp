@@ -130,19 +130,16 @@ template <class T> struct SegmentTreeRange {
     if (a == n) return n + 1;
     a += n;
     for (int h = logN; h; --h) push(a >> h);
-    for (; ; a >>= 1) {
-      if (a & 1) {
-        if ((ts[a].*f)(args...)) {
-          for (; a < n; ) {
-            push(a);
-            a <<= 1;
-            if (!(ts[a].*f)(args...)) ++a;
-          }
-          return a - n + 1;
+    for (; ; a >>= 1) if (a & 1) {
+      if ((ts[a].*f)(args...)) {
+        for (; a < n; ) {
+          push(a);
+          if (!(ts[a <<= 1].*f)(args...)) ++a;
         }
-        ++a;
-        if (!(a & (a - 1))) return n + 1;
+        return a - n + 1;
       }
+      ++a;
+      if (!(a & (a - 1))) return n + 1;
     }
   }
 
@@ -156,19 +153,16 @@ template <class T> struct SegmentTreeRange {
     if (b == 0) return -1;
     b += n;
     for (int h = logN; h; --h) push((b - 1) >> h);
-    for (; ; b >>= 1) {
-      if ((b & 1) || b == 2) {
-        if ((ts[b - 1].*f)(args...)) {
-          for (; b <= n; ) {
-            push(b - 1);
-            b <<= 1;
-            if (!(ts[b - 1].*f)(args...)) --b;
-          }
-          return b - n - 1;
+    for (; ; b >>= 1) if ((b & 1) || b == 2) {
+      if ((ts[b - 1].*f)(args...)) {
+        for (; b <= n; ) {
+          push(b - 1);
+          if (!(ts[(b <<= 1) - 1].*f)(args...)) --b;
         }
-        --b;
-        if (!(b & (b - 1))) return -1;
+        return b - n - 1;
       }
+      --b;
+      if (!(b & (b - 1))) return -1;
     }
   }
 };
