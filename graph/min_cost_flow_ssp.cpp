@@ -39,6 +39,10 @@ template <class Flow, class Cost> struct MinCostFlow {
   vector<bool> vis;
   vector<int> pari;
 
+  // cost slopes[j] per flow when flows[j] <= flow <= flows[j + 1]
+  vector<Flow> flows;
+  vector<Cost> slopes;
+
   // Finds a shortest path from s to t in the residual graph.
   // O((n + m) log m) time.
   //   Assumes that the members above are set.
@@ -87,6 +91,8 @@ template <class Flow, class Cost> struct MinCostFlow {
     pari.resize(n);
     Flow flow = 0;
     Cost cost = 0;
+    flows.clear(); flows.push_back(0);
+    slopes.clear();
     for (; flow < limFlow; ) {
       shortest(s, t);
       if (!vis[t]) break;
@@ -100,6 +106,8 @@ template <class Flow, class Cost> struct MinCostFlow {
       }
       flow += f;
       cost += f * (pot[t] - pot[s]);
+      flows.push_back(flow);
+      slopes.push_back(pot[t] - pot[s]);
     }
     return make_pair(flow, cost);
   }
@@ -115,6 +123,8 @@ void unittest() {
   mcf.ae(3, 2, 2, 1000);
   mcf.ae(0, 2, 5, -10000);
   assert(mcf.run(3, 1, 4) == make_pair(4, -18867));
+  assert(mcf.flows == (vector<int>{0, 3, 4}));
+  assert(mcf.slopes == (vector<int>{-9989, 11100}));
 }
 
 int main() {
