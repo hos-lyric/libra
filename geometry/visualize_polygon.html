@@ -1,0 +1,8 @@
+<script>function f(){var c=document.getElementById('id').getContext('2d');
+c.fillText('0',50.0,425.0);c.beginPath();c.arc(50.0,425.0,2,0,2*Math.PI,false);c.stroke();
+c.fillText('1',550.0,425.0);c.beginPath();c.arc(550.0,425.0,2,0,2*Math.PI,false);c.stroke();
+c.fillText('2',50.0,175.0);c.beginPath();c.arc(50.0,175.0,2,0,2*Math.PI,false);c.stroke();
+c.beginPath();c.moveTo(50.0,425.0);c.lineTo(550.0,425.0);c.stroke();
+c.beginPath();c.moveTo(550.0,425.0);c.lineTo(50.0,175.0);c.stroke();
+c.beginPath();c.moveTo(50.0,175.0);c.lineTo(50.0,425.0);c.stroke();
+}</script><body onload="f()"><canvas id="id" width="600" height="600" style="border:1px solid"></canvas><p>[0.0, 2.0] &times; [0.0, 1.0]</p></body>
