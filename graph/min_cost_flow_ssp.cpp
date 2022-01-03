@@ -61,8 +61,10 @@ template <class Flow, class Cost> struct MinCostFlow {
       if (u == t) return;
       for (int i = ptr[u]; ~i; i = nxt[i]) if (capa[i] > FLOW_EPS) {
         const int v = zu[i];
-        const Cost cc = c + cost[i] + pot[u] - pot[v];
-        if (dist[v] > cc) { que.emplace(dist[v] = cc, v); pari[v] = i; }
+        if (!vis[v]) {
+          const Cost cc = c + cost[i] + pot[u] - pot[v];
+          if (dist[v] > cc) { que.emplace(dist[v] = cc, v); pari[v] = i; }
+        }
       }
     }
   }
