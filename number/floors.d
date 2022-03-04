@@ -37,7 +37,7 @@ void doCeils(alias fun, T)(const(T) n) {
 //   - k = floor(n/l)  for  1 <= l <= floor(n/(m+1))  (l = floor(n/k))
 
 // ceil(n/x)
-// m := ceil(n/x)
+// m := ceil(sqrt(n))
 //   - k              for  1 <= k <= m
 //   - k = ceil(n/l)  for  1 <= l <= floor((n-1)/m)  (l = ceil(n/k))
 
