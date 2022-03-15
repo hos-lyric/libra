@@ -14,6 +14,8 @@ using std::vector;
 
 ////////////////////////////////////////////////////////////////////////////////
 // inv: log, exp, pow
+// fac: shift
+// invFac: shift
 constexpr int LIM_INV = 1 << 20;  // @
 Mint inv[LIM_INV], fac[LIM_INV], invFac[LIM_INV];
 struct ModIntPreparator {
@@ -27,8 +29,8 @@ struct ModIntPreparator {
   }
 } preparator;
 
-// polyWork0: *, inv, div, divAt, log, exp, pow, sqrt
-// polyWork1: inv, div, divAt, log, exp, pow, sqrt
+// polyWork0: *, inv, div, divAt, log, exp, pow, sqrt, shift
+// polyWork1: inv, div, divAt, log, exp, pow, sqrt, shift
 // polyWork2: divAt, exp, pow, sqrt
 // polyWork3: exp, pow, sqrt
 static constexpr int LIM_POLY = 1 << 20;  // @
@@ -243,7 +245,7 @@ struct Poly : public vector<Mint> {
     int h = 0, m = 1;
     for (; m < fs.size(); ++h, m <<= 1) {}
     if (k < m) {
-      const Poly gs = fs.inv(k + 1);  // 10 E(|fs|)
+      const Poly gs = fs.inv(k + 1);  // 10 E(|f|)
       Mint sum;
       for (int i = 0, i0 = min<int>(k + 1, size()); i < i0; ++i) sum += (*this)[i] * gs[k - i];
       return sum;
@@ -254,10 +256,10 @@ struct Poly : public vector<Mint> {
     const Mint a = FFT_ROOTS[h + 1];
     memcpy(polyWork2, data(), size() * sizeof(Mint));
     memset(polyWork2 + size(), 0, ((m << 1) - size()) * sizeof(Mint));
-    fft(polyWork2, m << 1);  // 2 E(|fs|)
+    fft(polyWork2, m << 1);  // 2 E(|f|)
     memcpy(polyWork1, fs.data(), fs.size() * sizeof(Mint));
     memset(polyWork1 + fs.size(), 0, ((m << 1) - fs.size()) * sizeof(Mint));
-    fft(polyWork1, m << 1);  // 2 E(|fs|)
+    fft(polyWork1, m << 1);  // 2 E(|f|)
     for (; ; ) {
       if (k & 1) {
         for (int i = 0; i < m; ++i) polyWork2[i] = polyWork0[i] * (polyWork2[i << 1 | 0] * polyWork1[i << 1 | 1] - polyWork2[i << 1 | 1] * polyWork1[i << 1 | 0]);
@@ -269,22 +271,22 @@ struct Poly : public vector<Mint> {
       }
       for (int i = 0; i < m; ++i) polyWork1[i] = polyWork1[i << 1 | 0] * polyWork1[i << 1 | 1];
       if ((k >>= 1) < m) {
-        invFft(polyWork2, m);  // 1 E(|fs|)
-        invFft(polyWork1, m);  // 1 E(|fs|)
+        invFft(polyWork2, m);  // 1 E(|f|)
+        invFft(polyWork1, m);  // 1 E(|f|)
         // Poly::inv does not use polyWork2
-        const Poly gs = Poly(vector<Mint>(polyWork1, polyWork1 + k + 1)).inv(k + 1);  // 10 E(|fs|)
+        const Poly gs = Poly(vector<Mint>(polyWork1, polyWork1 + k + 1)).inv(k + 1);  // 10 E(|f|)
         Mint sum;
         for (int i = 0; i <= k; ++i) sum += polyWork2[i] * gs[k - i];
         return sum;
       }
       memcpy(polyWork2 + m, polyWork2, m * sizeof(Mint));
-      invFft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      invFft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |f|)) E(|f|)
       memcpy(polyWork1 + m, polyWork1, m * sizeof(Mint));
-      invFft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      invFft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |f|)) E(|f|)
       Mint aa = 1;
       for (int i = m; i < m << 1; ++i) { polyWork2[i] *= aa; polyWork1[i] *= aa; aa *= a; }
-      fft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
-      fft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |fs|)) E(|fs|)
+      fft(polyWork2 + m, m);  // (floor(log_2 k) - ceil(log_2 |f|)) E(|f|)
+      fft(polyWork1 + m, m);  // (floor(log_2 k) - ceil(log_2 |f|)) E(|f|)
     }
   }
   // 13 E(n)
@@ -472,6 +474,28 @@ struct Poly : public vector<Mint> {
     for (int i = 0; i < n - (o >> 1); ++i) gs[(o >> 1) + i] = c * tts[i];
     return gs;
   }
+  // 6 E(|t|)
+  // x -> x + a
+  Poly shift(const Mint &a) const {
+    if (empty()) return {};
+    const int n = size();
+    int m = 1;
+    for (; m < n; m <<= 1) {}
+    for (int i = 0; i < n; ++i) polyWork0[i] = fac[i] * (*this)[i];
+    memset(polyWork0 + n, 0, ((m << 1) - n) * sizeof(Mint));
+    fft(polyWork0, m << 1);  // 2 E(|t|)
+    {
+      Mint aa = 1;
+      for (int i = 0; i < n; ++i) { polyWork1[n - 1 - i] = invFac[i] * aa; aa *= a; }
+    }
+    memset(polyWork1 + n, 0, ((m << 1) - n) * sizeof(Mint));
+    fft(polyWork1, m << 1);  // 2 E(|t|)
+    for (int i = 0; i < m << 1; ++i) polyWork0[i] *= polyWork1[i];
+    invFft(polyWork0, m << 1);  // 2 E(|t|)
+    Poly fs(n);
+    for (int i = 0; i < n; ++i) fs[i] = invFac[i] * polyWork0[n - 1 + i];
+    return fs;
+  }
 };
 
 Mint linearRecurrenceAt(const vector<Mint> &as, const vector<Mint> &cs, long long k) {
@@ -527,22 +551,22 @@ struct SubproductTree {
     for (int i = 1; i < nn; ++i) all[i] = gss[1][nn + nn - i];
     all[nn] = gss[1][nn] - 1;
   }
-  // ((3/2) ceil(log_2 n) + O(1)) E(n) + 10 E(|fs|) + 3 E(|fs| + 2^(ceil(log_2 n)))
+  // ((3/2) ceil(log_2 n) + O(1)) E(n) + 10 E(|f|) + 3 E(|f| + 2^(ceil(log_2 n)))
   vector<Mint> multiEval(const Poly &fs) const {
     vector<Mint> work0(nn), work1(nn), work2(nn);
     {
       const int m = max(fs.size(), 1);
-      auto invAll = all.inv(m);  // 10 E(|fs|)
+      auto invAll = all.inv(m);  // 10 E(|f|)
       std::reverse(invAll.begin(), invAll.end());
       int mm;
       for (mm = 1; mm < m - 1 + nn; mm <<= 1) {}
       invAll.resize(mm, 0U);
-      fft(invAll);  // E(|fs| + 2^(ceil(log_2 n)))
+      fft(invAll);  // E(|f| + 2^(ceil(log_2 n)))
       vector<Mint> ffs(mm, 0U);
       memcpy(ffs.data(), fs.data(), fs.size() * sizeof(Mint));
-      fft(ffs);  // E(|fs| + 2^(ceil(log_2 n)))
+      fft(ffs);  // E(|f| + 2^(ceil(log_2 n)))
       for (int i = 0; i < mm; ++i) ffs[i] *= invAll[i];
-      invFft(ffs);  // E(|fs| + 2^(ceil(log_2 n)))
+      invFft(ffs);  // E(|f| + 2^(ceil(log_2 n)))
       memcpy(((logN & 1) ? work1 : work0).data(), ffs.data() + m - 1, nn * sizeof(Mint));
     }
     for (int h = 0; h < logN; ++h) {
@@ -1069,6 +1093,29 @@ void unittest() {
       assert(as.sqrt(15, mockModSqrt) == bs.mod(15));
       assert(as.sqrt(16, mockModSqrt) == bs.mod(16));
     }
+  }
+  // shift
+  {
+    const Poly as{};
+    assert(as.shift(Mint(2)) == as);
+  }
+  {
+    const Poly as{3};
+    assert(as.shift(Mint(2)) == as);
+  }
+  {
+    const Poly as{3, 14, 159};
+    assert(as.shift(Mint(0)) == as);
+  }
+  {
+    const Poly as{3, 14, 159, 2653};
+    const Poly bs{-2505, 7655, -7800, 2653};
+    assert(as.shift(Mint(-1)) == bs);
+  }
+  {
+    const Poly as{0, 0, 0, 0, 1, 0};
+    const Poly bs{10000, 4000, 600, 40, 1, 0};
+    assert(as.shift(Mint(10)) == bs);
   }
   // linearRecurrenceAt
   {
