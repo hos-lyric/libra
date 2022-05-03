@@ -34,7 +34,7 @@ template <class T> struct SegmentTreePoint {
   }
 
   // Changes the value of point a to s.
-  template <class S> void ch(int a, const S &s) {
+  template <class S> void change(int a, const S &s) {
     assert(0 <= a); assert(a < n);
     ts[a += n] = T(s);
     for (; a >>= 1; ) merge(a);
@@ -230,7 +230,7 @@ void unittest() {
     assert(findLeftMin(seg, 5, 1) == -1);
     assert(findRightMax(seg, 0, 3) == 1);
     assert(findLeftMax(seg, 5, 1) == 4);
-    seg.ch(3, 10);
+    seg.change(3, 10);
     // [100, 2, 3, 10, 5]
     assert(getMin(seg, 3, 5) == 5);
     assert(getMax(seg, 3, 5) == 10);
