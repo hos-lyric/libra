@@ -36,14 +36,15 @@ template ModULong(int E) {
   }
   // \prod_{-F<=i<=F, i!=-j,j} (u-i)/(j-i)
   ulong coefB(int j, ulong u) {
+    assert(F < u, "ModULong.coefB: F < u must hold");
+    assert(u <= (~0UL) - F, "ModULong.coefB: u < 2^64 - F must hold");
     int s = 0;
     ulong x = 1;
     foreach (i; -F .. F + 1) if (i != -j && i != j) {
       if (u == i) return 0UL;
       const t = bsf(u - i);
       s += t;
-      // TODO: overflow
-      x *= (cast(long)(u - i) >> t);
+      x *= ((u - i) >> t);
     }
     s += bsf(j + j);
     x *= ((j + j) >> bsf(j + j));
@@ -55,6 +56,7 @@ template ModULong(int E) {
   }
   // n!_2 = \prod_{1<=i<=n, i:odd} i
   ulong facSkipped(ulong n) {
+    if (n <= 64) return FAC_SKIPPED[cast(size_t)(n)];
     const u = (n >> 1) + (n & 1);
     ulong x = 1;
     foreach (j; 1 .. F + 1) x *= power(FAC_SKIPPED[j << 1], coefB(j, u));
