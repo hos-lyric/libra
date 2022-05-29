@@ -69,11 +69,17 @@ template <class T> struct SegmentTreeRec {
   }
   template <class F, class... Args>
   void chRec(int u, F f, Args &&... args) {
-    if ((ts[u].*f)(args...)) return;
-    push(u);
-    chRec(u << 1, f, args...);
-    chRec(u << 1 | 1, f, args...);
-    merge(u);
+    const int u0 = u;
+    for (; ; ) {
+      if ((ts[u].*f)(args...)) {
+        for (; u0 < u && (u & 1); merge(u >>= 1)) {}
+        if (u0 == u) return;
+        ++u;
+      } else {
+        push(u);
+        u <<= 1;
+      }
+    }
   }
 
   // Calculates the product for [a, b).
@@ -429,7 +435,7 @@ struct Node {
     }
     return true;
   }
-  long long chmax(long long val) {
+  bool chmax(long long val) {
     if (val > -INF) {
       if (val >= mn2) {
         return false;
