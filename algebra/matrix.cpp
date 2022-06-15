@@ -1,7 +1,10 @@
+#include <assert.h>
+#include <algorithm>
+#include <utility>
 #include <vector>
 
-#include "modint.h"
-
+using std::min;
+using std::pair;
 using std::swap;
 using std::vector;
 
@@ -182,7 +185,42 @@ template <class T> vector<T> detPoly(vector<vector<vector<T>>> a) {
   for (int i = 0; off + i <= m * n; ++i) gs[i] = prod * fs[off + i];
   return gs;
 }
+
+// a \in Mat(m, n), rank(a) = r
+// b \in Mat(m, r), c \in Mat(r, n), a = b c
+// O(m n min(m, n))
+//   Call by value: Modifies a (Watch out when using C-style array!)
+template <class T>
+pair<vector<vector<T>>, vector<vector<T>>> rankDecompose(vector<vector<T>> a) {
+  assert(!a.empty());
+  const int m = a.size(), n = a[0].size();
+  vector<int> is(m);
+  for (int i = 0; i < m; ++i) is[i] = i;
+  vector<vector<T>> b(m, vector<T>(min(m, n), 0));
+  int r = 0;
+  for (int h = 0; r < m && h < n; ++h) {
+    for (int i = r; i < m; ++i) if (a[i][h]) {
+      swap(a[r], a[i]);
+      swap(is[r], is[i]);
+      break;
+    }
+    if (a[r][h]) {
+      const T s = a[r][h].inv();
+      for (int i = r + 1; i < m; ++i) {
+        const T t = b[is[i]][r] = s * a[i][h];
+        for (int j = h; j < n; ++j) a[i][j] -= t * a[r][j];
+      }
+      ++r;
+    }
+  }
+  for (int i = 0; i < m; ++i) b[i].resize(r);
+  for (int k = 0; k < r; ++k) b[is[k]][k] = 1;
+  a.resize(r);
+  return std::make_pair(b, a);
+}
 ////////////////////////////////////////////////////////////////////////////////
+
+#include "modint.h"
 
 void unittest() {
   constexpr unsigned MO = 998244353;
@@ -441,6 +479,75 @@ void unittest() {
     assert(ps[18].x == 0);
     assert(ps[19].x == 0);
     assert(ps[20].x == 0);
+  }
+
+  // rankDecompose
+  auto test_rankDecompose = [&](const vector<vector<Mint>> &a, int r) -> void {
+    const int m = a.size(), n = a[0].size();
+    const auto res = rankDecompose(a);
+    const vector<vector<Mint>> &b = res.first, &c = res.second;
+    assert(b.size() == static_cast<size_t>(m));
+    for (int i = 0; i < m; ++i) assert(b[i].size() == static_cast<size_t>(r));
+    assert(c.size() == static_cast<size_t>(r));
+    for (int k = 0; k < r; ++k) assert(c[k].size() == static_cast<size_t>(n));
+    vector<vector<Mint>> prod(m, vector<Mint>(n, 0));
+    for (int i = 0; i < m; ++i) for (int k = 0; k < r; ++k) for (int j = 0; j < n; ++j) {
+      prod[i][j] += b[i][k] * c[k][j];
+    }
+    assert(a == prod);
+  };
+  {
+    test_rankDecompose({{0}}, 0);
+    test_rankDecompose({{1}}, 1);
+    test_rankDecompose({{2}}, 1);
+    test_rankDecompose({
+      {0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0},
+    }, 0);
+    test_rankDecompose({
+      {0, 0, 0, 0, 0},
+      {0, 0, 4, 6, 8},
+      {0, 0, 6, 9, 12},
+    }, 1);
+    test_rankDecompose({
+      {9, 8, 7, 6, 5},
+      {9, 8, 7, 6, 5},
+      {7, 5, 3, 2, 1},
+    }, 2);
+    test_rankDecompose({
+      {1, 2, 1, 3, 1},
+      {2, 1, 4, 1, 2},
+      {1, 3, 1, 2, 1},
+    }, 3);
+    test_rankDecompose({
+      {0, 0, 0},
+      {0, 0, 0},
+      {0, 0, 0},
+      {0, 0, 0},
+      {0, 0, 0},
+    }, 0);
+    test_rankDecompose({
+      {1, 3, 9},
+      {2, 6, 18},
+      {4, 12, 36},
+      {8, 24, 72},
+      {16, 48, 144},
+    }, 1);
+    test_rankDecompose({
+      {6, 11, 10},
+      {3, 4, 5},
+      {3, 5, 5},
+      {3, 6, 5},
+      {0, 1, 0},
+    }, 2);
+    test_rankDecompose({
+      {0, 1, 0},
+      {1, 0, 0},
+      {0, 0, 1},
+      {0, 1, 0},
+      {0, 0, 1},
+    }, 3);
   }
 }
 
