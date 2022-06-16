@@ -58,7 +58,7 @@ void unittest() {
   a = 10000000;
   Mint b = a.inv();
   assert(b.x < MO);
-  assert((static_cast<long>(a.x) * b.x) % MO == 1);
+  assert((static_cast<long long>(a.x) * b.x) % MO == 1);
 
   // opUnary
   a = 0;
@@ -99,7 +99,7 @@ void unittest() {
 }
 
 // ModInt::inv
-void unittestInv() {
+void unittest_inv() {
   assert(ModInt<1>(0).inv().x == 0);
   assert(ModInt<2>(1).inv().x == 1);
   assert(ModInt<3>(1).inv().x == 1);
@@ -180,7 +180,7 @@ void measurement_pow() {
 
 int main() {
   unittest();
-  unittestInv();
+  unittest_inv();
   measurement();
   measurement_pow();
   return 0;
