@@ -4,12 +4,12 @@
 #include <stdio.h>
 #include <iostream>
 
-unsigned __int128 toUInt128(const char *s) {
+constexpr unsigned __int128 toUInt128(const char *s) {
   unsigned __int128 x = 0;
   for (; *s; ++s) x = x * 10 + (*s - '0');
   return x;
 }
-__int128 toInt128(const char *s) {
+constexpr __int128 toInt128(const char *s) {
   if (*s == '-') return -toInt128(s + 1);
   __int128 x = 0;
   for (; *s; ++s) x = x * 10 + (*s - '0');
