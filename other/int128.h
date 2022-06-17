@@ -16,18 +16,18 @@ constexpr __int128 toInt128(const char *s) {
   return x;
 }
 unsigned __int128 inUInt128() {
-  static char buf[40];
+  static char buf[41];
   scanf("%s", buf);
   return toUInt128(buf);
 }
 __int128 inInt128() {
-  static char buf[40];
+  static char buf[41];
   scanf("%s", buf);
   return toInt128(buf);
 }
 
 void out(unsigned __int128 x) {
-  static char buf[40];
+  static char buf[41];
   int len = 0;
   do { buf[len++] = '0' + static_cast<int>(x % 10); } while (x /= 10);
   for (int i = len; --i >= 0; ) putchar(buf[i]);
@@ -41,7 +41,7 @@ void out(__int128 x) {
   }
 }
 std::ostream &operator<<(std::ostream &os, unsigned __int128 x) {
-  static char buf[40];
+  static char buf[41];
   int len = 0;
   do { buf[len++] = '0' + static_cast<int>(x % 10); } while (x /= 10);
   for (int i = len; --i >= 0; ) os << buf[i];
