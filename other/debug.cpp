@@ -1,10 +1,13 @@
-#include "assert.h"
+#include <assert.h>
 #include <iostream>
 #include <vector>
 
 using std::cerr;
 using std::endl;
+using std::ostream;
 using std::vector;
+
+template <class T> ostream &operator<<(ostream &os, const vector<T> &as) { const int sz = as.size(); os << "["; for (int i = 0; i < sz; ++i) { if (i >= 256) { os << ", ..."; break; } if (i > 0) { os << ", "; } os << as[i]; } return os << "]"; }
 
 //*
 template <class T> struct Vector : vector<T> {
@@ -13,14 +16,7 @@ template <class T> struct Vector : vector<T> {
     const long long sz = this->size();
     if (!(0 <= i && i < sz)) {
       cerr << "[Vector] Bad index " << i << " (size " << sz << ")" << endl;
-      for (long long j = 0; j < sz; ++j) {
-        if (j >= 256) {
-          cerr << "...";
-          break;
-        }
-        cerr << this->at(j) << " ";
-      }
-      cerr << endl;
+      cerr << *this << endl;
       assert(false);
     }
   }
@@ -37,7 +33,9 @@ template <class T> struct Vector : vector<T> {
 //*/
 
 int main() {
+  cerr << vector<int>(1000) << endl;
   vector<int> a{0, 1, 2, 3};
   a[0] = a[1];
+  a[4] = 0;
   return 0;
 }

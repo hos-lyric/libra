@@ -29,6 +29,7 @@ using namespace std;
 using Int = long long;
 
 template <class T1, class T2> ostream &operator<<(ostream &os, const pair<T1, T2> &a) { return os << "(" << a.first << ", " << a.second << ")"; };
+template <class T> ostream &operator<<(ostream &os, const vector<T> &as) { const int sz = as.size(); os << "["; for (int i = 0; i < sz; ++i) { if (i >= 256) { os << ", ..."; break; } if (i > 0) { os << ", "; } os << as[i]; } return os << "]"; }
 template <class T> void pv(T a, T b) { for (T i = a; i != b; ++i) cerr << *i << " "; cerr << endl; }
 template <class T> void chmin(T &t, const T &f) { if (t > f) t = f; }
 template <class T> void chmax(T &t, const T &f) { if (t < f) t = f; }
