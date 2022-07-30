@@ -10,9 +10,8 @@ using std::vector;
 // |---| |---|  |---| |---|  zs[i-j]
 template <class T> void suffixZ(const T *as, int n, int *zs) {
   if (n == 0) return;
-  int j = 0;
   zs[0] = 0;
-  for (int i = 1; i < n; ++i) {
+  for (int j = 0, i = 1; i < n; ++i) {
     if (i + zs[i - j] < j + zs[j]) {
       zs[i] = zs[i - j];
     } else {
