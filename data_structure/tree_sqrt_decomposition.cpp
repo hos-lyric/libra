@@ -13,6 +13,10 @@ using std::string;
 using std::vector;
 
 struct TreeSqrtDecompIV {
+  // TODO: optimize
+  // larger COEF ==> larger h
+  static constexpr int COEF = 1;
+
   int n, rt;
   vector<pair<int, int>> edges;
   vector<pair<int, int>> paths;
@@ -98,7 +102,7 @@ struct TreeSqrtDecompIV {
       rs[u] = (u == rt || hei[u] >= h) ? u : rs[par[u].second];
     }
   }
-  // Decompose with max h s.t.  q h <= (# of subtrees) n
+  // Decompose with max h s.t.  q h <= COEF (# of subtrees) n
   //   O(n log n) time
   void decomposeOpt(long long q) {
     int hLo = 0, hHi = n;
@@ -107,7 +111,7 @@ struct TreeSqrtDecompIV {
       decompose(hMid);
       int numSubtrees = 0;
       for (int u = 0; u < n; ++u) if (rs[u] == u) ++numSubtrees;
-      ((q * h <= static_cast<long long>(numSubtrees) * n) ? hLo : hHi) = hMid;
+      ((q * h <= COEF * static_cast<long long>(numSubtrees) * n) ? hLo : hHi) = hMid;
     }
     if (h != hLo) decompose(hLo);
   }
@@ -370,6 +374,7 @@ void unittest_TreeSqrtDecompIV() {
     assert(t.rs == (vector<int>{5, 1, 2, 6, 2, 5, 6, 7, 11, 7, 1, 11}));
 
     // (h, (# of subtrees)) = (0, 12), (1, 6), (2, 4), (3, 2), (>= 4, 1)
+    static_assert(TreeSqrtDecompIV::COEF == 1, "Unittests assume that COEF = 1.");
     t.decomposeOpt(0); assert(t.h == 11);
     t.decomposeOpt(1); assert(t.h == 11);
     t.decomposeOpt(2); assert(t.h == 6);
