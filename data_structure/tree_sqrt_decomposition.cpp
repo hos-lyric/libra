@@ -12,12 +12,12 @@ using std::pair;
 using std::string;
 using std::vector;
 
-struct TreeSqrtDecomp {
+struct TreeSqrtDecompIV {
   int n, rt;
   vector<pair<int, int>> edges;
   vector<pair<int, int>> paths;
 
-  TreeSqrtDecomp(int n_) : n(n_), rt(-1), edges(), paths(), h(-1) {}
+  TreeSqrtDecompIV(int n_) : n(n_), rt(-1), edges(), paths(), h(-1) {}
   void ae(int u, int v) {
     assert(0 <= u); assert(u < n);
     assert(0 <= v); assert(v < n);
@@ -98,6 +98,19 @@ struct TreeSqrtDecomp {
       rs[u] = (u == rt || hei[u] >= h) ? u : rs[par[u].second];
     }
   }
+  // Decompose with max h s.t.  q h <= (# of subtrees) n
+  //   O(n log n) time
+  void decomposeOpt(long long q) {
+    int hLo = 0, hHi = n;
+    for (; hLo + 1 < hHi; ) {
+      const int hMid = (hLo + hHi) / 2;
+      decompose(hMid);
+      int numSubtrees = 0;
+      for (int u = 0; u < n; ++u) if (rs[u] == u) ++numSubtrees;
+      ((q * h <= static_cast<long long>(numSubtrees) * n) ? hLo : hHi) = hMid;
+    }
+    if (h != hLo) decompose(hLo);
+  }
 
   vector<int> has;
   int opsLen;
@@ -122,14 +135,14 @@ struct TreeSqrtDecomp {
       }
     }
   }
-  // O(q log q + q h + (# of subtrees) n) with q = |path|
+  // O(q log q + q h + (# of subtrees) n) time, where q = |path|
   //   init(nL, nR, r)  (# of edges to add at each end)
   //   pushFront(i, v), pushBack(i, v), undoFront(i, v), undoBack(i, v)
   //   query(q)
   template <class Init, class PushFront, class PushBack, class UndoFront, class UndoBack, class Query>
   void run(Init init, PushFront pushFront, PushBack pushBack, UndoFront undoFront, UndoBack undoBack, Query query) {
     const int pathsLen = paths.size();
-    if (!~h) decompose(n / sqrt(pathsLen + 1));
+    if (!~h) decomposeOpt(pathsLen);
 
     vector<pair<int, int>> up(h + 1);
     auto doPathFront = [&](int u, int v) -> void {
@@ -253,7 +266,7 @@ struct TreeSqrtDecomp {
                (j == j0) ? 2 : 1);
     }
   }
-  friend ostream &operator<<(ostream &os, const TreeSqrtDecomp &t) {
+  friend ostream &operator<<(ostream &os, const TreeSqrtDecompIV &t) {
     t.dfsPrint(os, t.rt, "", 0);
     return os;
   }
@@ -261,6 +274,7 @@ struct TreeSqrtDecomp {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+// TreeSqrtDecompIV
 /*
     auto init = [&](int nL, int nR, int r) -> void {
 cerr<<"init "<<nL<<" "<<nR<<" "<<r<<endl;
@@ -301,9 +315,9 @@ unsigned xrand() {
   unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
 }
 
-void unittest() {
+void unittest_TreeSqrtDecompIV() {
   {
-    TreeSqrtDecomp t(12);
+    TreeSqrtDecompIV t(12);
     t.ae(1, 5);
     t.ae(1, 10);
     t.ae(1, 9);
@@ -354,6 +368,21 @@ void unittest() {
 )").substr(1));
     }
     assert(t.rs == (vector<int>{5, 1, 2, 6, 2, 5, 6, 7, 11, 7, 1, 11}));
+
+    // (h, (# of subtrees)) = (0, 12), (1, 6), (2, 4), (3, 2), (>= 4, 1)
+    t.decomposeOpt(0); assert(t.h == 11);
+    t.decomposeOpt(1); assert(t.h == 11);
+    t.decomposeOpt(2); assert(t.h == 6);
+    t.decomposeOpt(3); assert(t.h == 4);
+    t.decomposeOpt(4); assert(t.h == 3);
+    t.decomposeOpt(8); assert(t.h == 3);
+    t.decomposeOpt(9); assert(t.h == 2);
+    t.decomposeOpt(24); assert(t.h == 2);
+    t.decomposeOpt(25); assert(t.h == 1);
+    t.decomposeOpt(72); assert(t.h == 1);
+    t.decomposeOpt(73); assert(t.h == 0);
+    t.decomposeOpt(1'000'000'000LL); assert(t.h == 0);
+
     t.decompose(2);
     {
       ostringstream oss;
@@ -422,7 +451,7 @@ void unittest() {
     for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
       const int N = 1 + xrand() % MAX_N;
       const int Q = 1 + xrand() % MAX_Q;
-      TreeSqrtDecomp t(N);
+      TreeSqrtDecompIV t(N);
       for (int v = 1; v < N; ++v) {
         const int u = xrand() % v;
         t.ae(u, v);
@@ -474,6 +503,6 @@ void unittest() {
 }
 
 int main() {
-  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_TreeSqrtDecompIV(); cerr << "PASSED unittest_TreeSqrtDecompIV" << endl;
   return 0;
 }
