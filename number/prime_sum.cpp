@@ -6,7 +6,7 @@
 using std::min;
 using std::vector;
 
-// floor(a/b)
+// floor(a/b)  by double
 //   0 <= a <= 2^53
 //   1 <= b <= 2^63 - 1
 //   Proof (assuming IEEE 754):
@@ -14,19 +14,27 @@ using std::vector;
 //       OK
 //     Case. 1 <= a <= 2^53 - 1:
 //       floor(a/b) can be represented
-//       take e \in \Z s.t. 2^e <= a/b < 2^(e+1)
-//       1/b >= 2^e/a > 2^(e-53)
+//       take e s.t. 2^e <= a/b < 2^(e+1)  (0 <= e <= 52)
 //       in [2^e, 2^(e+1)], the gaps between doubles are 2^(e-52)
-//       (integer > floor(a/b)) > a/b + 2^(e-53) cannot be the nearest double
+//       (floor(a/b) + 1) - a/b >= 1/b >= 2^e/a > 2^(e-53)
+//       therefore (the nearest double to a/b) < floor(a/b) + 1
 //     Case. a = 2^53:
 //       the same argument applies when 2^e < a/b
 //       OK when 2^e = a/b
-inline long long div(long long a, int b) {
-  return static_cast<double>(a) / b;
-}
-inline long long div(long long a, long long b) {
-  return static_cast<double>(a) / b;
-}
+
+// floor(sqrt(n))  by double
+//   0 <= n <= 2^52
+//   Proof (assuming IEEE 754):
+//     Case. n = 0:
+//       OK
+//     Case. 1 <= n <= 2^52 - 1:
+//       m := floor(sqrt(n))
+//       take e s.t. 2^e <= m < 2^(e+1)  (0 <= e <= 25)
+//       (m + 1) - sqrt(n) >= (m+1) - sqrt((m+1)^2-1)
+//                         >= 1 / (2(m+1)) >= 2^(-e-2) > 2^(e-53)
+//       therefore (the nearest double to sqrt(n)) < m + 1
+//     Case. n = 2^52:
+//       OK
 
 // \sum_{p<=n} f(p)  for floor(N/*)
 //   f: completely multiplicative
@@ -36,30 +44,38 @@ inline long long div(long long a, long long b) {
 //               | g(p-1, n) - f(p) (g(p-1, n/p) - g(p-1, p-1))  (x >= p^2)
 //   O(N^(3/4) / log N) time, O(N^(1/2)) space
 
+inline long long div53(long long a, int b) {
+  return static_cast<double>(a) / b;
+}
+inline long long div53(long long a, long long b) {
+  return static_cast<double>(a) / b;
+}
 struct PrimePi {
   long long N;
   int sqrtN;
   vector<int> small;
   vector<long long> large;
+  int primesLen;
+  vector<int> primes;
+  PrimePi() : N(0), sqrtN(0), small(), large(), primesLen(0), primes() {}
   explicit PrimePi(long long N_) : N(N_) {
-    assert(0 <= N); assert(N <= 1LL << 53);
+    assert(0 <= N); assert(N <= 1LL << 52);
     sqrtN = sqrt(static_cast<double>(N));
     small.resize(sqrtN + 1);
     for (int k = 1; k <= sqrtN; ++k) small[k] = k;
     large.resize(sqrtN + 1);
-    for (int l = 1; l <= sqrtN; ++l) large[l] = div(N, l);
+    for (int l = 1; l <= sqrtN; ++l) large[l] = div53(N, l);
     for (int p = 2; p <= sqrtN; ++p) if (small[p - 1] < small[p]) {
       const int g = small[p - 1];
       const int snp = sqrtN / p;
       const int psnp = p * snp;
-      const long long np = div(N, p);
-      const long long np2 = div(np, p);
-      const int limL = min<long long>(np2, sqrtN);
+      const long long np = div53(N, p);
+      const int limL = min<long long>(div53(np, p), sqrtN);
       for (int l = 1; l <= snp; ++l) {
         large[l] -= (large[p * l] - g);
       }
       for (int l = snp + 1; l <= limL; ++l) {
-        large[l] -= (small[div(np, l)] - g);
+        large[l] -= (small[div53(np, l)] - g);
       }
       if (snp >= p) {
         for (int r = sqrtN - psnp; r >= 0; --r) {
@@ -72,16 +88,111 @@ struct PrimePi {
     }
     for (int k = 1; k <= sqrtN; ++k) --small[k];
     for (int l = 1; l <= sqrtN; ++l) --large[l];
+    primesLen = small[sqrtN];
+    primes.resize(primesLen);
+    for (int p = 2; p <= sqrtN; ++p) if (small[p - 1] < small[p]) {
+      primes[small[p - 1]] = p;
+    }
   }
   // Assumes n = floor(N/*)
   inline long long operator()(long long n) const {
-    return (n <= sqrtN) ? small[n] : large[div(N, n)];
+    return (n <= sqrtN) ? small[n] : large[div53(N, n)];
   }
 };
 
 // TODO: general f(p)
 
-// TODO: DFS
+////////////////////////////////////////////////////////////////////////////////
+
+// \sum_{1<=n<=N} 1
+namespace gpf_tree_1 {
+
+PrimePi pi;
+long long ans;
+void dfs(int i, long long n) {
+  {
+    // n p  (primes[i] <= p <= N/n)
+    ans += (pi(div53(pi.N, n)) - i);
+  }
+  for (; i < pi.primesLen; ++i) {
+    const int p = pi.primes[i];
+    long long npe = n * p;
+    for (int e = 1; ; ++e) {
+      const long long npep = npe * p;
+      if (npep > pi.N) {
+        if (e == 1) return;
+        break;
+      }
+      {
+        // n -> n p^e
+        dfs(i + 1, npe);
+      }
+      {
+        // n p^(e+1)
+        ans += 1;
+      }
+      npe = npep;
+    }
+  }
+}
+long long run(long long N) {
+  pi = PrimePi(N);
+  ans = 0;
+  if (1 <= N) {
+    // 1
+    ans += 1;
+  }
+  dfs(0, 1);
+  return ans;
+}
+
+}  // namespace gpf_tree_1
+
+////////////////////////////////////////////////////////////////////////////////
+
+// \sum_{1<=n<=N} \omega(n)
+namespace gpf_tree_omega {
+
+PrimePi pi;
+long long ans;
+void dfs(int i, long long n, int sumE) {
+  {
+    // n p  (primes[i] <= p <= N/n)
+    ans += (pi(div53(pi.N, n)) - i) * (sumE + 1);
+  }
+  for (; i < pi.primesLen; ++i) {
+    const int p = pi.primes[i];
+    long long npe = n * p;
+    for (int e = 1; ; ++e) {
+      const long long npep = npe * p;
+      if (npep > pi.N) {
+        if (e == 1) return;
+        break;
+      }
+      {
+        // n -> n p^e
+        dfs(i + 1, npe, sumE + e);
+      }
+      {
+        // n p^(e+1)
+        ans += (sumE + (e + 1));
+      }
+      npe = npep;
+    }
+  }
+}
+long long run(long long N) {
+  pi = PrimePi(N);
+  ans = 0;
+  if (1 <= N) {
+    // 1
+    ans += 0;
+  }
+  dfs(0, 1, 0);
+  return ans;
+}
+
+}  // namespace gpf_tree_omega
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -116,9 +227,16 @@ void unittest() {
   test(100'000);
   test(300'000);
   test(1'000'000);
+
+  for (int n = 0; n <= 4; ++n) {
+    assert(gpf_tree_1::run(n) == n);
+  }
+  for (long long n = 10; n <= 10'000'000'000LL; n *= 10) {
+    assert(gpf_tree_1::run(n) == n);
+  }
 }
 
-void measurement(long long N, long long expected) {
+void measurement_PrimePi(long long N, long long expected) {
   const auto timerBegin = std::chrono::high_resolution_clock::now();
 
   const PrimePi pi(N);
@@ -126,6 +244,20 @@ void measurement(long long N, long long expected) {
 
   const auto timerEnd = std::chrono::high_resolution_clock::now();
   cerr << "[PrimePi] N = " << N << ": expected = " << expected
+       << ", actual = " << actual << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
+  assert(expected == actual);
+}
+
+void measurement_gpf_tree_1(long long N) {
+  const long long expected = N;
+  const auto timerBegin = std::chrono::high_resolution_clock::now();
+
+  const long long actual = gpf_tree_1::run(N);
+
+  const auto timerEnd = std::chrono::high_resolution_clock::now();
+  cerr << "[gpf_tree_1] N = " << N << ": expected = " << expected
        << ", actual = " << actual << endl;
   cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
       timerEnd - timerBegin).count() << " msec" << endl;
@@ -141,10 +273,22 @@ void yosupo__counting_primes() {
   }
 }
 
+// https://atcoder.jp/contests/xmascon19/tasks/xmascon19_e
+void atcoder__xmascon19__xmascon19_e() {
+  long long N;
+  for (; ~scanf("%lld", &N); ) {
+    const long long ans = gpf_tree_omega::run(N);
+    printf("%lld\n", ans);
+  }
+}
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
-  measurement(100'000'000'000LL, 4118054813LL);
-  measurement(1'000'000'000'000LL, 37607912018LL);
+  measurement_PrimePi(100'000'000'000LL, 4118054813LL);
+  measurement_PrimePi(1'000'000'000'000LL, 37607912018LL);
+  measurement_gpf_tree_1(100'000'000'000LL);
+  measurement_gpf_tree_1(1'000'000'000'000LL);
   // yosupo__counting_primes();
+  // atcoder__xmascon19__xmascon19_e();
   return 0;
 }
