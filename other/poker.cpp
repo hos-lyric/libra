@@ -48,14 +48,22 @@ constexpr char POKER_STR[9][20] = {
   "STRAIGHT_FLUSH",
 };
 
-// Parses a card in a format as "C2".
+// Parses a card in a format as "2C" or "C2".
 // Returns  card = 4 (rank - 2) + suit  (2 <= rank <= 14)
 int parseCard(const char *str) {
   int r, s;
-  for (r = 2; r < 15; ++r) if (RANKS_STR[r] == str[1]) break;
-  assert(r < 15);
-  for (s = 0; s < 4; ++s) if (SUITS_STR[s] == str[0]) break;
-  assert(s < 4);
+  for (s = 0; s < 4; ++s) if (SUITS_STR[s] == str[1]) break;
+  if (s < 4) {
+    // "2C"
+    for (r = 2; r < 15; ++r) if (RANKS_STR[r] == str[0]) break;
+    assert(r < 15);
+  } else {
+    // "C2"
+    for (s = 0; s < 4; ++s) if (SUITS_STR[s] == str[0]) break;
+    assert(s < 4);
+    for (r = 2; r < 15; ++r) if (RANKS_STR[r] == str[1]) break;
+    assert(r < 15);
+  }
   return (r - 2) << 2 | s;
 }
 
@@ -128,10 +136,22 @@ pair<Poker, int> poker(const vector<int> &cards) {
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
+#include <iostream>
 
+using std::cerr;
+using std::endl;
 using std::max;
 
 void unittest(bool stress) {
+  assert(parseCard("2C") == ((2 - 2) << 2 | 0));
+  assert(parseCard("D2") == ((2 - 2) << 2 | 1));
+  assert(parseCard("9H") == ((9 - 2) << 2 | 2));
+  assert(parseCard("S9") == ((9 - 2) << 2 | 3));
+  assert(parseCard("TD") == ((10 - 2) << 2 | 1));
+  assert(parseCard("CT") == ((10 - 2) << 2 | 0));
+  assert(parseCard("SA") == ((14 - 2) << 2 | 3));
+  assert(parseCard("AH") == ((14 - 2) << 2 | 2));
+
 #define test(c0, c1, c2, c3, c4, hand, tiebreaker) assert(poker({parseCard(c0), parseCard(c1), parseCard(c2), parseCard(c3), parseCard(c4)}) == make_pair(hand, tiebreaker))
   test("CA", "CJ", "CK", "CQ", "CT", STRAIGHT_FLUSH, 14);
   test("DT", "D9", "D8", "D7", "D6", STRAIGHT_FLUSH, 10);
@@ -239,6 +259,6 @@ void unittest(bool stress) {
 }
 
 int main() {
-  unittest(true);
+  unittest(true); cerr << "PASSED unittest" << endl;
   return 0;
 }
