@@ -1,5 +1,5 @@
-#ifndef LIBRA_ALGEBRA_MODINT_H_
-#define LIBRA_ALGEBRA_MODINT_H_
+#ifndef LIBRA_GRAPH_GRAPH_H_
+#define LIBRA_GRAPH_GRAPH_H_
 
 #include <assert.h>
 #include <ostream>
@@ -17,9 +17,6 @@ struct Graph {
   vector<pair<int, int>> edges;
   vector<int> pt;
   vector<int> zu;
-  int operator[](int j) const {
-    return zu[j];
-  }
 
   Graph() : n(0), edges() {}
   explicit Graph(int n_) : n(n_), edges() {}
@@ -54,11 +51,17 @@ struct Graph {
       }
     }
   }
+
+  inline int deg(int u) const {
+    return pt[u + 1] - pt[u];
+  }
+  inline int operator[](int j) const {
+    return zu[j];
+  }
   friend ostream &operator<<(ostream &os, const Graph &g) {
-    os << "Graph(n=" << g.n << "; ";
+    os << "Graph(n=" << g.n << ";";
     for (int u = 0; u < g.n; ++u) {
-      if (u != 0) os << ", ";
-      os << u << ":[";
+      os << " " << u << ":[";
       for (int j = g.pt[u]; j < g.pt[u + 1]; ++j) {
         if (j != g.pt[u]) os << ",";
         os << g[j];
@@ -71,4 +74,4 @@ struct Graph {
 };
 ////////////////////////////////////////////////////////////////////////////////
 
-#endif  // LIBRA_ALGEBRA_MODINT_H_
+#endif  // LIBRA_GRAPH_GRAPH_H_

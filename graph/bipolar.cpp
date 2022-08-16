@@ -32,14 +32,12 @@ struct Bipolar {
     dis[u] = low[u] = zeit++;
     for (int j = g.pt[u]; j < g.pt[u + 1]; ++j) {
       const int v = g[j];
-      if (par[u] != v) {
-        if (~dis[v]) {
-          if (low[u] > dis[v]) low[u] = dis[v];
-        } else {
-          par[v] = u;
-          dfs(v);
-          if (low[u] > low[v]) low[u] = low[v];
-        }
+      if (~dis[v]) {
+        if (low[u] > dis[v]) low[u] = dis[v];
+      } else {
+        par[v] = u;
+        dfs(v);
+        if (low[u] > low[v]) low[u] = low[v];
       }
     }
   }
