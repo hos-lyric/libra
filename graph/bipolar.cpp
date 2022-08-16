@@ -1,8 +1,8 @@
 #include <assert.h>
-#include <utility>
 #include <vector>
 
-using std::pair;
+#include "graph.h"
+
 using std::vector;
 
 // Creates us: {0, ..., n-1} -> V,  ord: V -> {0, ..., n-1}
@@ -11,19 +11,16 @@ using std::vector;
 // For the graph with V = {s, t}, E = {}, run(s, t) returns false.
 struct Bipolar {
   int n;
-  vector<pair<int, int>> edges;
+  Graph g;
   vector<int> us;
   vector<int> ord;
 
-  Bipolar(int n_) : n(n_), edges(), us(), ord() {}
+  Bipolar() : n(0), g(), us(), ord() {}
+  explicit Bipolar(int n_) : n(n_), g(n_), us(), ord() {}
   void ae(int u, int v) {
-    assert(0 <= u); assert(u < n);
-    assert(0 <= v); assert(v < n);
-    edges.emplace_back(u, v);
+    g.ae(u, v);
   }
 
-  vector<int> pt;
-  vector<int> g;
   // with edge s-t (visited first) added
   int preLen;
   vector<int> pre;
@@ -33,7 +30,7 @@ struct Bipolar {
   void dfs(int u) {
     pre[preLen++] = u;
     dis[u] = low[u] = zeit++;
-    for (int j = pt[u]; j < pt[u + 1]; ++j) {
+    for (int j = g.pt[u]; j < g.pt[u + 1]; ++j) {
       const int v = g[j];
       if (par[u] != v) {
         if (~dis[v]) {
@@ -53,21 +50,7 @@ struct Bipolar {
     us.clear();
     ord.clear();
 
-    const int edgesLen = edges.size();
-    pt.assign(n + 2, 0);
-    for (int i = 0; i < edgesLen; ++i) {
-      const int u = edges[i].first, v = edges[i].second;
-      ++pt[u + 2];
-      ++pt[v + 2];
-    }
-    for (int u = 2; u <= n; ++u) pt[u + 1] += pt[u];
-    g.resize(2 * edgesLen);
-    for (int i = 0; i < edgesLen; ++i) {
-      const int u = edges[i].first, v = edges[i].second;
-      g[pt[u + 1]++] = v;
-      g[pt[v + 1]++] = u;
-    }
-
+    g.build(false);
     preLen = 0;
     pre.resize(n);
     par.assign(n, -1);
@@ -79,7 +62,7 @@ struct Bipolar {
     dis[s] = low[s] = zeit++;
     par[t] = s;
     dfs(t);
-    if (n == 2 && edges.empty()) {
+    if (n == 2 && g.edges.empty()) {
       // can be a corner case
       return false;
     }
@@ -135,9 +118,11 @@ struct Bipolar {
 
 #include <algorithm>
 #include <iostream>
+#include <utility>
 
 using std::cerr;
 using std::endl;
+using std::pair;
 using std::swap;
 
 unsigned xrand() {
