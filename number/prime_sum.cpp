@@ -8,12 +8,12 @@ using std::vector;
 
 // floor(a/b)  by double
 //   0 <= a <= 2^53
-//   1 <= b <= 2^63 - 1
+//   1 <= b <= 2^53
 //   Proof (assuming IEEE 754):
+//     a, b, floor(a/b): representable
 //     Case. a = 0
 //       OK
 //     Case. 1 <= a <= 2^53 - 1:
-//       floor(a/b) can be represented
 //       take e s.t. 2^e <= a/b < 2^(e+1)  (0 <= e <= 52)
 //       in [2^e, 2^(e+1)], the gaps between doubles are 2^(e-52)
 //       (floor(a/b) + 1) - a/b >= 1/b >= 2^e/a > 2^(e-53)
@@ -23,17 +23,20 @@ using std::vector;
 //       OK when 2^e = a/b
 
 // floor(sqrt(n))  by double
-//   0 <= n <= 2^52
+//   0 <= n <= (2^26 + 1)^2 - 2
 //   Proof (assuming IEEE 754):
+//     n, floor(sqrt(n)): representable
 //     Case. n = 0:
 //       OK
 //     Case. 1 <= n <= 2^52 - 1:
 //       m := floor(sqrt(n))
 //       take e s.t. 2^e <= m < 2^(e+1)  (0 <= e <= 25)
+//       in [2^e, 2^(e+1)], the gaps between doubles are 2^(e-52)
 //       (m + 1) - sqrt(n) >= (m+1) - sqrt((m+1)^2-1)
 //                         >= 1 / (2(m+1)) >= 2^(-e-2) > 2^(e-53)
 //       therefore (the nearest double to sqrt(n)) < m + 1
-//     Case. n = 2^52:
+//     Case. 2^52 <= n <= (2^26 + 1)^2 - 2
+//       floor(sqrt(n)) = 2^26
 //       OK
 
 // \sum_{p<=n} f(p)  for floor(N/*)
