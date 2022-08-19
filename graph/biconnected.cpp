@@ -7,10 +7,10 @@ using std::vector;
 
 // gg: bipartite graph between {vertex} and {biconnected component}
 //   (gg.n - n) biconnected components
-// tree: DFS tree
+// f: DFS forest
 struct Biconnected {
   int n;
-  Graph g, tree, gg;
+  Graph g, f, gg;
 
   Biconnected() : n(0), stackLen(0), zeit(0) {}
   explicit Biconnected(int n_) : n(n_), g(n_), stackLen(0), zeit(0) {}
@@ -31,7 +31,7 @@ struct Biconnected {
       if (~dis[v]) {
         if (low[u] > dis[v]) low[u] = dis[v];
       } else {
-        tree.ae(u, v);
+        f.ae(u, v);
         par[v] = u;
         rs[v] = rs[u];
         dfs(v);
@@ -51,7 +51,7 @@ struct Biconnected {
   }
   void build() {
     g.build(false);
-    tree = Graph(n);
+    f = Graph(n);
     gg = Graph(n);
     stack.resize(n);
     par.assign(n, -1);
@@ -65,7 +65,7 @@ struct Biconnected {
       rs[u] = u;
       dfs(u);
     }
-    tree.build(true);
+    f.build(true);
     gg.build(false);
   }
 
@@ -75,17 +75,17 @@ struct Biconnected {
     return (gg.deg(u) >= 2);
   }
 
-  // Returns w s.t. w is a child of u and a descendant of v in the DFS tree.
+  // Returns w s.t. w is a child of u and a descendant of v in the DFS forest.
   // Returns -1 instead if v is not a descendant of u
   //   O(log(deg(u))) time
   int dive(int u, int v) const {
     if (dis[u] <= dis[v] && fin[v] <= fin[u]) {
-      int j0 = tree.pt[u], j1 = tree.pt[u + 1];
+      int j0 = f.pt[u], j1 = f.pt[u + 1];
       for (; j0 + 1 < j1; ) {
         const int j = (j0 + j1) / 2;
-        ((dis[tree[j]] <= dis[v]) ? j0 : j1) = j;
+        ((dis[f[j]] <= dis[v]) ? j0 : j1) = j;
       }
-      return tree[j0];
+      return f[j0];
     } else {
       return -1;
     }
@@ -157,6 +157,11 @@ void unittest() {
     }
     {
       ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=0;)");
+    }
+    {
+      ostringstream oss;
       oss << b.gg;
       assert(oss.str() == "Graph(n=0;)");
     }
@@ -169,6 +174,11 @@ void unittest() {
       ostringstream oss;
       oss << b.g;
       assert(oss.str() == "Graph(n=1; 0:[0,0])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=1; 0:[])");
     }
     {
       ostringstream oss;
@@ -186,6 +196,11 @@ void unittest() {
       ostringstream oss;
       oss << b.g;
       assert(oss.str() == "Graph(n=2; 0:[1,1] 1:[0,0])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=2; 0:[1] 1:[])");
     }
     {
       ostringstream oss;
@@ -212,6 +227,11 @@ void unittest() {
       ostringstream oss;
       oss << b.g;
       assert(oss.str() == "Graph(n=5; 0:[1,2] 1:[0,2,3,4] 2:[0,1] 3:[1,4] 4:[1,3])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=5; 0:[1] 1:[2,3] 2:[] 3:[4] 4:[])");
     }
     {
       ostringstream oss;
@@ -260,6 +280,15 @@ void unittest() {
           " 5:[] 6:[7,8] 7:[6,8] 8:[0,7,6,9,16,10] 9:[8,10,16]"
           " 10:[9,16,8] 11:[16] 12:[13,17] 13:[12,14] 14:[16,13]"
           " 15:[] 16:[10,8,9,16,16,11,14,17] 17:[16,12] 18:[1] 19:[1])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=20;"
+          " 0:[2,8] 1:[18,19] 2:[3] 3:[4] 4:[]"
+          " 5:[] 6:[] 7:[6] 8:[7,9] 9:[10]"
+          " 10:[16] 11:[] 12:[17] 13:[12] 14:[13]"
+          " 15:[] 16:[11,14] 17:[] 18:[] 19:[])");
     }
     {
       ostringstream oss;
