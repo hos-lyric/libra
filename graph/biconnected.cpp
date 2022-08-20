@@ -76,10 +76,10 @@ struct Biconnected {
   }
 
   // Returns w s.t. w is a child of u and a descendant of v in the DFS forest.
-  // Returns -1 instead if v is not a descendant of u
+  // Returns -1 instead if v is not a proper descendant of u
   //   O(log(deg(u))) time
   int dive(int u, int v) const {
-    if (dis[u] <= dis[v] && fin[v] <= fin[u]) {
+    if (dis[u] < dis[v] && dis[v] < fin[u]) {
       int j0 = f.pt[u], j1 = f.pt[u + 1];
       for (; j0 + 1 < j1; ) {
         const int j = (j0 + j1) / 2;
@@ -127,25 +127,59 @@ using std::cerr;
 using std::endl;
 using std::ostringstream;
 
+void test_dive(const Biconnected &b) {
+  const int n = b.n;
+  vector<vector<int>> d(n, vector<int>(n, n));
+  for (int u = 0; u < n; ++u) d[u][u] = 0;
+  for (const auto edge : b.f.edges) {
+    const int u = edge.first, v = edge.second;
+    d[u][v] = d[v][u] = 1;
+  }
+  for (int w = 0; w < n; ++w) for (int u = 0; u < n; ++u) for (int v = 0; v < n; ++v) {
+    if (d[u][v] > d[u][w] + d[w][v]) {
+      d[u][v] = d[u][w] + d[w][v];
+    }
+  }
+  for (int u = 0; u < n; ++u) {
+    int r = u;
+    for (int v = 0; v < n; ++v) if (d[u][v] < n) {
+      if (r > v) {
+        r = v;
+      }
+    }
+    for (int v = 0; v < n; ++v) {
+      int vv = -1;
+      if (d[u][v] < n && u != v && d[r][u] + d[u][v] == d[r][v]) {
+        for (int w = 0; w < n; ++w) if (d[u][w] == 1 && d[r][u] + 1 == d[r][w] && d[u][v] == 1 + d[w][v]) {
+          assert(!~vv);
+          vv = w;
+        }
+      }
+      assert(vv == b.dive(u, v));
+    }
+  }
+}
+
 void test_isStillReachable(const Biconnected &b) {
   const int n = b.n;
   for (int t = 0; t < n; ++t) {
-    vector<vector<int>> d(n, vector<int>(n, 0));
-    for (int u = 0; u < n; ++u) if (t != u) d[u][u] = 1;
+    vector<vector<int>> d(n, vector<int>(n, n));
+    for (int u = 0; u < n; ++u) if (t != u) d[u][u] = 0;
     for (const auto edge : b.g.edges) {
       const int u = edge.first, v = edge.second;
       if (t != u && t != v) d[u][v] = d[v][u] = 1;
     }
     for (int w = 0; w < n; ++w) for (int u = 0; u < n; ++u) for (int v = 0; v < n; ++v) {
-      d[u][v] |= d[u][w] & d[w][v];
+      if (d[u][v] > d[u][w] + d[w][v]) {
+        d[u][v] = d[u][w] + d[w][v];
+      }
     }
     for (int u = 0; u < n; ++u) for (int v = 0; v < n; ++v) if (t != u && t != v) {
-      if((d[u][v] != 0) != b.isStillReachable(t, u, v)){
-      }
-      assert((d[u][v] != 0) == b.isStillReachable(t, u, v));
+      assert((d[u][v] < n) == b.isStillReachable(t, u, v));
     }
   }
 }
+
 void unittest() {
   {
     Biconnected b(0);
@@ -243,6 +277,7 @@ void unittest() {
     assert(!b.isArt(2));
     assert(!b.isArt(3));
     assert(!b.isArt(4));
+    test_dive(b);
     test_isStillReachable(b);
   }
   {
@@ -321,6 +356,7 @@ void unittest() {
     assert(!b.isArt(17));
     assert(!b.isArt(18));
     assert(!b.isArt(19));
+    test_dive(b);
     test_isStillReachable(b);
   }
 }
