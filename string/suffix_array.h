@@ -20,11 +20,8 @@ using std::vector;
 template <class String> vector<int> suffixArrayRec(const String &as) {
   const int n = as.size();
   if (n == 0) return {};
-  auto minA = as[0], maxA = as[0];
-  for (int u = 0; u < n; ++u) {
-    if (minA > as[u]) minA = as[u];
-    if (maxA < as[u]) maxA = as[u];
-  }
+  const auto minmaxA = minmax_element(as.begin(), as.end());
+  const auto minA = *minmaxA.first, maxA = *minmaxA.second;
   if (static_cast<unsigned long long>(maxA) - minA >=
       static_cast<unsigned long long>(n)) {
     vector<int> us(n);
@@ -130,7 +127,7 @@ template <class String> vector<int> suffixArrayRec(const String &as) {
 struct SuffixArray {
   int n;
   bool rmq;
-  vector<int> us, su, hs;
+  vector<int> us, su, hs, bsr;
   SuffixArray() : n(0), rmq(false) {}
   SuffixArray(const string &as, bool rmq_) : rmq(rmq_) { build(as); }
   SuffixArray(const vector<int> &as, bool rmq_) : rmq(rmq_) { build(as); }
@@ -156,6 +153,9 @@ struct SuffixArray {
           hes[n + i] = min(hes[i], hes[i + (1 << e)]);
         }
       }
+      bsr.resize(n + 1);
+      bsr[0] = -1;
+      for (int i = 1; i <= n; ++i) bsr[i] = bsr[i >> 1] + 1;
     }
   }
   // Returns longest common prefix of as[u, n) and as[v, n).
@@ -165,7 +165,7 @@ struct SuffixArray {
     if (u == v) return n - u;
     int i = su[u], j = su[v];
     if (i > j) swap(i, j);
-    const int e = 31 - __builtin_clz(j - i);
+    const int e = bsr[j - i];
     return min(hs[e * n + i + 1], hs[e * n + j + 1 - (1 << e)]);
   }
 };

@@ -14,7 +14,7 @@ unsigned xrand() {
   unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
 }
 
-// String: string, vector
+// String: string, vector<int>, vector<long long>
 template <class String> void test(const String &as) {
   const int n = as.size();
   vector<String> suffix(n);
