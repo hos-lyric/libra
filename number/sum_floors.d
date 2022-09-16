@@ -16,6 +16,7 @@ do {
     const aa = a - q * m;
     const ll = divFloor(aa * l + b, m) + 1;
     const rr = divFloor(aa * r + b, m);
+    // TODO: overflow if ll or rr is big in recursion
     sum += q * ((r + 1) * r / 2 - l * (l - 1) / 2) + r * rr - (l - 1) * (ll - 1) + (rr - ll + 1);
     a = m; m = aa; l = -rr; r = -ll;
   }
