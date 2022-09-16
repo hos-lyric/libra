@@ -5,8 +5,12 @@
 
 using std::vector;
 
+// TODO: edge ID
+// TODO: test lowlink
+
 // gg: bipartite graph between {vertex} and {biconnected component}
 //   (gg.n - n) biconnected components
+//   isolated point: not regarded as biconnected component (==> isolated in gg)
 // f: DFS forest
 struct Biconnected {
   int n;
@@ -23,11 +27,13 @@ struct Biconnected {
   vector<int> par, rs;
   int zeit;
   vector<int> dis, fin, low;
+  vector<int> cntPar;
   void dfs(int u) {
     stack[stackLen++] = u;
     dis[u] = low[u] = zeit++;
     for (int j = g.pt[u]; j < g.pt[u + 1]; ++j) {
       const int v = g[j];
+      if (par[u] == v && !cntPar[u]++) continue;
       if (~dis[v]) {
         if (low[u] > dis[v]) low[u] = dis[v];
       } else {
@@ -36,7 +42,7 @@ struct Biconnected {
         rs[v] = rs[u];
         dfs(v);
         if (low[u] > low[v]) low[u] = low[v];
-        if (dis[u] == low[v]) {
+        if (dis[u] <= low[v]) {
           const int x = gg.n++;
           for (; ; ) {
             const int w = stack[--stackLen];
@@ -60,6 +66,7 @@ struct Biconnected {
     dis.assign(n, -1);
     fin.assign(n, -1);
     low.assign(n, -1);
+    cntPar.assign(n, 0);
     for (int u = 0; u < n; ++u) if (!~dis[u]) {
       stackLen = 0;
       rs[u] = u;
@@ -247,9 +254,8 @@ void unittest() {
     assert(b.isStillReachable(1, 0, 0));
   }
   {
-    // Biconnected b;
-    // b = Biconnected(5);
-    Biconnected b(5);
+    Biconnected b;
+    b = Biconnected(5);
     b.ae(0, 1);
     b.ae(0, 2);
     b.ae(1, 2);
