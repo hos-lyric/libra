@@ -53,9 +53,12 @@ template <class S, class T> T pathUnder(S m, S a, S b, S n, T e, T x, T y) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
 #include <map>
 #include <string>
 
+using std::cerr;
+using std::endl;
 using std::map;
 using std::string;
 
@@ -147,7 +150,7 @@ void unittest_pathUnder() {
 }
 
 int main() {
-  unittest_MinMaxRem();
-  unittest_pathUnder();
+  unittest_MinMaxRem(); cerr << "PASSED unittest_MinMaxRem" << endl;
+  unittest_pathUnder(); cerr << "PASSED unittest_pathUnder" << endl;
   return 0;
 }
