@@ -97,6 +97,8 @@ void unittest_dfs(int n, int pos, int now, int dep, int &counter, vector<int> &o
         que.pop();
       }
       assert(expected == actual);
+      assert(expected.size() == que.dirs.size());
+      assert(expected.size() == que.ls.size() + que.rs.size());
     }
     const int bsr = 31 - __builtin_clz(n);
     for (int a = 0; a < n; ++a) {
