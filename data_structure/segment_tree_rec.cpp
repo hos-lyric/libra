@@ -789,7 +789,7 @@ struct Node {
     }
   }
   void pull(const Node &l, const Node &r) {
-    lcm = (l.lcm < INF && r.lcm < INF) ? min(l.lcm / gcd(l.lcm, r.lcm) * r.lcm, INF) : INF;
+    lcm = (l.lcm <= INF / r.lcm) ? min(l.lcm / gcd(l.lcm, r.lcm) * r.lcm, INF) : INF;
     mx = max(l.mx, r.mx);
     sz = l.sz + r.sz;
     sum = l.sum + r.sum;
