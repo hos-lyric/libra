@@ -7,7 +7,7 @@ using std::vector;
 //   T()  should return the identity.
 //   T(S s)  should represent a single element of the array.
 //   T::push(T &l, T &r)  should push the lazy update.
-//   T::merge(const T &l, const T &r)  should merge two intervals.
+//   T::pull(const T &l, const T &r)  should pull two intervals.
 template <class T> struct SegmentTreeRec {
   int logN, n;
   vector<T> ts;
@@ -27,14 +27,14 @@ template <class T> struct SegmentTreeRec {
     return ts[n + i];
   }
   void build() {
-    for (int u = n; --u; ) merge(u);
+    for (int u = n; --u; ) pull(u);
   }
 
   inline void push(int u) {
     ts[u].push(ts[u << 1], ts[u << 1 | 1]);
   }
-  inline void merge(int u) {
-    ts[u].merge(ts[u << 1], ts[u << 1 | 1]);
+  inline void pull(int u) {
+    ts[u].pull(ts[u << 1], ts[u << 1 | 1]);
   }
 
   // Applies T::f(args...) to [a, b).
@@ -60,10 +60,10 @@ template <class T> struct SegmentTreeRec {
     for (int h = 1; h <= logN; ++h) {
       const int aa = a >> h, bb = b >> h;
       if (aa == bb) {
-        if ((aa << h) != a || (bb << h) != b) merge(aa);
+        if ((aa << h) != a || (bb << h) != b) pull(aa);
       } else {
-        if ((aa << h) != a) merge(aa);
-        if ((bb << h) != b) merge(bb);
+        if ((aa << h) != a) pull(aa);
+        if ((bb << h) != b) pull(bb);
       }
     }
   }
@@ -72,7 +72,7 @@ template <class T> struct SegmentTreeRec {
     const int u0 = u;
     for (; ; ) {
       if ((ts[u].*f)(args...)) {
-        for (; u0 < u && (u & 1); merge(u >>= 1)) {}
+        for (; u0 < u && (u & 1); pull(u >>= 1)) {}
         if (u0 == u) return;
         ++u;
       } else {
@@ -98,10 +98,10 @@ template <class T> struct SegmentTreeRec {
     }
     T prodL, prodR, t;
     for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
-      if (aa & 1) { t.merge(prodL, ts[aa++]); prodL = t; }
-      if (bb & 1) { t.merge(ts[--bb], prodR); prodR = t; }
+      if (aa & 1) { t.pull(prodL, ts[aa++]); prodL = t; }
+      if (bb & 1) { t.pull(ts[--bb], prodR); prodR = t; }
     }
-    t.merge(prodL, prodR);
+    t.pull(prodL, prodR);
     return t;
   }
 
@@ -186,6 +186,10 @@ template <class T> struct SegmentTreeRec {
 
 #include <stdio.h>
 #include <algorithm>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 unsigned xrand() {
   static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
@@ -219,7 +223,7 @@ struct Node {
       lz = INF;
     }
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     mx = max(l.mx, r.mx);
     mx2 = max((l.mx == mx) ? l.mx2 : l.mx, (r.mx == mx) ? r.mx2 : r.mx);
     mxNum = ((l.mx == mx) ? l.mxNum : 0) + ((r.mx == mx) ? r.mxNum : 0);
@@ -378,7 +382,7 @@ constexpr long long INF = 1001001001001001001LL;
 struct Func {
   long long a, b, c;
   Func() : a(0), b(-INF), c(+INF) {}
-  Func(long long a, long long b, long long c) : a(a), b(b), c(c) {}
+  Func(long long a_, long long b_, long long c_) : a(a_), b(b_), c(c_) {}
   void add(long long val) {
     a += val;
     b += val;
@@ -405,7 +409,7 @@ struct Node {
     if (!r.ch(lz)) assert(false);
     lz = Func();
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     mn = min(l.mn, r.mn);
     mn2 = min((l.mn == mn) ? l.mn2 : l.mn, (r.mn == mn) ? r.mn2 : r.mn);
     mnNum = ((l.mn == mn) ? l.mnNum : 0) + ((r.mn == mn) ? r.mnNum : 0);
@@ -784,7 +788,7 @@ struct Node {
       lz = -1;
     }
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     lcm = (l.lcm < INF && r.lcm < INF) ? min(l.lcm / gcd(l.lcm, r.lcm) * r.lcm, INF) : INF;
     mx = max(l.mx, r.mx);
     sz = l.sz + r.sz;
@@ -974,7 +978,7 @@ struct Node {
   Node() : sum(0), bor(0), sz(0) {}
   Node(u128 val) : sum(val), bor(val), sz(1) {}
   void push(Node &, Node &) {}
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     sum = l.sum + r.sum;
     bor = l.bor | r.bor;
     sz = l.sz + r.sz;
@@ -1155,7 +1159,7 @@ struct Node {
       lz = ~(u128)0;
     }
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     if (len == 0) alloc(l.len + 1);
     any = l.any || r.any;
     if (r.len == 0) {
@@ -1302,11 +1306,11 @@ void solve() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void unittests() {
-  hdu_5306::unittest();
-  yosupo_range_chmin_chmax_add_range_sum::unittest();
-  yukicoder_880::unittest();
-  uoj_671_slow::unittest();
-  uoj_671::unittest();
+  hdu_5306::unittest(); cerr << "PASSED hdu_5306::unittest" << endl;
+  yosupo_range_chmin_chmax_add_range_sum::unittest(); cerr << "PASSED yosupo_range_chmin_chmax_add_range_sum::unittest" << endl;
+  yukicoder_880::unittest(); cerr << "PASSED yukicoder_880::unittest" << endl;
+  uoj_671_slow::unittest(); cerr << "PASSED uoj_671_slow::unittest" << endl;
+  uoj_671::unittest(); cerr << "PASSED uoj_671::unittest" << endl;
 }
 
 int main() {
