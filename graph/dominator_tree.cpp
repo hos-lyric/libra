@@ -11,13 +11,16 @@ using std::vector;
 // idom[v] = -1 for v unreachable from src
 // semi[v]: min ids[u] s.t. u->w[1]->...->w[k-1]->v, ids[w[*]] > ids[v]
 //   sdom[v] = us[semi[v]]: semidominator
+// us[0, usLen), ids: DFS order
+// par: DFS tree
 // O(|E| log |V|) time
 struct DominatorTree {
   int n;
   vector<vector<int>> graph, hparg;
   vector<int> idom, semi;
   int usLen;
-  vector<int> us, ids, par, uf, ums;
+  vector<int> us, ids, par;
+  vector<int> uf, ums;
   DominatorTree() {}
   DominatorTree(int n_) : n(n_), graph(n_), hparg(n_) {}
   void ae(int u, int v) {
@@ -78,8 +81,7 @@ using std::cerr;
 using std::endl;
 
 void unittest() {
-  // Lengauer, Thomas, Tarjan
-  // "A fast algorithm for finding dominators in a flowgraph"
+  // Lengauer, Tarjan, "A fast algorithm for finding dominators in a flowgraph"
   {
     DominatorTree dom(13);
     dom.ae(0, 3);
