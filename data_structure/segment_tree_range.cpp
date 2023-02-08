@@ -7,7 +7,7 @@ using std::vector;
 //   T()  should return the identity.
 //   T(S s)  should represent a single element of the array.
 //   T::push(T &l, T &r)  should push the lazy update.
-//   T::merge(const T &l, const T &r)  should merge two intervals.
+//   T::pull(const T &l, const T &r)  should pull two intervals.
 template <class T> struct SegmentTreeRange {
   int logN, n;
   vector<T> ts;
@@ -27,14 +27,14 @@ template <class T> struct SegmentTreeRange {
     return ts[n + i];
   }
   void build() {
-    for (int u = n; --u; ) merge(u);
+    for (int u = n; --u; ) pull(u);
   }
 
   inline void push(int u) {
     ts[u].push(ts[u << 1], ts[u << 1 | 1]);
   }
-  inline void merge(int u) {
-    ts[u].merge(ts[u << 1], ts[u << 1 | 1]);
+  inline void pull(int u) {
+    ts[u].pull(ts[u << 1], ts[u << 1 | 1]);
   }
 
   // Applies T::f(args...) to [a, b).
@@ -59,10 +59,10 @@ template <class T> struct SegmentTreeRange {
     for (int h = 1; h <= logN; ++h) {
       const int aa = a >> h, bb = b >> h;
       if (aa == bb) {
-        if ((aa << h) != a || (bb << h) != b) merge(aa);
+        if ((aa << h) != a || (bb << h) != b) pull(aa);
       } else {
-        if ((aa << h) != a) merge(aa);
-        if ((bb << h) != b) merge(bb);
+        if ((aa << h) != a) pull(aa);
+        if ((bb << h) != b) pull(bb);
       }
     }
   }
@@ -83,10 +83,10 @@ template <class T> struct SegmentTreeRange {
     }
     T prodL, prodR, t;
     for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
-      if (aa & 1) { t.merge(prodL, ts[aa++]); prodL = t; }
-      if (bb & 1) { t.merge(ts[--bb], prodR); prodR = t; }
+      if (aa & 1) { t.pull(prodL, ts[aa++]); prodL = t; }
+      if (bb & 1) { t.pull(ts[--bb], prodR); prodR = t; }
     }
-    t.merge(prodL, prodR);
+    t.pull(prodL, prodR);
     return t;
   }
 
@@ -171,6 +171,10 @@ template <class T> struct SegmentTreeRange {
 
 #include <stdio.h>
 #include <algorithm>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 unsigned xrand() {
   static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
@@ -197,7 +201,7 @@ struct Node {
     r.add(lz);
     lz = 0;
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     sz = l.sz + r.sz;
     sum = l.sum + r.sum;
   }
@@ -359,7 +363,7 @@ struct Node {
     lzB = 1;
     lzC = 0;
   }
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     sz = (l.sz + r.sz) % MO;
     sum = (l.sum + r.sum) % MO;
   }
@@ -425,8 +429,8 @@ void solve() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void unittests() {
-  range_add_range_sum::unittest();
-  yosupo_range_affine_range_sum::unittest();
+  range_add_range_sum::unittest(); cerr << "PASSED range_add_range_sum::unittest" << endl;
+  yosupo_range_affine_range_sum::unittest(); cerr << "PASSED yosupo_range_affine_range_sum::unittest" << endl;
 }
 
 int main() {

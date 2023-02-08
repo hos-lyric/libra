@@ -4,8 +4,11 @@
 using std::vector;
 
 // op: T * T -> T, associative
-template <class T, T (*op)(const T &, const T &)> struct Queue {
+template <class T, class Op> struct Queue {
+  const Op op;
   vector<T> as, aas, bs, bbs;
+
+  Queue(Op op_) : op(op_) {}
 
   void reserve(int n) {
     as.reserve(n);
@@ -56,13 +59,19 @@ template <class T, T (*op)(const T &, const T &)> struct Queue {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
 #include <string>
+
+using std::cerr;
+using std::endl;
 using std::string;
+
 string cat(const string &a, const string &b) {
   return a + b;
 }
+
 void unittest() {
-  Queue<string, cat> que;
+  Queue<string, decltype(&cat)> que(cat);
   que.reserve(1);
   assert(que.size() == 0); assert(que.empty());
   que.push("0");
@@ -84,6 +93,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }

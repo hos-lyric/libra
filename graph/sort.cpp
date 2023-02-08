@@ -6,6 +6,7 @@ using std::vector;
 // Sorts [first, last) so that for any adjacent elements a, b in this order,
 // comp(a, b) || !comp(b, a)
 //   [buffer, buffer + floor((last - first) / 2))  must be available.
+//   <= (n (ceil(log_2 n) - 1) + 1) calls to comp for n = last - first >= 1
 template <class Iter, class Comp>
 void mergeSort(Iter first, Iter last, Iter buffer, Comp comp) {
   if (last - first >= 2) {
@@ -31,6 +32,10 @@ template <class T, class Comp> void mergeSort(vector<T> &as, Comp comp) {
 
 #include <assert.h>
 #include <functional>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 unsigned xrand() {
   static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
@@ -57,6 +62,8 @@ void unittest() {
   }
   {
     for (int N = 0; N <= 100; ++N) {
+      int e = 0;
+      for (; !(N <= 1 << e); ++e) {}
       for (int caseId = 0; caseId < 100; ++caseId) {
         vector<vector<char>> graph(N, vector<char>(N, '0'));
         for (int u = 0; u < N; ++u) for (int v = u + 1; v < N; ++v) {
@@ -71,10 +78,12 @@ void unittest() {
         for (int j = 0; j < N; ++j) {
           us[j] = j;
         }
-        vector<int> buf(N / 2);
+        int numCalls = 0;
         mergeSort(us, [&](int u, int v) -> bool {
+          ++numCalls;
           return (graph[u][v] == '1');
         });
+        assert(numCalls <= N * (e - 1) + 1);
         vector<int> cnt(N, 0);
         for (int j = 0; j < N; ++j) {
           assert(0 <= us[j]); assert(us[j] < N);
@@ -84,7 +93,7 @@ void unittest() {
           assert(cnt[u] == 1);
         }
         for (int j = 0; j < N - 1; ++j) {
-          assert(graph[us[j]][us[j + 1]] || !graph[us[j + 1]][us[j]]);
+          assert(graph[us[j]][us[j + 1]] == '1' || graph[us[j + 1]][us[j]] != '1');
         }
       }
     }
@@ -92,6 +101,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }

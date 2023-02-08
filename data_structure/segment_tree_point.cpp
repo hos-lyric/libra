@@ -6,7 +6,7 @@ using std::vector;
 // T: monoid representing information of an interval.
 //   T()  should return the identity.
 //   T(S s)  should represent a single element of the array.
-//   T::merge(const T &l, const T &r)  should merge two intervals.
+//   T::pull(const T &l, const T &r)  should pull two intervals.
 template <class T> struct SegmentTreePoint {
   int logN, n;
   vector<T> ts;
@@ -26,18 +26,18 @@ template <class T> struct SegmentTreePoint {
     return ts[n + i];
   }
   void build() {
-    for (int u = n; --u; ) merge(u);
+    for (int u = n; --u; ) pull(u);
   }
 
-  inline void merge(int u) {
-    ts[u].merge(ts[u << 1], ts[u << 1 | 1]);
+  inline void pull(int u) {
+    ts[u].pull(ts[u << 1], ts[u << 1 | 1]);
   }
 
   // Changes the value of point a to s.
   template <class S> void change(int a, const S &s) {
     assert(0 <= a); assert(a < n);
     ts[a += n] = T(s);
-    for (; a >>= 1; ) merge(a);
+    for (; a >>= 1; ) pull(a);
   }
 
   // Applies T::f(args...) to point a.
@@ -45,7 +45,7 @@ template <class T> struct SegmentTreePoint {
   void ch(int a, F f, Args &&... args) {
     assert(0 <= a); assert(a < n);
     (ts[a += n].*f)(args...);
-    for (; a >>= 1; ) merge(a);
+    for (; a >>= 1; ) pull(a);
   }
 
   // Calculates the product for [a, b).
@@ -55,10 +55,10 @@ template <class T> struct SegmentTreePoint {
     a += n; b += n;
     T prodL, prodR, t;
     for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
-      if (aa & 1) { t.merge(prodL, ts[aa++]); prodL = t; }
-      if (bb & 1) { t.merge(ts[--bb], prodR); prodR = t; }
+      if (aa & 1) { t.pull(prodL, ts[aa++]); prodL = t; }
+      if (bb & 1) { t.pull(ts[--bb], prodR); prodR = t; }
     }
-    t.merge(prodL, prodR);
+    t.pull(prodL, prodR);
     return t;
   }
 
@@ -130,6 +130,10 @@ template <class T> struct SegmentTreePoint {
 
 #include <stdio.h>
 #include <algorithm>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 unsigned xrand() {
   static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
@@ -153,7 +157,7 @@ struct Node {
   long long mn, mx;
   Node() : mn(INF), mx(-INF) {}
   Node(long long val) : mn(val), mx(val) {}
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     mn = min(l.mn, r.mn);
     mx = max(l.mx, r.mx);
   }
@@ -332,7 +336,7 @@ struct Node {
   long long a, b;
   Node() : a(1), b(0) {}
   Node(long long a_, long long b_) : a(a_), b(b_) {}
-  void merge(const Node &l, const Node &r) {
+  void pull(const Node &l, const Node &r) {
     a = (l.a * r.a) % MO;
     b = (l.b * r.a + r.b) % MO;
   }
@@ -394,8 +398,8 @@ void solve() {
 ////////////////////////////////////////////////////////////////////////////////
 
 void unittests() {
-  point_change_range_min_range_max::unittest();
-  yosupo_point_set_range_composite::unittest();
+  point_change_range_min_range_max::unittest(); cerr << "PASSED point_change_range_min_range_max::unittest" << endl;
+  yosupo_point_set_range_composite::unittest(); cerr << "PASSED yosupo_point_set_range_composite::unittest" << endl;
 }
 
 int main() {

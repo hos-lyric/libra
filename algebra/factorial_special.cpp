@@ -33,6 +33,7 @@ template <unsigned M> void precalc() {
     printf("%u,", prod.x);
   }
   printf("};\n");
+  fflush(stdout);
 }
 
 void unittest() {
