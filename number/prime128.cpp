@@ -1,3 +1,5 @@
+// TODO: speed up
+
 #include <assert.h>
 #include <stdio.h>
 #include <algorithm>
@@ -98,7 +100,15 @@ vector<__int128> factorize128(__int128 n) {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+
 void unittest() {
+  assert(factorize128(toInt128("382785853244719627595443384812477912")) ==
+         (vector<__int128>{2, 2, 2, 3, 7, 7, 7, 7, 7, 344415132826727,
+                           2755321062613817}));
   // gcd128
   {
     constexpr __int128 a = 192873419827365198LL;
@@ -158,6 +168,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }
