@@ -1,6 +1,12 @@
-#include <assert.h>
-#include <vector>
 #include "modint128.h"
+
+#include <assert.h>
+#include <iostream>
+#include <sstream>
+#include <vector>
+
+using std::cerr;
+using std::endl;
 
 void unittest() {
   // mul128High
@@ -126,6 +132,12 @@ void unittest() {
   assert(a == b);
   b = MO - 2;
   assert(a != b);
+
+  // std::ostream &operator<<(std::ostream &os, const RMModInt128 &a)
+  a = -2;
+  std::ostringstream oss;
+  oss << a;
+  assert(oss.str() == "1000000000000000012000000000000000025");
 }
 
 // ModInt::inv
@@ -167,7 +179,7 @@ void unittest_inv() {
 }
 
 int main() {
-  unittest();
-  unittest_inv();
+  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_inv(); cerr << "PASSED unittest_inv" << endl;
   return 0;
 }

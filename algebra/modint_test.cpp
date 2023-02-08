@@ -1,8 +1,13 @@
+#include "modint.h"
+
 #include <assert.h>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <vector>
-#include "modint.h"
+
+using std::cerr;
+using std::endl;
 
 void unittest() {
   constexpr int MO = 1000000007;
@@ -96,6 +101,12 @@ void unittest() {
   assert(a == b);
   b = MO - 2;
   assert(a != b);
+
+  // std::ostream &operator<<(std::ostream &os, const RMModInt128 &a)
+  a = -2;
+  std::ostringstream oss;
+  oss << a;
+  assert(oss.str() == "1000000005");
 }
 
 // ModInt::inv
@@ -143,10 +154,10 @@ void solve(const int N, const int A, const unsigned expected) {
   }
 
   const auto timerEnd = std::chrono::high_resolution_clock::now();
-  std::cerr << "N = " << N << ", A = " << A << ": expected = " << expected
-            << ", actual = " << ans << std::endl;
-  std::cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << std::endl;
+  cerr << "N = " << N << ", A = " << A << ": expected = " << expected
+            << ", actual = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
   assert(expected == ans.x);
 }
 void measurement() {
@@ -171,16 +182,16 @@ void measurement_pow() {
   }
 
   const auto timerEnd = std::chrono::high_resolution_clock::now();
-  std::cerr << NUM_CASES << " cases: ans = " << ans << std::endl;
-  std::cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
-      timerEnd - timerBegin).count() << " msec" << std::endl;
+  cerr << NUM_CASES << " cases: ans = " << ans << endl;
+  cerr << std::chrono::duration_cast<std::chrono::milliseconds>(
+      timerEnd - timerBegin).count() << " msec" << endl;
   assert(801522223 == ans.x);
   // 2062 msec @ DAIVRabbit
 }
 
 int main() {
-  unittest();
-  unittest_inv();
+  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_inv(); cerr << "PASSED unittest_inv" << endl;
   measurement();
   measurement_pow();
   return 0;

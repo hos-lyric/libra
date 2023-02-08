@@ -73,7 +73,7 @@ template <int ID> struct RMModInt128 {
   explicit operator bool() const { return y; }
   bool operator==(const RMModInt128 &a) const { return (y == a.y); }
   bool operator!=(const RMModInt128 &a) const { return (y != a.y); }
-  friend std::ostream &operator<<(std::ostream &os, const RMModInt128 &a) { return os << get(); }
+  friend std::ostream &operator<<(std::ostream &os, const RMModInt128 &a) { return os << a.get(); }
 };
 template <int ID> unsigned __int128 RMModInt128<ID>::M;
 template <int ID> unsigned __int128 RMModInt128<ID>::INV_M;
