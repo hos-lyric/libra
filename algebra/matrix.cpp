@@ -8,30 +8,6 @@ using std::pair;
 using std::swap;
 using std::vector;
 
-// det(a + x I), division free
-// O(n^4)
-template <class T> vector<T> charPolyDivFree(const vector<vector<T>> &a) {
-  const int n = a.size();
-  vector<T> ps(n + 1, 0);
-  ps[n] = 1;
-  for (int h = n - 1; h >= 0; --h) {
-    // closed walks at h with repetition allowed from 0, ..., h - 1
-    vector<vector<T>> sub(n, vector<T>(h + 1, 0));
-    for (int i = n; i >= 1; --i) {
-      sub[i - 1][h] += ps[i];
-    }
-    for (int i = n - 1; i >= 1; --i) for (int u = 0; u <= h; ++u) {
-      for (int v = 0; v < h; ++v) {
-        sub[i - 1][v] -= sub[i][u] * a[u][v];
-      }
-    }
-    for (int i = n - 1; i >= 0; --i) for (int u = 0; u <= h; ++u) {
-      ps[i] += sub[i][u] * a[u][h];
-    }
-  }
-  return ps;
-}
-
 // det(a + x I)
 // O(n^3)
 //   Call by value: Modifies a (Watch out when using C-style array!)
@@ -70,6 +46,30 @@ template <class T> vector<T> charPoly(vector<vector<T>> a) {
     }
   }
   return fss[n];
+}
+
+// det(a + x I), division free
+// O(n^4)
+template <class T> vector<T> charPolyDivFree(const vector<vector<T>> &a) {
+  const int n = a.size();
+  vector<T> ps(n + 1, 0);
+  ps[n] = 1;
+  for (int h = n - 1; h >= 0; --h) {
+    // closed walks at h with repetition allowed from 0, ..., h - 1
+    vector<vector<T>> sub(n, vector<T>(h + 1, 0));
+    for (int i = n; i >= 1; --i) {
+      sub[i - 1][h] += ps[i];
+    }
+    for (int i = n - 1; i >= 1; --i) for (int u = 0; u <= h; ++u) {
+      for (int v = 0; v < h; ++v) {
+        sub[i - 1][v] -= sub[i][u] * a[u][v];
+      }
+    }
+    for (int i = n - 1; i >= 0; --i) for (int u = 0; u <= h; ++u) {
+      ps[i] += sub[i][u] * a[u][h];
+    }
+  }
+  return ps;
 }
 
 // det(a + x b)
@@ -220,13 +220,18 @@ pair<vector<vector<T>>, vector<vector<T>>> rankDecompose(vector<vector<T>> a) {
 }
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
+
 #include "modint.h"
+
+using std::cerr;
+using std::endl;
 
 void unittest() {
   constexpr unsigned MO = 998244353;
   using Mint = ModInt<MO>;
 
-  // charPolyDivFree, charPoly
+  // charPoly, charPolyDivFree
   {
     const vector<vector<Mint>> a;
     const vector<Mint> ps = charPoly(a);
@@ -552,6 +557,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }
