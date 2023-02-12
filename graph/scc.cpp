@@ -61,9 +61,69 @@ struct Scc {
   }
 };
 
+// get0(u): should return a neighbor of u and remove it (or -1).
+// get1(u): the same for reversed edge
+template <class Get0, class Get1> struct SccDyn {
+  int n;
+  const Get0 get0;
+  const Get1 get1;
+
+  int l;
+  vector<int> ids;
+  int operator[](int u) const { return ids[u]; }
+
+  SccDyn(int n_, Get0 get0_, Get1 get1_) : n(n_), get0(get0_), get1(get1_) {
+    ids.assign(n, 0);
+    us.clear();
+    for (int u = 0; u < n; ++u) dfs0(u);
+    l = 0;
+    for (int j = n; --j >= 0; ) if (!~ids[us[j]]) { dfs1(us[j]); ++l; }
+  }
+
+  vector<int> us;
+  void dfs0(int u) {
+    if (!ids[u]) {
+      ids[u] = -1;
+      for (; ; ) {
+        const int v = get0(u);
+        if (!~v) break;
+        dfs0(v);
+      }
+      us.push_back(u);
+    }
+  }
+  void dfs1(int u) {
+    if (!~ids[u]) {
+      ids[u] = l;
+      for (; ; ) {
+        const int v = get1(u);
+        if (!~v) break;
+        dfs1(v);
+      }
+    }
+  }
+
+  vector<vector<int>> group() const {
+    assert(~l);
+    vector<vector<int>> uss(l);
+    for (int u = 0; u < n; ++u) uss[ids[u]].push_back(u);
+    return uss;
+  }
+};
+template <class Get0, class Get1>
+SccDyn<Get0, Get1> sccDyn(int n, Get0 get0, Get1 get1) {
+  return SccDyn<Get0, Get1>(n, get0, get1);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-void unittest() {
+#include <algorithm>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+
+void unittest_Scc() {
   Scc scc(11);
   scc.ae(7, 5);
   scc.ae(0, 5);
@@ -84,6 +144,63 @@ void unittest() {
   scc.ae(8, 1);
   scc.ae(6, 8);
   scc.run();
+
+  assert(scc.l == 5);
+  const vector<int> expected{2, 3, 3, 1, 0, 4, 3, 1, 3, 1, 2};
+  for (int u = 0; u < 11; ++u) assert(scc[u] == expected[u]);
+  const vector<vector<int>> uss = scc.group();
+  assert(uss.size() == 5);
+  assert(uss[0] == (vector<int>{4}));
+  assert(uss[1] == (vector<int>{3, 7, 9}));
+  assert(uss[2] == (vector<int>{0, 10}));
+  assert(uss[3] == (vector<int>{1, 2, 6, 8}));
+  assert(uss[4] == (vector<int>{5}));
+}
+
+void unittest_SccDyn() {
+  constexpr int n = 11;
+  vector<vector<int>> graph(n), hparg(n);
+  auto ae = [&](int u, int v) -> void {
+    graph[u].push_back(v);
+    hparg[v].push_back(u);
+  };
+  auto get0 = [&](int u) -> int {
+    if (graph[u].empty()) return -1;
+    const int v = graph[u].back();
+    graph[u].pop_back();
+    return v;
+  };
+  auto get1 = [&](int u) -> int {
+    if (hparg[u].empty()) return -1;
+    const int v = hparg[u].back();
+    hparg[u].pop_back();
+    return v;
+  };
+  ae(7, 5);
+  ae(0, 5);
+  ae(5, 5);
+  ae(0, 6);
+  ae(6, 2);
+  ae(2, 1);
+  ae(1, 6);
+  ae(8, 1);
+  ae(9, 7);
+  ae(3, 9);
+  ae(3, 10);
+  ae(7, 3);
+  ae(0, 10);
+  ae(10, 0);
+  ae(4, 0);
+  ae(4, 0);
+  ae(8, 1);
+  ae(6, 8);
+  // to have the same output as scc
+  for (int u = 0; u < n; ++u) {
+    std::reverse(graph[u].begin(), graph[u].end());
+    std::reverse(hparg[u].begin(), hparg[u].end());
+  }
+  const auto scc = sccDyn(n, get0, get1);
+
   assert(scc.l == 5);
   const vector<int> expected{2, 3, 3, 1, 0, 4, 3, 1, 3, 1, 2};
   for (int u = 0; u < 11; ++u) assert(scc[u] == expected[u]);
@@ -98,7 +215,7 @@ void unittest() {
 
 // https://judge.yosupo.jp/problem/scc
 #include <stdio.h>
-void yosupo_scc() {
+void yosupo__scc() {
   int N, M;
   scanf("%d%d", &N, &M);
   Scc scc(N);
@@ -118,9 +235,44 @@ void yosupo_scc() {
     puts("");
   }
 }
+void yosupo__scc__sccDyn() {
+  int N, M;
+  scanf("%d%d", &N, &M);
+  vector<vector<int>> graph(N), hparg(N);
+  for (int i = 0; i < M; ++i) {
+    int u, v;
+    scanf("%d%d", &u, &v);
+    graph[u].push_back(v);
+    hparg[v].push_back(u);
+  }
+  auto get0 = [&](int u) -> int {
+    if (graph[u].empty()) return -1;
+    const int v = graph[u].back();
+    graph[u].pop_back();
+    return v;
+  };
+  auto get1 = [&](int u) -> int {
+    if (hparg[u].empty()) return -1;
+    const int v = hparg[u].back();
+    hparg[u].pop_back();
+    return v;
+  };
+  const auto scc = sccDyn(N, get0, get1);
+  const vector<vector<int>> uss = scc.group();
+  printf("%d\n", scc.l);
+  for (int x = 0; x < scc.l; ++x) {
+    printf("%d", (int)uss[x].size());
+    for (const int u : uss[x]) {
+      printf(" %d", u);
+    }
+    puts("");
+  }
+}
 
 int main() {
-  unittest();
-  // yosupo_scc();
+  unittest_Scc(); cerr << "PASSED unittest_Scc" << endl;
+  unittest_SccDyn(); cerr << "PASSED unittest_SccDyn" << endl;
+  // yosupo__scc();
+  // yosupo__scc__sccDyn();
   return 0;
 }
