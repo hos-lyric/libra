@@ -1,5 +1,29 @@
 import modint;
 
+// det(x I + a), division free
+// O(n^4)
+T[] charPolyDivFree(T)(const(T[][]) a) {
+  const n = cast(int)(a.length);
+  auto ps = new T[n + 1];
+  ps[n] = 1;
+  foreach_reverse (h; 0 .. n) {
+    // closed walks at h with repetition allowed from 0, ..., h - 1
+    auto sub = new T[][](n, h + 1);
+    foreach_reverse (i; 1 .. n + 1) {
+      sub[i - 1][h] += ps[i];
+    }
+    foreach_reverse (i; 1 .. n) foreach (u; 0 .. h + 1) {
+      foreach (v; 0 .. h) {
+        sub[i - 1][v] -= sub[i][u] * a[u][v];
+      }
+    }
+    foreach_reverse (i; 0 .. n) foreach (u; 0 .. h + 1) {
+      ps[i] += sub[i][u] * a[u][h];
+    }
+  }
+  return ps;
+}
+
 // det(x I + a)
 // O(n^3)
 T[] charPoly(T)(const(T[][]) a) {
@@ -40,30 +64,6 @@ T[] charPoly(T)(const(T[][]) a) {
     }
   }
   return fss[n];
-}
-
-// det(x I + a), division free
-// O(n^4)
-T[] charPolyDivFree(T)(const(T[][]) a) {
-  const n = cast(int)(a.length);
-  auto ps = new T[n + 1];
-  ps[n] = 1;
-  foreach_reverse (h; 0 .. n) {
-    // closed walks at h with repetition allowed from 0, ..., h - 1
-    auto sub = new T[][](n, h + 1);
-    foreach_reverse (i; 1 .. n + 1) {
-      sub[i - 1][h] += ps[i];
-    }
-    foreach_reverse (i; 1 .. n) foreach (u; 0 .. h + 1) {
-      foreach (v; 0 .. h) {
-        sub[i - 1][v] -= sub[i][u] * a[u][v];
-      }
-    }
-    foreach_reverse (i; 0 .. n) foreach (u; 0 .. h + 1) {
-      ps[i] += sub[i][u] * a[u][h];
-    }
-  }
-  return ps;
 }
 
 // det(a + x b)
@@ -203,7 +203,7 @@ unittest {
   enum MO = 998244353;
   alias Mint = ModInt!MO;
 
-  // charPolyDivFree, charPoly
+  // charPoly, charPolyDivFree
   {
     const a = [
         [Mint(3), Mint(1), Mint(4)],
