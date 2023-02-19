@@ -13,7 +13,7 @@ using std::vector;
 //   (a, 0): g = a, x = 1, y = 0
 //   (0, b), (b, b), (-b, b) (b != 0): g = b, x = 0, y = 1
 //   otherwise: 2 |x| <= |b|, 2 |y| <= |a|
-// T: int, long long, __int128
+// S: signed integer
 template <class S> S gojo(S a, S b, S &x, S &y) {
   if (b != 0) {
     const S g = gojo(b, a % b, y, x);
