@@ -33,7 +33,7 @@ struct Bisimulation {
     });
     nn = 0;
     for (int d = 0; d <= maxDeg; ++d) if (!uss[d].empty()) ++nn;
-    ids.assign(n, -1);
+    ids.resize(n);
     vector<int> poss(n);
     for (int x = 0; x < nn; ++x) {
       int pos = 0;
@@ -53,7 +53,7 @@ struct Bisimulation {
       for (const int u : uss[x]) for (const int v : hparg[u]) {
         const int y = ids[v];
         if (wss[y].empty()) ys.push_back(y);
-        if (!deg[v]++) wss[y].push_back(v);
+        if (deg[v]++ == 0) wss[y].push_back(v);
       }
       for (const int y : ys) {
         maxDeg = 0;
