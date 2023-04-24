@@ -8,7 +8,8 @@ using std::vector;
 
 template <class X, class Y, class T> struct StaticRectAddRectSum {
   struct Rect {
-    int x0, x1, y0, y1;
+    X x0, x1;
+    Y y0, y1;
   };
   vector<Rect> as, bs;
   vector<T> vals, anss;
