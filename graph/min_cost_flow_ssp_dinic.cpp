@@ -77,12 +77,12 @@ template <class Flow, class Cost> struct MinCostFlow {
   //   You can pass t = -1 to find a shortest path to each vertex.
   void shortest(int s, int t) {
     using Entry = pair<Cost, int>;
-    priority_queue<Entry, vector<Entry>, std::greater<Entry>> que;
+    priority_queue<Entry, vector<Entry>, std::greater<Entry>> pque;
     for (int u = 0; u < n; ++u) { dist[u] = COST_INF; vis[u] = false; }
-    for (que.emplace(dist[s] = 0, s); !que.empty(); ) {
-      const Cost c = que.top().first;
-      const int u = que.top().second;
-      que.pop();
+    for (pque.emplace(dist[s] = 0, s); !pque.empty(); ) {
+      const Cost c = pque.top().first;
+      const int u = pque.top().second;
+      pque.pop();
       if (vis[u]) continue;
       vis[u] = true;
       if (u == t) return;
@@ -90,7 +90,7 @@ template <class Flow, class Cost> struct MinCostFlow {
         const int v = zu[i];
         if (!vis[v]) {
           const Cost cc = c + cost[i] + pot[u] - pot[v];
-          if (dist[v] > cc) que.emplace(dist[v] = cc, v);
+          if (dist[v] > cc) pque.emplace(dist[v] = cc, v);
         }
       }
     }
@@ -118,24 +118,24 @@ template <class Flow, class Cost> struct MinCostFlow {
     dist.resize(n);
     vis.resize(n);
     see.resize(n); lev.resize(n); que.resize(n);
-    Flow flow = 0;
-    Cost cost = 0;
+    Flow totalFlow = 0;
+    Cost totalCost = 0;
     flows.clear(); flows.push_back(0);
     slopes.clear();
-    for (; flow < limFlow; ) {
+    for (; totalFlow < limFlow; ) {
       shortest(s, t);
       if (!vis[t]) break;
       for (int u = 0; u < n; ++u) pot[u] += min(dist[u], dist[t]);
       Flow f;
-      for (; flow + FLOW_EPS < limFlow && bfs(s, t); ) {
-        for (; (f = augment(s, t, limFlow - flow)) > FLOW_EPS; flow += f) {}
+      for (; totalFlow + FLOW_EPS < limFlow && bfs(s, t); ) {
+        for (; (f = augment(s, t, limFlow - totalFlow)) > FLOW_EPS; totalFlow += f) {}
       }
-      f = flow - flows.back();
-      cost += f * (pot[t] - pot[s]);
-      flows.push_back(flow);
+      f = totalFlow - flows.back();
+      totalCost += f * (pot[t] - pot[s]);
+      flows.push_back(totalFlow);
       slopes.push_back(pot[t] - pot[s]);
     }
-    return make_pair(flow, cost);
+    return make_pair(totalFlow, totalCost);
   }
 };
 
@@ -189,7 +189,7 @@ void opencupXXII_bytedance_I() {
 }
 
 int main() {
-  // unittest(); cerr << "PASSED unittest" << endl;
-  opencupXXII_bytedance_I();
+  unittest(); cerr << "PASSED unittest" << endl;
+  // opencupXXII_bytedance_I();
   return 0;
 }

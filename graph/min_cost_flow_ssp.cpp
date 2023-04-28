@@ -1,3 +1,5 @@
+// TODO: speed up
+
 #include <assert.h>
 #include <algorithm>
 #include <limits>
@@ -91,31 +93,36 @@ template <class Flow, class Cost> struct MinCostFlow {
     dist.resize(n);
     vis.resize(n);
     pari.resize(n);
-    Flow flow = 0;
-    Cost cost = 0;
+    Flow totalFlow = 0;
+    Cost totalCost = 0;
     flows.clear(); flows.push_back(0);
     slopes.clear();
-    for (; flow < limFlow; ) {
+    for (; totalFlow < limFlow; ) {
       shortest(s, t);
       if (!vis[t]) break;
       for (int u = 0; u < n; ++u) pot[u] += min(dist[u], dist[t]);
-      Flow f = limFlow - flow;
+      Flow f = limFlow - totalFlow;
       for (int v = t; v != s; ) {
         const int i = pari[v]; if (f > capa[i]) { f = capa[i]; } v = zu[i ^ 1];
       }
       for (int v = t; v != s; ) {
         const int i = pari[v]; capa[i] -= f; capa[i ^ 1] += f; v = zu[i ^ 1];
       }
-      flow += f;
-      cost += f * (pot[t] - pot[s]);
-      flows.push_back(flow);
+      totalFlow += f;
+      totalCost += f * (pot[t] - pot[s]);
+      flows.push_back(totalFlow);
       slopes.push_back(pot[t] - pot[s]);
     }
-    return make_pair(flow, cost);
+    return make_pair(totalFlow, totalCost);
   }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 
 void unittest() {
   MinCostFlow<int, int> mcf(4);
@@ -130,6 +137,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }
