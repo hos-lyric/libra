@@ -72,10 +72,11 @@ vector<T> setExp(int n, const vector<T> &as, ZT1 zas, ZT zbs) {
         for (int k = 0; k <= m; ++k) zas[h + w][k] += zas[h][k];
       }
     }
-    // zeta
     for (int h = 0; h < 1 << m; ++h) {
+      // zeta
       zbs[h][m + 1] = 0;
       memcpy(zbs[(1 << m) + h], zbs[h], ((m + 1) + 1) * sizeof(T));
+      // product
       for (int k = 0; k <= m; ++k) for (int l = 0; l <= m - k; ++l) {
         zbs[(1 << m) + h][k + l + 1] += zbs[h][k] * zas[h][l];
       }
@@ -118,10 +119,11 @@ vector<T> setCom(int n, const vector<T> &fs, const vector<T> &as, ZT1 zas, ZT zb
       }
     }
     for (int i = 0; i < n - m; ++i) {
-      // zeta
       for (int h = 0; h < 1 << m; ++h) {
+        // zeta
         zbs[(1<<(n-i)) + h][m + 1] = 0;
         memcpy(zbs[(1<<(n-i)) + (1 << m) + h], zbs[(1<<(n-i)) + h], ((m + 1) + 1) * sizeof(T));
+        // product
         for (int k = 0; k <= m; ++k) for (int l = 0; l <= m - k; ++l) {
           zbs[(1<<(n-i)) + (1 << m) + h][k + l + 1] += zbs[(1<<(n-(i+1))) + h][k] * zas[h][l];
         }
