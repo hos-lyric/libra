@@ -11,6 +11,8 @@ using std::pair;
 using std::string;
 using std::vector;
 
+// TODO: no-undo version (to save memory)
+
 // alphabet is [OFFSET, OFFSET + SIZE), with sentinel (OFFSET - 1)
 template <class T, int SIZE, T OFFSET> struct Depam {
   struct Node {

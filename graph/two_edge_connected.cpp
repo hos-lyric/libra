@@ -5,7 +5,7 @@
 
 using std::vector;
 
-// TODO: isStillReachable etc.
+// TODO: isStillReachable (!!!check rs!!!) etc.
 // TODO: edge ID
 // TODO: test lowlink
 
