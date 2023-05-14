@@ -74,7 +74,7 @@ template <class X, class Y, class T> struct StaticRectAddRectSum {
         {
           const T valX = -valXY * as[i].y1;
           const T val1 = -valY * as[i].y1;
-          for (int l = lower_bound(ys.begin(), ys.end(), as[i].y1) - ys.begin(); l < ysLen; l |= l + 1) {
+          for (int l = std::lower_bound(ys.begin(), ys.end(), as[i].y1) - ys.begin(); l < ysLen; l |= l + 1) {
             bit[l].t1 -= val1;
             bit[l].tX -= valX;
             bit[l].tY -= valY;
