@@ -159,8 +159,9 @@ void unittest() {
   assert(mcf.slopes == (vector<int>{-9989, 11100}));
 }
 
-// https://official.contest.yandex.com/opencupXXII/contest/39023/problems/C/
 #include <stdio.h>
+
+// https://official.contest.yandex.com/opencupXXII/contest/39023/problems/C/
 void opencupXXII_bytedance_I() {
   int N, M;
   for (; ~scanf("%d%d", &N, &M); ) {
@@ -188,8 +189,39 @@ void opencupXXII_bytedance_I() {
   }
 }
 
+// https://qoj.ac/contest/1244/problem/6508
+void qoj6508() {
+  using Int = long long;
+  constexpr Int BIG = 1'000'000'000LL;
+  int N0, N1, M;
+  for (; ~scanf("%d%d%d", &N0, &N1, &M); ) {
+    const int lim = 2 * ((N0 >= N1) ? N0 : N1);
+    MinCostFlow<int, Int> mcf(2 + N0 + N1);
+    mcf.ae(0, 1, lim, 0);
+    for (int u = 0; u < N0; ++u) {
+      mcf.ae(0, 2 + u, 1, -BIG);
+      mcf.ae(0, 2 + u, 1, +1);
+    }
+    for (int v = 0; v < N1; ++v) {
+      mcf.ae(2 + N0 + v, 1, 1, -BIG);
+      mcf.ae(2 + N0 + v, 1, 1, +1);
+    }
+    for (int i = 0; i < M; ++i) {
+      int u, v;
+      scanf("%d%d", &u, &v);
+      --u;
+      --v;
+      mcf.ae(2 + u, 2 + N0 + v, mcf.FLOW_INF, 0);
+    }
+    Int ans = mcf.run(0, 1, lim).second;
+    ans += (N0 + N1) * BIG;
+    printf("%lld %lld\n", ans / BIG, ans % BIG);
+  }
+}
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
   // opencupXXII_bytedance_I();
+  // qoj6508();
   return 0;
 }
