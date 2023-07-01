@@ -10,7 +10,7 @@ using std::vector;
 template <class T> struct SegmentTreePoint {
   int logN, n;
   vector<T> ts;
-  SegmentTreePoint() {}
+  SegmentTreePoint() : logN(0), n(0) {}
   explicit SegmentTreePoint(int n_) {
     for (logN = 0, n = 1; n < n_; ++logN, n <<= 1) {}
     ts.resize(n << 1);

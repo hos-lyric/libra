@@ -11,7 +11,7 @@ using std::vector;
 template <class T> struct SegmentTreeRec {
   int logN, n;
   vector<T> ts;
-  SegmentTreeRec() {}
+  SegmentTreeRec() : logN(0), n(0) {}
   explicit SegmentTreeRec(int n_) {
     for (logN = 0, n = 1; n < n_; ++logN, n <<= 1) {}
     ts.resize(n << 1);
