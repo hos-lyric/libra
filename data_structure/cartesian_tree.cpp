@@ -73,12 +73,17 @@ struct MaxCartesianTree {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+
 void unittestMin() {
   auto check = [&](const vector<int> &as, const MinCartesianTree &ct) -> void {
     assert(0 <= ct.rt); assert(ct.rt < ct.n);
-    assert(ct.par.size() == static_cast<size_t>(ct.n));
-    assert(ct.lef.size() == static_cast<size_t>(ct.n));
-    assert(ct.rig.size() == static_cast<size_t>(ct.n));
+    assert(static_cast<int>(ct.par.size()) == ct.n);
+    assert(static_cast<int>(ct.lef.size()) == ct.n);
+    assert(static_cast<int>(ct.rig.size()) == ct.n);
     assert(ct.par[ct.rt] == -1);
     for (int u = 0; u < ct.n; ++u) {
       if (u != ct.rt) {
@@ -130,9 +135,9 @@ void unittestMin() {
 void unittestMax() {
   auto check = [&](const vector<int> &as, const MaxCartesianTree &ct) -> void {
     assert(0 <= ct.rt); assert(ct.rt < ct.n);
-    assert(ct.par.size() == static_cast<size_t>(ct.n));
-    assert(ct.lef.size() == static_cast<size_t>(ct.n));
-    assert(ct.rig.size() == static_cast<size_t>(ct.n));
+    assert(static_cast<int>(ct.par.size()) == ct.n);
+    assert(static_cast<int>(ct.lef.size()) == ct.n);
+    assert(static_cast<int>(ct.rig.size()) == ct.n);
     assert(ct.par[ct.rt] == -1);
     for (int u = 0; u < ct.n; ++u) {
       if (u != ct.rt) {
@@ -218,8 +223,8 @@ void yosupoMax_cartesian_tree() {
 }
 
 int main() {
-  unittestMin();
-  unittestMax();
+  unittestMin(); cerr << "PASSED unittestMin" << endl;
+  unittestMax(); cerr << "PASSED unittestMax" << endl;
   // yosupoMin_cartesian_tree();
   // yosupoMax_cartesian_tree();
   return 0;
