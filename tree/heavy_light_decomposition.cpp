@@ -5,7 +5,9 @@
 #include <utility>
 #include <vector>
 
+using std::make_pair;
 using std::ostream;
+using std::pair;
 using std::string;
 using std::swap;
 using std::vector;
@@ -161,7 +163,31 @@ struct HLD {
     doPathUp(v, l, inclusive, f);
   }
 
-  // TODO: compress
+  // (vs, ps): compressed tree
+  // vs: DFS order (sorted by dis)
+  // vs[ps[x]]: the parent of vs[x]
+  // ids[vs[x]] = x, not set for non-tree vertex
+  vector<int> ids;
+  pair<vector<int>, vector<int>> compress(vector<int> us) {
+    // O(n) first time
+    ids.resize(n, -1);
+    std::sort(us.begin(), us.end(), [&](int u, int v) -> bool {
+      return (dis[u] < dis[v]);
+    });
+    us.erase(std::unique(us.begin(), us.end()), us.end());
+    int usLen = us.size();
+    assert(usLen >= 1);
+    for (int x = 1; x < usLen; ++x) us.push_back(lca(us[x - 1], us[x]));
+    std::sort(us.begin(), us.end(), [&](int u, int v) -> bool {
+      return (dis[u] < dis[v]);
+    });
+    us.erase(std::unique(us.begin(), us.end()), us.end());
+    usLen = us.size();
+    for (int x = 0; x < usLen; ++x) ids[us[x]] = x;
+    vector<int> ps(usLen, -1);
+    for (int x = 1; x < usLen; ++x) ps[x] = ids[lca(us[x - 1], us[x])];
+    return make_pair(us, ps);
+  }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -203,6 +229,8 @@ void unittest() {
     assert(hld.jumpUp(0, 1) == -1);
     assert(hld.jump(0, 0, 0) == 0);
     assert(hld.jump(0, 0, 1) == -1);
+    assert(hld.compress({0}) == make_pair(vector<int>{0}, vector<int>{-1}));
+    assert(hld.ids == (vector<int>{0}));
   }
   {
     HLD hld(14);
@@ -350,6 +378,19 @@ void unittest() {
       assert(ls == (vector<int>{13, 10}));
       assert(rs == (vector<int>{14, 13}));
     }
+    assert(hld.compress({6, 3}) ==
+           make_pair(vector<int>{0, 3, 6}, vector<int>{-1, 0, 0}));
+    assert(hld.ids[0] == 0);
+    assert(hld.ids[3] == 1);
+    assert(hld.ids[6] == 2);
+    assert(hld.compress({1, 3, 4, 7, 8}) ==
+           make_pair(vector<int>{8, 7, 2, 1, 4, 3}, vector<int>{-1, 0, 1, 2, 2, 0}));
+    assert(hld.ids[8] == 0);
+    assert(hld.ids[7] == 1);
+    assert(hld.ids[2] == 2);
+    assert(hld.ids[1] == 3);
+    assert(hld.ids[4] == 4);
+    assert(hld.ids[3] == 5);
 /*
 8
 |---------+--+
@@ -365,6 +406,7 @@ void unittest() {
   {
     constexpr int NUM_CASES = 1000;
     constexpr int MAX_N = 50;
+    constexpr int NUM_QUERIES_COMPRESS = 100;
     for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
       const int N = 1 + xrand() % MAX_N;
       vector<vector<int>> dist(N, vector<int>(N, N));
@@ -487,6 +529,40 @@ void unittest() {
         });
         std::sort(actual.begin(), actual.end());
         assert(expected == actual);
+      }
+      // compress
+      for (int q = 0; q < NUM_QUERIES_COMPRESS; ++q) {
+        vector<int> us(N);
+        for (int u = 0; u < N; ++u) {
+          swap(us[xrand() % (u + 1)], us[u] = u);
+        }
+        const int usLen = 1 + xrand() % N;
+        us.resize(usLen);
+        vector<int> on(N, 0), dp(N, 0), vs;
+        for (const int u : us) on[u] = dp[u] = 1;
+        for (int j = N; --j >= 0; ) {
+          const int u = hld.sid[j];
+          if (dp[u] > 1) {
+            on[u] = 1;
+            dp[u] = 1;
+          }
+          if (on[u]) {
+            vs.push_back(u);
+          }
+          if (~hld.par[u]) {
+            dp[hld.par[u]] += dp[u];
+          }
+        }
+        reverse(vs.begin(), vs.end());
+        const int vsLen = vs.size();
+        const auto res = hld.compress(us);
+        assert(res.first == vs);
+        assert(static_cast<int>(res.second.size()) == vsLen);
+        assert(res.second[0] == -1);
+        for (int x = 1; x < usLen; ++x) {
+          assert(0 <= res.second[x]); assert(res.second[x] < x);
+          assert(hld.contains(vs[res.second[x]], vs[x]));
+        }
       }
     }
   }
