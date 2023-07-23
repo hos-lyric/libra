@@ -11,7 +11,7 @@ using std::swap;
 using std::vector;
 
 struct HLD {
-  int n;
+  int n, rt;
   // needs to be tree
   // vertex lists
   // modified in build(rt) (parent removed, heavy child first)
@@ -22,8 +22,8 @@ struct HLD {
   // head vertex (minimum depth) in heavy path
   vector<int> head;
 
-  HLD() : n(0), zeit(0) {}
-  explicit HLD(int n_) : n(n_), graph(n), zeit(0) {}
+  HLD() : n(0), rt(-1), zeit(0) {}
+  explicit HLD(int n_) : n(n_), rt(-1), graph(n), zeit(0) {}
   void ae(int u, int v) {
     assert(0 <= u); assert(u < n);
     assert(0 <= v); assert(v < n);
@@ -66,8 +66,9 @@ struct HLD {
     }
     fin[u] = zeit;
   }
-  void build(int rt) {
-    assert(0 <= rt); assert(rt < n);
+  void build(int rt_) {
+    assert(0 <= rt_); assert(rt_ < n);
+    rt = rt_;
     sz.assign(n, 0);
     par.assign(n, -1);
     dep.assign(n, -1);
@@ -111,16 +112,55 @@ struct HLD {
     return os;
   }
 
+  bool contains(int u, int v) const {
+    return (dis[u] <= dis[v] && dis[v] < fin[u]);
+  }
   int lca(int u, int v) const {
     assert(0 <= u); assert(u < n);
     assert(0 <= v); assert(v < n);
     for (; head[u] != head[v]; ) (dis[u] > dis[v]) ? (u = par[head[u]]) : (v = par[head[v]]);
     return (dis[u] > dis[v]) ? v : u;
   }
-  // TODO: jumpUp
-  // TODO: jump
-  // TODO: doPathUp
-  // TODO: doPath
+  int jumpUp(int u, int d) const {
+    assert(0 <= u); assert(u < n);
+    assert(d >= 0);
+    if (dep[u] < d) return -1;
+    const int tar = dep[u] - d;
+    for (u = head[u]; ; u = head[par[u]]) {
+      if (dep[u] <= tar) return sid[dis[u] + (tar - dep[u])];
+    }
+  }
+  int jump(int u, int v, int d) const {
+    assert(0 <= u); assert(u < n);
+    assert(0 <= v); assert(v < n);
+    assert(d >= 0);
+    const int l = lca(u, v);
+    const int du = dep[u] - dep[l], dv = dep[v] - dep[l];
+    if (d <= du) {
+      return jumpUp(u, d);
+    } else if (d <= du + dv) {
+      return jumpUp(v, du + dv - d);
+    } else {
+      return -1;
+    }
+  }
+  // [u, v) or [u, v]
+  template <class F> void doPathUp(int u, int v, bool inclusive, F f) const {
+    assert(contains(v, u));
+    for (; head[u] != head[v]; u = par[head[u]]) f(dis[head[u]], dis[u] + 1);
+    if (inclusive) {
+      f(dis[v], dis[u] + 1);
+    } else {
+      if (v != u) f(dis[v] + 1, dis[u] + 1);
+    }
+  }
+  // not path order, include lca(u, v) or not
+  template <class F> void doPath(int u, int v, bool inclusive, F f) const {
+    const int l = lca(u, v);
+    doPathUp(u, l, false, f);
+    doPathUp(v, l, inclusive, f);
+  }
+
   // TODO: compress
 };
 
@@ -148,6 +188,8 @@ void unittest() {
 0
 )").substr(1));
     }
+    assert(hld.n == 1);
+    assert(hld.rt == 0);
     assert(hld.graph == (vector<vector<int>>{{}}));
     assert(hld.sz == (vector<int>{1}));
     assert(hld.par == (vector<int>{-1}));
@@ -155,7 +197,12 @@ void unittest() {
     assert(hld.dis == (vector<int>{0}));
     assert(hld.fin == (vector<int>{1}));
     assert(hld.head == (vector<int>{0}));
+    assert(hld.contains(0, 0));
     assert(hld.lca(0, 0) == 0);
+    assert(hld.jumpUp(0, 0) == 0);
+    assert(hld.jumpUp(0, 1) == -1);
+    assert(hld.jump(0, 0, 0) == 0);
+    assert(hld.jump(0, 0, 1) == -1);
   }
   {
     HLD hld(14);
@@ -188,6 +235,8 @@ void unittest() {
              3
 )").substr(1));
     }
+    assert(hld.n == 14);
+    assert(hld.rt == 8);
     assert(hld.graph == (vector<vector<int>>{
       {9, 6}, {}, {10, 1, 4, 13}, {}, {}, {}, {}, {2}, {7, 11, 12}, {3}, {}, {5}, {0}, {}
     }));
@@ -197,6 +246,14 @@ void unittest() {
     assert(hld.dis == (vector<int>{10, 4, 2, 12, 5, 8, 13, 1, 0, 11, 3, 7, 9, 6}));
     assert(hld.fin == (vector<int>{14, 5, 7, 13, 6, 9, 14, 7, 14, 13, 4, 9, 14, 7}));
     assert(hld.head == (vector<int>{12, 1, 8, 12, 4, 11, 6, 8, 8, 12, 8, 11, 12, 13}));
+    assert(hld.contains(8, 8));
+    assert(hld.contains(8, 10));
+    assert(!hld.contains(10, 8));
+    assert(hld.contains(8, 6));
+    assert(!hld.contains(6, 8));
+    assert(hld.contains(2, 1));
+    assert(!hld.contains(1, 2));
+    assert(!hld.contains(2, 5));
     assert(hld.lca(8, 8) == 8);
     assert(hld.lca(1, 8) == 8);
     assert(hld.lca(8, 0) == 8);
@@ -208,10 +265,106 @@ void unittest() {
     assert(hld.lca(4, 13) == 2);
     assert(hld.lca(6, 9) == 0);
     assert(hld.lca(12, 6) == 12);
+    assert(hld.jumpUp(6, 0) == 6);
+    assert(hld.jumpUp(6, 1) == 0);
+    assert(hld.jumpUp(6, 2) == 12);
+    assert(hld.jumpUp(6, 3) == 8);
+    assert(hld.jumpUp(6, 4) == -1);
+    assert(hld.jumpUp(6, 5) == -1);
+    assert(hld.jumpUp(8, 0) == 8);
+    assert(hld.jumpUp(8, 1001001001) == -1);
+    assert(hld.jumpUp(3, 0) == 3);
+    assert(hld.jumpUp(3, 1) == 9);
+    assert(hld.jumpUp(3, 2) == 0);
+    assert(hld.jumpUp(3, 3) == 12);
+    assert(hld.jumpUp(3, 4) == 8);
+    assert(hld.jumpUp(3, 5) == -1);
+    assert(hld.jump(13, 3, 0) == 13);
+    assert(hld.jump(13, 3, 1) == 2);
+    assert(hld.jump(13, 3, 2) == 7);
+    assert(hld.jump(13, 3, 3) == 8);
+    assert(hld.jump(13, 3, 4) == 12);
+    assert(hld.jump(13, 3, 5) == 0);
+    assert(hld.jump(13, 3, 6) == 9);
+    assert(hld.jump(13, 3, 7) == 3);
+    assert(hld.jump(13, 3, 8) == -1);
+    assert(hld.jump(5, 8, 0) == 5);
+    assert(hld.jump(5, 8, 1) == 11);
+    assert(hld.jump(5, 8, 2) == 8);
+    assert(hld.jump(5, 8, 3) == -1);
+    assert(hld.jump(12, 6, 0) == 12);
+    assert(hld.jump(12, 6, 1) == 0);
+    assert(hld.jump(12, 6, 2) == 6);
+    assert(hld.jump(12, 6, 3) == -1);
+    {
+      vector<int> ls, rs;
+      hld.doPathUp(6, 8, /*inclusive=*/false, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{13, 9}));
+      assert(rs == (vector<int>{14, 11}));
+    }
+    {
+      vector<int> ls, rs;
+      hld.doPathUp(6, 8, /*inclusive=*/true, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{13, 9, 0}));
+      assert(rs == (vector<int>{14, 11, 1}));
+    }
+    {
+      vector<int> ls, rs;
+      hld.doPath(4, 3, /*inclusive=*/false, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{5, 1, 9}));
+      assert(rs == (vector<int>{6, 3, 13}));
+    }
+    {
+      vector<int> ls, rs;
+      hld.doPath(4, 3, /*inclusive=*/true, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{5, 1, 9, 0}));
+      assert(rs == (vector<int>{6, 3, 13, 1}));
+    }
+    {
+      vector<int> ls, rs;
+      hld.doPath(6, 3, /*inclusive=*/false, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{13, 11}));
+      assert(rs == (vector<int>{14, 13}));
+    }
+    {
+      vector<int> ls, rs;
+      hld.doPath(6, 3, /*inclusive=*/true, [&](int l, int r) -> void {
+        ls.push_back(l);
+        rs.push_back(r);
+      });
+      assert(ls == (vector<int>{13, 10}));
+      assert(rs == (vector<int>{14, 13}));
+    }
+/*
+8
+|---------+--+
+7         11 12
+|         |  |
+2         5  0
+|--+-+-+     |--+
+10 1 4 13    9  6
+             |
+             3
+*/
   }
   {
     constexpr int NUM_CASES = 1000;
-    constexpr int MAX_N = 100;
+    constexpr int MAX_N = 50;
     for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
       const int N = 1 + xrand() % MAX_N;
       vector<vector<int>> dist(N, vector<int>(N, N));
@@ -233,6 +386,11 @@ void unittest() {
           assert(hld.sz[hld.graph[u][0]] >= hld.sz[v]);
         }
       }
+      // contains
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
+        assert(hld.contains(u, v) == (dist[u][v] < N));
+      }
+      // lca
       for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
         int l = 0;
         for (int w = 0; w < N; ++w) if (dist[w][u] < N && dist[w][v] < N) {
@@ -241,6 +399,94 @@ void unittest() {
           }
         }
         assert(hld.lca(u, v) == l);
+      }
+      // jumpUp
+      for (int u = 0; u < N; ++u) {
+        vector<int> vs(N + 1, -1);
+        for (int v = 0; v < N; ++v) if (dist[v][u] < N) {
+          assert(!~vs[dist[v][u]]);
+          vs[dist[v][u]] = v;
+        }
+        for (int d = 0; d <= N; ++d) {
+          assert(hld.jumpUp(u, d) == vs[d]);
+        }
+      }
+      // doPathUp
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) if (dist[v][u] < N) {
+        vector<int> expected, actual;
+        for (int w = 0; w < N; ++w) if (dist[w][u] < N && dist[v][w] < N && w != v) {
+          expected.push_back(w);
+        }
+        std::sort(expected.begin(), expected.end());
+        hld.doPathUp(u, v, /*inclusive=*/false, [&](int l, int r) -> void {
+          assert(0 <= l); assert(l < r); assert(r <= N);
+          for (int j = l; j < r; ++j) actual.push_back(hld.sid[j]);
+        });
+        std::sort(actual.begin(), actual.end());
+        assert(expected == actual);
+      }
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) if (dist[v][u] < N) {
+        vector<int> expected, actual;
+        for (int w = 0; w < N; ++w) if (dist[w][u] < N && dist[v][w] < N) {
+          expected.push_back(w);
+        }
+        std::sort(expected.begin(), expected.end());
+        hld.doPathUp(u, v, /*inclusive=*/true, [&](int l, int r) -> void {
+          assert(0 <= l); assert(l < r); assert(r <= N);
+          for (int j = l; j < r; ++j) actual.push_back(hld.sid[j]);
+        });
+        std::sort(actual.begin(), actual.end());
+        assert(expected == actual);
+      }
+      
+      // dist: undirected
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) if (dist[u][v] == 1) {
+        dist[v][u] = 1;
+      }
+      for (int w = 0; w < N; ++w) for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
+        if (dist[u][v] > dist[u][w] + dist[w][v]) {
+          dist[u][v] = dist[u][w] + dist[w][v];
+        }
+      }
+      // jump
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
+        vector<int> ws(N + 1, -1);
+        for (int w = 0; w < N; ++w) if (dist[u][v] == dist[u][w] + dist[w][v]) {
+          assert(!~ws[dist[u][w]]);
+          ws[dist[u][w]] = w;
+        }
+        for (int d = 0; d <= N; ++d) {
+          assert(hld.jump(u, v, d) == ws[d]);
+        }
+      }
+      // doPath
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
+        vector<int> expected, actual;
+        for (int w = 0; w < N; ++w) if (dist[u][v] == dist[u][w] + dist[w][v]) {
+          expected.push_back(w);
+        }
+        std::sort(expected.begin(), expected.end());
+        // lca(u, v) has minimum id
+        expected.erase(expected.begin());
+        hld.doPath(u, v, /*inclusive=*/false, [&](int l, int r) -> void {
+          assert(0 <= l); assert(l < r); assert(r <= N);
+          for (int j = l; j < r; ++j) actual.push_back(hld.sid[j]);
+        });
+        std::sort(actual.begin(), actual.end());
+        assert(expected == actual);
+      }
+      for (int u = 0; u < N; ++u) for (int v = 0; v < N; ++v) {
+        vector<int> expected, actual;
+        for (int w = 0; w < N; ++w) if (dist[u][v] == dist[u][w] + dist[w][v]) {
+          expected.push_back(w);
+        }
+        std::sort(expected.begin(), expected.end());
+        hld.doPath(u, v, /*inclusive=*/true, [&](int l, int r) -> void {
+          assert(0 <= l); assert(l < r); assert(r <= N);
+          for (int j = l; j < r; ++j) actual.push_back(hld.sid[j]);
+        });
+        std::sort(actual.begin(), actual.end());
+        assert(expected == actual);
       }
     }
   }
@@ -268,8 +514,121 @@ void yosupo__lca() {
   }
 }
 
+// https://judge.yosupo.jp/problem/jump_on_tree
+void yosupo__jump_on_tree() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    HLD hld(N);
+    for (int i = 0; i < N - 1; ++i) {
+      int u, v;
+      scanf("%d%d", &u, &v);
+      hld.ae(u, v);
+    }
+    hld.build(0);
+    for (int q = 0; q < Q; ++q) {
+      int u, v, d;
+      scanf("%d%d%d", &u, &v, &d);
+      const int w = hld.jump(u, v, d);
+      printf("%d\n", w);
+    }
+  }
+}
+
+// https://judge.yosupo.jp/problem/vertex_add_path_sum
+void yosupo__vertex_add_path_sum() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    vector<int> C(N);
+    for (int u = 0; u < N; ++u) {
+      scanf("%d", &C[u]);
+    }
+    HLD hld(N);
+    for (int i = 0; i < N - 1; ++i) {
+      int u, v;
+      scanf("%d%d", &u, &v);
+      hld.ae(u, v);
+    }
+    hld.build(0);
+    vector<long long> bit(N);
+    for (int u = 0; u < N; ++u) {
+      bit[hld.dis[u]] = C[u];
+    }
+    for (int x = 0; x < N; ++x) if ((x | (x + 1)) < N) bit[x | (x + 1)] += bit[x];
+    for (int q = 0; q < Q; ++q) {
+      int typ;
+      scanf("%d", &typ);
+      switch (typ) {
+        case 0: {
+          int u;
+          int c;
+          scanf("%d%d", &u, &c);
+          for (int x = hld.dis[u]; x < N; x |= x + 1) bit[x] += c;
+        } break;
+        case 1: {
+          int u, v;
+          scanf("%d%d", &u, &v);
+          long long ans = 0;
+          hld.doPath(u, v, /*inclusive=*/true, [&](int l, int r) -> void {
+            for (int x = l; x > 0; x &= x - 1) ans -= bit[x - 1];
+            for (int x = r; x > 0; x &= x - 1) ans += bit[x - 1];
+          });
+          printf("%lld\n", ans);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
+// https://judge.yosupo.jp/problem/vertex_add_subtree_sum
+void yosupo__vertex_add_subtree_sum() {
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    vector<int> C(N);
+    for (int u = 0; u < N; ++u) {
+      scanf("%d", &C[u]);
+    }
+    HLD hld(N);
+    for (int u = 1; u < N; ++u) {
+      int p;
+      scanf("%d", &p);
+      hld.ae(p, u);
+    }
+    hld.build(0);
+    vector<long long> bit(N);
+    for (int u = 0; u < N; ++u) {
+      bit[hld.dis[u]] = C[u];
+    }
+    for (int x = 0; x < N; ++x) if ((x | (x + 1)) < N) bit[x | (x + 1)] += bit[x];
+    for (int q = 0; q < Q; ++q) {
+      int typ;
+      scanf("%d", &typ);
+      switch (typ) {
+        case 0: {
+          int u;
+          int c;
+          scanf("%d%d", &u, &c);
+          for (int x = hld.dis[u]; x < N; x |= x + 1) bit[x] += c;
+        } break;
+        case 1: {
+          int u;
+          scanf("%d", &u);
+          long long ans = 0;
+          for (int x = hld.dis[u]; x > 0; x &= x - 1) ans -= bit[x - 1];
+          for (int x = hld.fin[u]; x > 0; x &= x - 1) ans += bit[x - 1];
+          printf("%lld\n", ans);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
   // yosupo__lca();
+  // yosupo__jump_on_tree();
+  // yosupo__vertex_add_path_sum();
+  // yosupo__vertex_add_subtree_sum();
   return 0;
 }
