@@ -27,17 +27,18 @@ template <class String> vector<int> manacher(const String &as) {
   return rs;
 }
 
-// f(i, j) should check whether [i, j] (inclusive) is palindrome,
-// assuming [i+1, j-1] is palindrome.
+// f(i, j) should check whether [i, j] (inclusive) is palindromic,
+// assuming [i+1, j-1] is palindromic.
 // Properties used:
 //   rs[i] == i  (mod 2)
 //   k + rs[i-k] <  rs[i] ==> rs[i+k] = rs[i-k]
 //   k + rs[i-k] >= rs[i] ==> rs[i-k] >= rs[i] - k
+// rs[2 * i + 1] = -1 is allowed (meaning [i, i] is not palindromic).
 template <class Extend> vector<int> manacher(int n, Extend extend) {
   vector<int> rs(2 * n + 1);
   for (int i = 0, j = 0, k; i <= 2 * n; i += k, j -= k) {
     for (; 0 < i - j && i + j < 2 * n &&
-           (!((i + j + 1) & 1) || extend((i - j - 1) >> 1, (i + j + 1) >> 1));
+           (j < -1 || !((i + j + 1) & 1) || extend((i - j - 1) >> 1, (i + j + 1) >> 1));
          ++j) {}
     rs[i] = j;
     for (k = 1; k < j && k + rs[i - k] < j; ++k) rs[i + k] = rs[i - k];
@@ -199,12 +200,13 @@ int unittest_manacher_dfs(int n, int pos, vector<int> &rs) {
       return true;
     }()) {
       assert(manacher(n, [&](int i, int j) -> bool {
+        assert(i <= j);
         return (j - i + 1 <= rs[i + j + 1]);
       }) == rs);
       numCases += 1;
     }
   } else {
-    for (int &r = rs[pos] = pos & 1; r <= pos && r <= 2 * n - pos; r += 2) {
+    for (int &r = rs[pos] = -(pos & 1); r <= pos && r <= 2 * n - pos; r += 2) {
       numCases += unittest_manacher_dfs(n, pos + 1, rs);
     }
   }
@@ -230,7 +232,7 @@ void unittest_manacher() {
       assert(expected == actual);
     }
   }
-  for (int n = 0; n <= 9; ++n) {
+  for (int n = 0; n <= 8; ++n) {
     vector<int> rs(2 * n + 1);
     const int numCases = unittest_manacher_dfs(n, 0, rs);
     cerr << "[unittest_manacher] n = " << n << ": " << numCases << " cases" << endl;

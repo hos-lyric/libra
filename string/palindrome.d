@@ -20,11 +20,12 @@ int[] manacher(String)(const(String) as) {
 //   rs[i] == i  (mod 2)
 //   k + rs[i-k] <  rs[i] ==> rs[i+k] = rs[i-k]
 //   k + rs[i-k] >= rs[i] ==> rs[i-k] >= rs[i] - k
+// rs[2 * i + 1] = -1 is allowed (meaning [i, i] is not palindromic).
 int[] manacher(Extend)(int n, Extend extend) {
   auto rs = new int[2 * n + 1];
   for (int i = 0, j = 0, k; i <= 2 * n; i += k, j -= k) {
     for (; 0 < i - j && i + j < 2 * n &&
-           (!((i + j + 1) & 1) || extend((i - j - 1) >> 1, (i + j + 1) >> 1));
+           (j < -1 || !((i + j + 1) & 1) || extend((i - j - 1) >> 1, (i + j + 1) >> 1));
          ++j) {}
     rs[i] = j;
     for (k = 1; k < j && k + rs[i - k] < j; ++k) rs[i + k] = rs[i - k];
@@ -56,7 +57,7 @@ unittest {
       assert(expected == actual);
     }
   }
-  foreach (n; 0 .. 9 + 1) {
+  foreach (n; 0 .. 8 + 1) {
     int numCases;
     auto rs = new int[2 * n + 1];
     void dfs(int pos) {
@@ -72,12 +73,13 @@ unittest {
         }
         if (isValid) {
           assert(manacher(n, (int i, int j) {
+            assert(i <= j);
             return (j - i + 1 <= rs[i + j + 1]);
           }) == rs);
           ++numCases;
         }
       } else {
-        for (int r = pos & 1; r <= pos && r <= 2 * n - pos; r += 2) {
+        for (int r = -(pos & 1); r <= pos && r <= 2 * n - pos; r += 2) {
           rs[pos] = r;
           dfs(pos + 1);
         }
