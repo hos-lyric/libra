@@ -11,6 +11,41 @@ using std::pair;
 using std::string;
 using std::vector;
 
+// |as| = n ==> |rs| = 2 n + 1
+// [i - rs[i], i + rs[i]] is palindrome for $ as[0] $ as[1] $ ... $ as[n-1] $
+// as[i, j): palindrome <=> j - i <= rs[i + j]
+template <class String> vector<int> manacher(const String &as) {
+  const int n = as.size();
+  vector<int> rs(2 * n + 1);
+  for (int i = 0, j = 0, k; i <= 2 * n; i += k, j -= k) {
+    for (; 0 < i - j && i + j < 2 * n &&
+           (!((i + j + 1) & 1) || as[(i - j - 1) >> 1] == as[(i + j + 1) >> 1]);
+         ++j) {}
+    rs[i] = j;
+    for (k = 1; k < j && k + rs[i - k] < j; ++k) rs[i + k] = rs[i - k];
+  }
+  return rs;
+}
+
+// f(i, j) should check whether [i, j] (inclusive) is palindrome,
+// assuming [i+1, j-1] is palindrome.
+// Properties used:
+//   rs[i] == i  (mod 2)
+//   k + rs[i-k] <  rs[i] ==> rs[i+k] = rs[i-k]
+//   k + rs[i-k] >= rs[i] ==> rs[i-k] >= rs[i] - k
+template <class Extend> vector<int> manacher(int n, Extend extend) {
+  vector<int> rs(2 * n + 1);
+  for (int i = 0, j = 0, k; i <= 2 * n; i += k, j -= k) {
+    for (; 0 < i - j && i + j < 2 * n &&
+           (!((i + j + 1) & 1) || extend((i - j - 1) >> 1, (i + j + 1) >> 1));
+         ++j) {}
+    rs[i] = j;
+    for (k = 1; k < j && k + rs[i - k] < j; ++k) rs[i + k] = rs[i - k];
+  }
+  return rs;
+}
+
+
 // TODO: no-undo version (to save memory)
 
 // alphabet is [OFFSET, OFFSET + SIZE), with sentinel (OFFSET - 1)
@@ -151,7 +186,58 @@ unsigned xrand() {
   unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
 }
 
-void unittest() {
+int unittest_manacher_dfs(int n, int pos, vector<int> &rs) {
+  int numCases = 0;
+  if (pos == 2 * n + 1) {
+    if ([&]() -> bool {
+      for (int i = 0; i <= 2 * n; ++i) {
+        for (int k = 1; k < rs[i]; ++k) {
+          if (k + rs[i - k] <  rs[i] && !(rs[i + k] == rs[i - k])) return false;
+          if (k + rs[i - k] >= rs[i] && !(rs[i + k] >= rs[i] - k)) return false;
+        }
+      }
+      return true;
+    }()) {
+      assert(manacher(n, [&](int i, int j) -> bool {
+        return (j - i + 1 <= rs[i + j + 1]);
+      }) == rs);
+      numCases += 1;
+    }
+  } else {
+    for (int &r = rs[pos] = pos & 1; r <= pos && r <= 2 * n - pos; r += 2) {
+      numCases += unittest_manacher_dfs(n, pos + 1, rs);
+    }
+  }
+  return numCases;
+}
+void unittest_manacher() {
+  assert(manacher(string("sismississippi")) == (vector<int>{
+  //    s   i   s   m   i   s   s   i   s   s   i   p   p   i  
+      0,1,0,3,0,1,0,1,0,1,0,1,4,1,0,7,0,1,4,1,0,1,0,1,4,1,0,1,0}));
+  for (int n = 0; n <= 9; ++n) {
+    for (int p = 0; p < 1 << (2 * n); ++p) {
+      string s(n, '?');
+      for (int i = 0; i < n; ++i) s[i] = '0' + (p >> (2 * i) & 3);
+      vector<vector<int>> isPalin(n + 1, vector<int>(n + 1, 0));
+      for (int i = n; i >= 0; --i) for (int j = i; j <= n; ++j) {
+        isPalin[i][j] = (j - i <= 1 || (s[i] == s[j - 1] && isPalin[i + 1][j - 1])) ? 1 : 0;
+      }
+      vector<int> expected(2 * n + 1, 0);
+      for (int i = 0; i <= n; ++i) for (int j = i; j <= n; ++j) if (isPalin[i][j]) {
+        if (expected[i + j] < j - i) expected[i + j] = j - i;
+      }
+      const auto actual = manacher(s);
+      assert(expected == actual);
+    }
+  }
+  for (int n = 0; n <= 9; ++n) {
+    vector<int> rs(2 * n + 1);
+    const int numCases = unittest_manacher_dfs(n, 0, rs);
+    cerr << "[unittest_manacher] n = " << n << ": " << numCases << " cases" << endl;
+  }
+}
+
+void unittest_Depam() {
   // sismississippi
   {
     Depam<char, 26, 'a'> depam(14, 0);
@@ -361,6 +447,7 @@ void unittest() {
 }
 
 int main() {
-  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_manacher(); cerr << "PASSED unittest_manacher" << endl;
+  unittest_Depam(); cerr << "PASSED unittest_Depam" << endl;
   return 0;
 }
