@@ -544,7 +544,7 @@ struct Poly : public vector<Mint> {
   }
   // (29 + 1/2) E(n)
   // g <- g - (log g - a log t) g
-  Poly pow(Mint a, int n) const {
+  Poly pow1(Mint a, int n) const {
     assert(!empty()); assert((*this)[0].x == 1U); assert(1 <= n);
     return (a * log(n)).exp(n);  // 13 E(n) + (16 + 1/2) E(n)
   }
@@ -558,7 +558,7 @@ struct Poly : public vector<Mint> {
     const int ntt = min<int>(n - a * o, size() - o);
     Poly tts(ntt);
     for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
-    tts = tts.pow(Mint(a), n - a * o);  // (29 + 1/2) E(n - a ord(t))
+    tts = tts.pow1(a, n - a * o);  // (29 + 1/2) E(n - a ord(t))
     Poly gs(n);
     for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
     return gs;

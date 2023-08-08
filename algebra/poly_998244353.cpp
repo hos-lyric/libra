@@ -378,7 +378,7 @@ struct Poly : public vector<Mint> {
   }
   // (29 + 1/2) E(n)
   // g <- g - (log g - a log t) g
-  Poly pow(Mint a, int n) const {
+  Poly pow1(Mint a, int n) const {
     assert(!empty()); assert((*this)[0].x == 1U); assert(1 <= n);
     return (a * log(n)).exp(n);  // 13 E(n) + (16 + 1/2) E(n)
   }
@@ -392,7 +392,7 @@ struct Poly : public vector<Mint> {
     const int ntt = min<int>(n - a * o, size() - o);
     Poly tts(ntt);
     for (int i = 0; i < ntt; ++i) tts[i] = b * (*this)[o + i];
-    tts = tts.pow(Mint(a), n - a * o);  // (29 + 1/2) E(n - a ord(t))
+    tts = tts.pow1(a, n - a * o);  // (29 + 1/2) E(n - a ord(t))
     Poly gs(n);
     for (int i = 0; i < n - a * o; ++i) gs[a * o + i] = c * tts[i];
     return gs;
@@ -951,24 +951,24 @@ void unittest() {
   {
     const Poly as{1};
     const Poly bs{1, 0};
-    assert(as.pow(Mint(1), 1) == bs.mod(1));
-    assert(as.pow(Mint(1), 2) == bs.mod(2));
+    assert(as.pow1(1, 1) == bs.mod(1));
+    assert(as.pow1(1, 2) == bs.mod(2));
   }
   {
     const Poly as{1, 1};
     const Poly bs{1, 0, 0};
-    assert(as.pow(Mint(MO), 1) == bs.mod(1));
-    assert(as.pow(Mint(MO), 2) == bs.mod(2));
-    assert(as.pow(Mint(MO), 3) == bs.mod(3));
+    assert(as.pow1(MO, 1) == bs.mod(1));
+    assert(as.pow1(MO, 2) == bs.mod(2));
+    assert(as.pow1(MO, 3) == bs.mod(3));
   }
   {
     const Poly as{1, 2, 3};
     const Poly bs{1, Mint(1) / 2, Mint(3) / 8, Mint(-11) / 16, Mint(67) / 128};
-    assert(as.pow(Mint(1) / 4, 1) == bs.mod(1));
-    assert(as.pow(Mint(1) / 4, 2) == bs.mod(2));
-    assert(as.pow(Mint(1) / 4, 3) == bs.mod(3));
-    assert(as.pow(Mint(1) / 4, 4) == bs.mod(4));
-    assert(as.pow(Mint(1) / 4, 5) == bs.mod(5));
+    assert(as.pow1(Mint(1) / 4, 1) == bs.mod(1));
+    assert(as.pow1(Mint(1) / 4, 2) == bs.mod(2));
+    assert(as.pow1(Mint(1) / 4, 3) == bs.mod(3));
+    assert(as.pow1(Mint(1) / 4, 4) == bs.mod(4));
+    assert(as.pow1(Mint(1) / 4, 5) == bs.mod(5));
   }
   {
     const Poly as{};
