@@ -48,7 +48,7 @@ unsigned xrand() {
 }
 
 void unittest() {
-  constexpr int NUM_CASES = 100;
+  constexpr int NUM_CASES = 1000;
   constexpr int MAX_N = 100;
   constexpr int NUM_QUERIES = 1000;
   for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
@@ -71,7 +71,7 @@ void unittest() {
           is.push_back(i);
           std::sort(is.begin(), is.end());
           is.erase(std::unique(is.begin(), is.end()), is.end());
-          seg = AA::cut(seg, xs[i]);
+          AA::cut(seg, xs[i]);
         } break;
         case 1: {
           int a = is[xrand() % is.size()];

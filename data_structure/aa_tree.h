@@ -5,7 +5,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////
 // leaf node: uncut interval
-// internal node: concatnation of intervals for l and r (constitutes AA tree)
+// internal node: concatenation of intervals for l and r (constitutes AA tree)
 // T: monoid representing information of an interval.
 //   T()  should return the identity.
 //   T(S s)  should represent a single element of the array.
@@ -14,7 +14,6 @@
 // (in addition to T for SegmentTreeRange)
 //   T::sz  should represent the length of the interval.
 //   T::init(SignedInteger sz_)  should initialize an interval (for T()).
-// Usage: u = AATree<T>::cut(u, a);
 template <class T> struct AATree {
   using Size = decltype(T().sz);
   AATree *l, *r;
@@ -72,24 +71,24 @@ template <class T> struct AATree {
   }
 
   // Cuts at a.
-  static AATree *cut(AATree *u, Size a) {
-    if (a <= 0 || u->sz() <= a) return u;
+  static void cut(AATree *&u, Size a) {
+    if (a <= 0 || u->sz() <= a) return;
     if (!u->lev) {
       u->l = new AATree(a);
       u->r = new AATree(u->sz() - a);
       u->lev = 1;
       u->push();
-      return u;
+      return;
     }
     u->push();
     if (a <= u->l->sz()) {
-      u->l = cut(u->l, a);
+      cut(u->l, a);
       u->pull();
-      return rotSplit(rotSkew(u));
+      u = rotSplit(rotSkew(u));
     } else {
-      u->r = cut(u->r, a - u->l->sz());
+      cut(u->r, a - u->l->sz());
       u->pull();
-      return rotSplit(rotSkew(u));
+      u = rotSplit(rotSkew(u));
     }
   }
 
