@@ -14,7 +14,7 @@ template <class X, class Y, class T> struct StaticPointAddRectSum {
   vector<pair<X, Y>> as;
   vector<Rect> bs;
   vector<T> vals, anss;
-  // Adds val to (x0, y0).
+  // Adds val to (x, y).
   void add(X x, Y y, const T &val) {
     as.emplace_back(x, y);
     vals.push_back(val);
