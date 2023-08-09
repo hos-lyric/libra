@@ -87,7 +87,7 @@ void unittest() {
     f.get(1, 2, 3, 4);
     f.get(-8, -7, -6, -5);
     f.run();
-    assert(f.anss == vector<int>(3, 0));
+    assert(f.anss == (vector<int>{0, 0, 0}));
   }
   {
     StaticPointAddRectSum<int, int, int> f;
