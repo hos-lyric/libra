@@ -59,11 +59,11 @@ template <class X, class Y, class T> struct StaticPointAddRectSum {
       } else {
         const int j = event.second >> 1;
         T sum = 0;
-        for (int l = std::lower_bound(ys.begin(), ys.end(), bs[j].y0) - ys.begin() - 1; l >= 0; l = (l & (l + 1)) - 1) {
-          sum -= bit[l];
+        for (int l = std::lower_bound(ys.begin(), ys.end(), bs[j].y0) - ys.begin(); l > 0; l &= l - 1) {
+          sum -= bit[l - 1];
         }
-        for (int l = std::lower_bound(ys.begin(), ys.end(), bs[j].y1) - ys.begin() - 1; l >= 0; l = (l & (l + 1)) - 1) {
-          sum += bit[l];
+        for (int l = std::lower_bound(ys.begin(), ys.end(), bs[j].y1) - ys.begin(); l > 0; l &= l - 1) {
+          sum += bit[l - 1];
         }
         (event.second & 1) ? (anss[j] += sum) : (anss[j] -= sum);
       }
