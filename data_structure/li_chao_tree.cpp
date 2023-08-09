@@ -231,7 +231,73 @@ void unittest() {
   }
 }
 
+#include <stdio.h>
+
+// https://judge.yosupo.jp/problem/line_add_get_min
+void yosupoMin_line_add_get_min() {
+  constexpr long long LIM_X = 1'000'000'000LL;
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    MinLiChaoTree<Line> lct(-LIM_X, LIM_X + 1);
+    for (int i = 0; i < N; ++i) {
+      long long a, b;
+      scanf("%lld%lld", &a, &b);
+      lct.add(Line(a, b));
+    }
+    for (int q = 0; q < Q; ++q) {
+      int typ;
+      scanf("%d", &typ);
+      switch (typ) {
+        case 0: {
+          long long a, b;
+          scanf("%lld%lld", &a, &b);
+          lct.add(Line(a, b));
+        } break;
+        case 1: {
+          long long p;
+          scanf("%lld", &p);
+          const long long ans = lct(p);
+          printf("%lld\n", ans);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+void yosupoMax_line_add_get_min() {
+  constexpr long long LIM_X = 1'000'000'000LL;
+  int N, Q;
+  for (; ~scanf("%d%d", &N, &Q); ) {
+    MaxLiChaoTree<Line> lct(-LIM_X, LIM_X + 1);
+    for (int i = 0; i < N; ++i) {
+      long long a, b;
+      scanf("%lld%lld", &a, &b);
+      lct.add(Line(-a, -b));
+    }
+    for (int q = 0; q < Q; ++q) {
+      int typ;
+      scanf("%d", &typ);
+      switch (typ) {
+        case 0: {
+          long long a, b;
+          scanf("%lld%lld", &a, &b);
+          lct.add(Line(-a, -b));
+        } break;
+        case 1: {
+          long long p;
+          scanf("%lld", &p);
+          const long long ans = -lct(p);
+          printf("%lld\n", ans);
+        } break;
+        default: assert(false);
+      }
+    }
+  }
+}
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
+  // yosupoMin_line_add_get_min();
+  // yosupoMax_line_add_get_min();
   return 0;
 }
