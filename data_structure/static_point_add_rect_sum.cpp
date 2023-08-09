@@ -73,6 +73,10 @@ template <class X, class Y, class T> struct StaticPointAddRectSum {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
+
+using std::cerr;
+using std::endl;
 using std::swap;
 
 unsigned xrand() {
@@ -81,6 +85,19 @@ unsigned xrand() {
 }
 
 void unittest() {
+  {
+    StaticPointAddRectSum<int, int, int> f;
+    f.run();
+    assert(f.anss == (vector<int>{}));
+  }
+  {
+    StaticPointAddRectSum<int, int, int> f;
+    f.add(0, 0, -6);
+    f.add(1, 2, 5);
+    f.add(-8, -7, 4);
+    f.run();
+    assert(f.anss == (vector<int>{}));
+  }
   {
     StaticPointAddRectSum<int, int, int> f;
     f.get(0, 0, 0, 0);
@@ -102,7 +119,7 @@ void unittest() {
   }
   {
     constexpr int LIM_POS = 100;
-    constexpr int LIM_VAL = 1'000'000;
+    constexpr long long LIM_VAL = 1'000'000'000;
     auto test = [&](int A, int B) -> void {
       StaticPointAddRectSum<int, int, long long> f;
       vector<vector<long long>> g(LIM_POS, vector<long long>(LIM_POS, 0));
@@ -135,10 +152,6 @@ void unittest() {
     test(200, 200);
   }
 }
-
-#include <iostream>
-using std::cerr;
-using std::endl;
 
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
