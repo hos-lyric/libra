@@ -1,3 +1,5 @@
+// TODO: update as C++
+
 class Dfa {
   int n, s, a;
   int[][] to;
