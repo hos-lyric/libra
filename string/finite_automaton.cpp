@@ -10,7 +10,7 @@ struct Dfa {
   int n, s, a;
   vector<vector<int>> to;
   vector<bool> ac;
-  Dfa(int n, int s, int a) : n(n), s(s), a(a) {
+  Dfa(int n_, int s_, int a_) : n(n_), s(s_), a(a_) {
     to.assign(n, vector<int>(a, -1));
     ac.assign(n, false);
   }
@@ -132,7 +132,7 @@ struct Nfa {
   vector<vector<vector<int>>> to;
   vector<vector<int>> eps;
   vector<bool> ac;
-  Nfa(int n, int s, int a) : n(n), s(s), a(a) {
+  Nfa(int n_, int s_, int a_) : n(n_), s(s_), a(a_) {
     to.assign(n, vector<vector<int>>(a));
     eps.assign(n, {});
     ac.assign(n, false);
@@ -186,55 +186,59 @@ struct Nfa {
   }
 };
 
-// Dfa
-void unittest0() {
-  // https://www.cs.wcupa.edu/rkline/fcs/dfa-min.html
-  Dfa dfa(7, 1, 2);
-  dfa.to = {{1, 2}, {2, 4}, {5, 3}, {2, 6}, {1, 5}, {5, 5}, {3, 5}};
-  dfa.ac[1] = dfa.ac[3] = true;
-  const Dfa minDfa = dfa.minimize();
-  assert(dfa.ids[0] == -1);
-  assert(dfa.ids[1] == dfa.ids[3]);
-  assert(dfa.ids[4] == dfa.ids[6]);
-  assert(minDfa.n == 4);
-  assert(minDfa.s == dfa.ids[1]);
-  assert(minDfa.a == 2);
-  assert(minDfa.to[dfa.ids[1]] == (vector<int>{dfa.ids[2], dfa.ids[4]}));
-  assert(minDfa.to[dfa.ids[2]] == (vector<int>{dfa.ids[5], dfa.ids[1]}));
-  assert(minDfa.to[dfa.ids[4]] == (vector<int>{dfa.ids[1], dfa.ids[5]}));
-  assert(minDfa.to[dfa.ids[5]] == (vector<int>{dfa.ids[5], dfa.ids[5]}));
-  assert(minDfa.ac[dfa.ids[1]]);
-  assert(!minDfa.ac[dfa.ids[2]]);
-  assert(!minDfa.ac[dfa.ids[4]]);
-  assert(!minDfa.ac[dfa.ids[5]]);
-  Dfa dfa1(4, 0, 2);
-  dfa1.to = {{1, 2}, {3, 0}, {0, 3}, {3, 3}};
-  dfa1.ac[0] = true;
-  assert(isIsomorphic(minDfa, dfa1));
+////////////////////////////////////////////////////////////////////////////////
+
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+
+void unittest_Dfa() {
+  {
+    Dfa dfa(7, 1, 2);
+    dfa.to = {{1, 2}, {2, 4}, {5, 3}, {2, 6}, {1, 5}, {5, 5}, {3, 5}};
+    dfa.ac[1] = dfa.ac[3] = true;
+    const Dfa minDfa = dfa.minimize();
+    assert(dfa.ids[0] == -1);
+    assert(dfa.ids[1] == dfa.ids[3]);
+    assert(dfa.ids[4] == dfa.ids[6]);
+    assert(minDfa.n == 4);
+    assert(minDfa.s == dfa.ids[1]);
+    assert(minDfa.a == 2);
+    assert(minDfa.to[dfa.ids[1]] == (vector<int>{dfa.ids[2], dfa.ids[4]}));
+    assert(minDfa.to[dfa.ids[2]] == (vector<int>{dfa.ids[5], dfa.ids[1]}));
+    assert(minDfa.to[dfa.ids[4]] == (vector<int>{dfa.ids[1], dfa.ids[5]}));
+    assert(minDfa.to[dfa.ids[5]] == (vector<int>{dfa.ids[5], dfa.ids[5]}));
+    assert(minDfa.ac[dfa.ids[1]]);
+    assert(!minDfa.ac[dfa.ids[2]]);
+    assert(!minDfa.ac[dfa.ids[4]]);
+    assert(!minDfa.ac[dfa.ids[5]]);
+    Dfa dfa1(4, 0, 2);
+    dfa1.to = {{1, 2}, {3, 0}, {0, 3}, {3, 3}};
+    dfa1.ac[0] = true;
+    assert(isIsomorphic(minDfa, dfa1));
+  }
+  {
+    // empty
+    Dfa dfa0(3, 0, 1);
+    dfa0.to = {{1}, {2}, {0}};
+    dfa0.ac.assign(3, false);
+    dfa0 = dfa0.minimize();
+    assert(dfa0.n == 1);
+    assert(dfa0.to == (vector<vector<int>>{vector<int>{0}}));
+    assert(dfa0.ac == (vector<bool>{false}));
+    // all
+    Dfa dfa1(3, 0, 1);
+    dfa1.to = {{2}, {0}, {1}};
+    dfa1.ac.assign(3, true);
+    dfa1 = dfa1.minimize();
+    assert(dfa1.n == 1);
+    assert(dfa1.to == (vector<vector<int>>{vector<int>{0}}));
+    assert(dfa1.ac == (vector<bool>{true}));
+  }
 }
 
-// Dfa
-void unittest1() {
-  // empty
-  Dfa dfa0(3, 0, 1);
-  dfa0.to = {{1}, {2}, {0}};
-  dfa0.ac.assign(3, false);
-  dfa0 = dfa0.minimize();
-  assert(dfa0.n == 1);
-  assert(dfa0.to == (vector<vector<int>>{vector<int>{0}}));
-  assert(dfa0.ac == (vector<bool>{false}));
-  // all
-  Dfa dfa1(3, 0, 1);
-  dfa1.to = {{2}, {0}, {1}};
-  dfa1.ac.assign(3, true);
-  dfa1 = dfa1.minimize();
-  assert(dfa1.n == 1);
-  assert(dfa1.to == (vector<vector<int>>{vector<int>{0}}));
-  assert(dfa1.ac == (vector<bool>{true}));
-}
-
-// Nfa
-void unittest2() {
+void unittest_Nfa() {
   // 0*10*(10*10*)* (odd number of 1's)
   Nfa nfa(6, 0, 2);
   nfa.to[0][0].push_back(0);
@@ -258,8 +262,7 @@ void unittest2() {
 }
 
 int main() {
-  unittest0();
-  unittest1();
-  unittest2();
+  unittest_Dfa(); cerr << "PASSED unittest_Dfa" << endl;
+  unittest_Nfa(); cerr << "PASSED unittest_Nfa" << endl;
   return 0;
 }
