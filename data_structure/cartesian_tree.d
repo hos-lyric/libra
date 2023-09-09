@@ -27,7 +27,7 @@ class MinCartesianTree {
       }
     }
   }
-};
+}
 
 // root: max (tie-break: left)
 class MaxCartesianTree {
@@ -58,7 +58,7 @@ class MaxCartesianTree {
       }
     }
   }
-};
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
