@@ -12,7 +12,7 @@ using std::string;
 using std::swap;
 using std::vector;
 
-struct HLD {
+struct Hld {
   int n, rt;
   // needs to be tree
   // vertex lists
@@ -24,8 +24,8 @@ struct HLD {
   // head vertex (minimum depth) in heavy path
   vector<int> head;
 
-  HLD() : n(0), rt(-1), zeit(0) {}
-  explicit HLD(int n_) : n(n_), rt(-1), graph(n), zeit(0) {}
+  Hld() : n(0), rt(-1), zeit(0) {}
+  explicit Hld(int n_) : n(n_), rt(-1), graph(n), zeit(0) {}
   void ae(int u, int v) {
     assert(0 <= u); assert(u < n);
     assert(0 <= v); assert(v < n);
@@ -44,7 +44,7 @@ struct HLD {
       sz[u] += sz[v];
     }
   }
-  void dfsHLD(int u) {
+  void dfsHld(int u) {
     dis[u] = zeit++;
     const int deg = graph[u].size();
     if (deg > 0) {
@@ -59,11 +59,11 @@ struct HLD {
       }
       swap(graph[u][0], graph[u][jm]);
       head[vm] = head[u];
-      dfsHLD(vm);
+      dfsHld(vm);
       for (int j = 1; j < deg; ++j) {
         const int v = graph[u][j];
         head[v] = v;
-        dfsHLD(v);
+        dfsHld(v);
       }
     }
     fin[u] = zeit;
@@ -81,13 +81,13 @@ struct HLD {
     fin.assign(n, -1);
     head.assign(n, -1);
     head[rt] = rt;
-    dfsHLD(rt);
+    dfsHld(rt);
     assert(zeit == n);
     sid.assign(n, -1);
     for (int u = 0; u < n; ++u) sid[dis[u]] = u;
   }
 
-  friend ostream &operator<<(ostream &os, const HLD &hld) {
+  friend ostream &operator<<(ostream &os, const Hld &hld) {
     const int maxDep = *max_element(hld.dep.begin(), hld.dep.end());
     vector<string> ss(2 * maxDep + 1);
     int pos = 0, maxPos = 0;
@@ -205,7 +205,7 @@ unsigned xrand() {
 
 void unittest() {
   {
-    HLD hld(1);
+    Hld hld(1);
     hld.build(0);
     {
       ostringstream oss;
@@ -233,7 +233,7 @@ void unittest() {
     assert(hld.ids == (vector<int>{0}));
   }
   {
-    HLD hld(14);
+    Hld hld(14);
     hld.ae(0, 6);
     hld.ae(0, 9);
     hld.ae(12, 0);
@@ -411,7 +411,7 @@ void unittest() {
       const int N = 1 + xrand() % MAX_N;
       vector<vector<int>> dist(N, vector<int>(N, N));
       for (int u = 0; u < N; ++u) dist[u][u] = 0;
-      HLD hld(N);
+      Hld hld(N);
       for (int v = 1; v < N; ++v) {
         const int u = xrand() % v;
         dist[u][v] = 1;
@@ -574,7 +574,7 @@ void unittest() {
 void yosupo__lca() {
   int N, Q;
   for (; ~scanf("%d%d", &N, &Q); ) {
-    HLD hld(N);
+    Hld hld(N);
     for (int u = 1; u < N; ++u) {
       int p;
       scanf("%d", &p);
@@ -594,7 +594,7 @@ void yosupo__lca() {
 void yosupo__jump_on_tree() {
   int N, Q;
   for (; ~scanf("%d%d", &N, &Q); ) {
-    HLD hld(N);
+    Hld hld(N);
     for (int i = 0; i < N - 1; ++i) {
       int u, v;
       scanf("%d%d", &u, &v);
@@ -618,7 +618,7 @@ void yosupo__vertex_add_path_sum() {
     for (int u = 0; u < N; ++u) {
       scanf("%d", &C[u]);
     }
-    HLD hld(N);
+    Hld hld(N);
     for (int i = 0; i < N - 1; ++i) {
       int u, v;
       scanf("%d%d", &u, &v);
@@ -664,7 +664,7 @@ void yosupo__vertex_add_subtree_sum() {
     for (int u = 0; u < N; ++u) {
       scanf("%d", &C[u]);
     }
-    HLD hld(N);
+    Hld hld(N);
     for (int u = 1; u < N; ++u) {
       int p;
       scanf("%d", &p);
