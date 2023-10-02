@@ -105,6 +105,7 @@ void unittest() {
 }
 
 // https://qoj.ac/contest/365/problem/123
+// https://atcoder.jp/contests/joisc2018/tasks/joisc2018_j
 void joisc2018_candies() {
   int N;
   for (; ~scanf("%d", &N); ) {
