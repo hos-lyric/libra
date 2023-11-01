@@ -1,56 +1,71 @@
 #include <assert.h>
+#include <utility>
 #include <vector>
 
+using std::pair;
 using std::vector;
 
 // TODO: edge ID
 // TODO: test lowlink
 
 // gg: bipartite graph between {vertex} and {biconnected component}
-//   (gg.n - n) biconnected components
+//   (|gg| - n) biconnected components
 //   isolated point: not regarded as biconnected component (==> isolated in gg)
 // f: DFS out-forest
+// ess: edges in biconnected component
+//   (u, v) with dis[u] <= dis[v]
+//   self-loop at isolated point: not included in ess
 struct Biconnected {
-  int n;
+  int n, m;
   vector<vector<int>> g, f, gg;
-
-  Biconnected() : n(0), stackLen(0), zeit(0) {}
-  explicit Biconnected(int n_) : n(n_), g(n_), stackLen(0), zeit(0) {}
-  void ae(int u, int v) {
-    g[u].push_back(v);
-    g[v].push_back(u);
-  }
-
-  int stackLen;
-  vector<int> stack;
+  vector<vector<pair<int, int>>> ess;
   vector<int> par, rs;
   int zeit;
   vector<int> dis, fin, low;
+
+  Biconnected() {}
+  explicit Biconnected(int n_) : n(n_), m(0), g(n_) {}
+  void ae(int u, int v) {
+    ++m;
+    assert(0 <= u); assert(u < n);
+    assert(0 <= v); assert(v < n);
+    g[u].push_back(v);
+    if (u != v) g[v].push_back(u);
+  }
+
+  int stackVLen, stackELen;
+  vector<int> stackV;
+  vector<pair<int, int>> stackE;
   vector<int> cntPar;
   void dfs(int u) {
-    stack[stackLen++] = u;
+    stackV[stackVLen++] = u;
     dis[u] = low[u] = zeit++;
     for (const int v : g[u]) {
       if (par[u] == v && !cntPar[u]++) continue;
       if (~dis[v]) {
+        if (dis[u] >= dis[v]) stackE[stackELen++] = std::make_pair(v, u);
         if (low[u] > dis[v]) low[u] = dis[v];
       } else {
         f[u].push_back(v);
         par[v] = u;
         rs[v] = rs[u];
+        const int stackEPos = stackELen;
+        stackE[stackELen++] = std::make_pair(u, v);
         dfs(v);
         if (low[u] > low[v]) low[u] = low[v];
         if (dis[u] <= low[v]) {
           const int x = gg.size();
           gg.emplace_back();
+          ess.emplace_back();
           for (; ; ) {
-            const int w = stack[--stackLen];
+            const int w = stackV[--stackVLen];
             gg[w].push_back(x);
             gg[x].push_back(w);
             if (w == v) break;
           }
           gg[u].push_back(x);
           gg[x].push_back(u);
+          for (; stackELen > stackEPos; ) ess[x].push_back(stackE[--stackELen]);
         }
       }
     }
@@ -59,16 +74,18 @@ struct Biconnected {
   void build() {
     f.assign(n, {});
     gg.assign(n, {});
-    stack.resize(n);
+    ess.assign(n, {});
     par.assign(n, -1);
     rs.assign(n, -1);
     zeit = 0;
     dis.assign(n, -1);
     fin.assign(n, -1);
     low.assign(n, -1);
+    stackV.resize(n);
+    stackE.resize(m);
     cntPar.assign(n, 0);
     for (int u = 0; u < n; ++u) if (!~dis[u]) {
-      stackLen = 0;
+      stackVLen = stackELen = 0;
       rs[u] = u;
       dfs(u);
     }
@@ -125,6 +142,7 @@ struct Biconnected {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <stdio.h>
 #include <iostream>
 #include <sstream>
 
@@ -190,14 +208,16 @@ void unittest() {
     assert(b.g == (vector<vector<int>>{}));
     assert(b.f == (vector<vector<int>>{}));
     assert(b.gg == (vector<vector<int>>{}));
+    assert(b.ess == (vector<vector<pair<int, int>>>{}));
   }
   {
     Biconnected b(1);
     b.ae(0, 0);
     b.build();
-    assert(b.g == (vector<vector<int>>{{0, 0}}));
+    assert(b.g == (vector<vector<int>>{{0}}));
     assert(b.f == (vector<vector<int>>{{}}));
     assert(b.gg == (vector<vector<int>>{{}}));
+    assert(b.ess == (vector<vector<pair<int, int>>>{{}}));
     assert(!b.isArt(0));
   }
   {
@@ -208,6 +228,7 @@ void unittest() {
     assert(b.g == (vector<vector<int>>{{1, 1}, {0, 0}}));
     assert(b.f == (vector<vector<int>>{{1}, {}}));
     assert(b.gg == (vector<vector<int>>{{2}, {2}, {1, 0}}));
+    assert(b.ess == (vector<vector<pair<int, int>>>{{}, {}, {{0, 1}, {0, 1}}}));
     assert(!b.isArt(0));
     assert(!b.isArt(1));
     assert(b.isStillReachable(0, 1, 1));
@@ -226,6 +247,7 @@ void unittest() {
     assert(b.g == (vector<vector<int>>{{1, 2}, {0, 2, 3, 4}, {0, 1}, {1, 4}, {1, 3}}));
     assert(b.f == (vector<vector<int>>{{1}, {2, 3}, {}, {4}, {}}));
     assert(b.gg == (vector<vector<int>>{{6}, {5, 6}, {6}, {5}, {5}, {4, 3, 1}, {2, 1, 0}}));
+    assert(b.ess == (vector<vector<pair<int, int>>>{{}, {}, {}, {}, {}, {{1, 4}, {3, 4}, {1, 3}}, {{0, 2}, {1, 2}, {0, 1}}}));
     assert(!b.isArt(0));
     assert(b.isArt(1));
     assert(!b.isArt(2));
@@ -234,6 +256,32 @@ void unittest() {
     test_dive(b);
     test_isStillReachable(b);
   }
+/*
+0 2
+0 3
+0 4
+2 3
+3 4
+1 18
+1 19
+0 8
+6 7
+7 8
+8 6
+8 9
+9 10
+10 16
+16 8
+8 10
+9 16
+16 16
+11 16
+12 13
+14 16
+16 17
+12 17
+13 14
+*/
   {
     Biconnected b(20);
     b.ae(0, 2);
@@ -262,35 +310,41 @@ void unittest() {
     b.ae(13, 14);
     b.build();
     assert(b.g == (vector<vector<int>>{
-      {2, 3, 4, 8},
-      {18, 19},
-      {0, 3},
-      {0, 2, 4},
-      {0, 3},
-      {},
-      {7, 8},
-      {6, 8},
-      {0, 7, 6, 9, 16, 10},
-      {8, 10, 16},
-      {9, 16, 8},
-      {16},
-      {13, 17},
-      {12, 14},
-      {16, 13},
-      {},
-      {10, 8, 9, 16, 16, 11, 14, 17},
-      {16, 12},
-      {1},
-      {1},
+      {2, 3, 4, 8}, {18, 19}, {0, 3}, {0, 2, 4}, {0, 3},
+      {}, {7, 8}, {6, 8}, {0, 7, 6, 9, 16, 10}, {8, 10, 16},
+      {9, 16, 8}, {16}, {13, 17}, {12, 14}, {16, 13},
+      {}, {10, 8, 9, 16, 11, 14, 17}, {16, 12}, {1}, {1},
     }));
     assert(b.f == (vector<vector<int>>{
-      {2, 8}, {18, 19}, {3}, {4}, {}, {}, {}, {6}, {7, 9}, {10},
-      {16}, {}, {17}, {12}, {13}, {}, {11, 14}, {}, {}, {},
+      {2, 8}, {18, 19}, {3}, {4}, {},
+      {}, {}, {6}, {7, 9}, {10},
+      {16}, {}, {17}, {12}, {13},
+      {}, {11, 14}, {}, {}, {},
     }));
     assert(b.gg == (vector<vector<int>>{
-      {20, 25}, {26, 27}, {20}, {20}, {20}, {}, {21}, {21}, {21, 24, 25}, {24},
-      {24}, {22}, {23}, {23}, {23}, {}, {22, 23, 24}, {23}, {26}, {27},
-      {4, 3, 2, 0}, {6, 7, 8}, {11, 16}, {17, 12, 13, 14, 16}, {16, 10, 9, 8}, {8, 0}, {18, 1}, {19, 1},
+      {20, 25}, {26, 27}, {20}, {20}, {20},
+      {}, {21}, {21}, {21, 24, 25}, {24},
+      {24}, {22}, {23}, {23}, {23},
+      {}, {22, 23, 24}, {23}, {26}, {27},
+      {4, 3, 2, 0},
+      {6, 7, 8},
+      {11, 16},
+      {17, 12, 13, 14, 16},
+      {16, 10, 9, 8},
+      {8, 0},
+      {18, 1},
+      {19, 1},
+    }));
+    assert(b.ess == (vector<vector<pair<int, int>>>{
+      {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, 
+      {{0, 4}, {3, 4}, {0, 3}, {2, 3}, {0, 2}},
+      {{8, 6}, {7, 6}, {8, 7}},
+      {{16, 11}},
+      {{16, 17}, {12, 17}, {13, 12}, {14, 13}, {16, 14}},
+      {{8, 10}, {16, 16}, {9, 16}, {8, 16}, {10, 16}, {9, 10}, {8, 9}},
+      {{0, 8}},
+      {{1, 18}},
+      {{1, 19}},
     }));
     assert(b.isArt(0));
     assert(b.isArt(1));
@@ -317,7 +371,39 @@ void unittest() {
   }
 }
 
+// https://judge.yosupo.jp/problem/biconnected_components
+void yosupo_biconnected_components() {
+  int N, M;
+  for (; ~scanf("%d%d", &N, &M); ) {
+    Biconnected b(N);
+    for (int i = 0; i < M; ++i) {
+      int u, v;
+      scanf("%d%d", &u, &v);
+      b.ae(u, v);
+    }
+    b.build();
+
+    // need to output isolated vertices
+    int numComps = static_cast<int>(b.gg.size()) - N;
+    for (int u = 0; u < N; ++u) if (b.gg[u].size() == 0) {
+      ++numComps;
+    }
+    printf("%d\n", numComps);
+    for (int x = N; x < static_cast<int>(b.gg.size()); ++x) {
+      printf("%d", static_cast<int>(b.gg[x].size()));
+      for (const int u : b.gg[x]) {
+        printf(" %d", u);
+      }
+      puts("");
+    }
+    for (int u = 0; u < N; ++u) if (b.gg[u].size() == 0) {
+      printf("1 %d\n", u);
+    }
+  }
+}
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
+  // yosupo_biconnected_components();
   return 0;
 }
