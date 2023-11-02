@@ -8,6 +8,32 @@ using std::pair;
 using std::swap;
 using std::vector;
 
+// det(a)
+// O(n^3)
+//   Call by value: Modifies a (Watch out when using C-style array!)
+template <class T> T det(vector<vector<T>> a) {
+  const int n = a.size();
+  T prod = 1;
+  for (int h = 0; h < n; ++h) {
+    for (int i = h; i < n; ++i) if (a[i][h]) {
+      if (h != i) {
+        prod = -prod;
+        swap(a[h], a[i]);
+      }
+      break;
+    }
+    if (!a[h][h]) return 0;
+    prod *= a[h][h];
+    const T s = a[h][h].inv();
+    for (int j = h + 1; j < n; ++j) a[h][j] *= s;
+    for (int i = h + 1; i < n; ++i) {
+      const T t = a[i][h];
+      if (t) for (int j = h + 1; j < n; ++j) a[i][j] -= t * a[h][j];
+    }
+  }
+  return prod;
+}
+
 // det(a + x I), division free
 // O(n^4)
 template <class T> vector<T> charPolyDivFree(const vector<vector<T>> &a) {
@@ -84,7 +110,7 @@ template <class T> vector<T> detPoly(vector<vector<T>> a, vector<vector<T>> b) {
       if (b[h][h]) break;
       for (int j = h + 1; j < n; ++j) {
         if (b[h][j]) {
-          prod *= -1;
+          prod = -prod;
           for (int i = 0; i < n; ++i) {
             swap(a[i][h], a[i][j]);
             swap(b[i][h], b[i][j]);
@@ -139,7 +165,7 @@ template <class T> vector<T> detPoly(vector<vector<vector<T>>> a) {
       if (a[m][h][h]) break;
       for (int j = h + 1; j < n; ++j) {
         if (a[m][h][j]) {
-          prod *= -1;
+          prod = -prod;
           for (int d = 0; d <= m; ++d) for (int i = 0; i < n; ++i) {
             swap(a[d][i][h], a[d][i][j]);
           }
@@ -221,272 +247,197 @@ pair<vector<vector<T>>, vector<vector<T>>> rankDecompose(vector<vector<T>> a) {
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
-
 #include "modint.h"
 
 using std::cerr;
 using std::endl;
 
-void unittest() {
-  constexpr unsigned MO = 998244353;
+// det, charPolyDivFree, charPoly
+template <unsigned MO> void unittest_charPoly() {
   using Mint = ModInt<MO>;
-
-  // charPolyDivFree, charPoly
   {
     const vector<vector<Mint>> a;
     const vector<Mint> ps = charPoly(a);
-    assert(ps.size() == 0 + 1);
-    assert(ps[0].x == 1);
+    assert(ps == (vector<Mint>{1}));
+    assert(ps[0] == det(a));
     assert(ps == charPolyDivFree(a));
   }
   {
     const vector<vector<Mint>> a{{10}};
     const vector<Mint> ps = charPoly(a);
-    assert(ps.size() == 1 + 1);
-    assert(ps[0].x == 10);
-    assert(ps[1].x == 1);
+    assert(ps == (vector<Mint>{10, 1}));
+    assert(ps[0] == det(a));
     assert(ps == charPolyDivFree(a));
   }
   {
     const vector<vector<Mint>> a{
-        {3, 1, 4},
-        {1, 5, 9},
-        {2, 6, 5},
+      {3, 1, 4},
+      {1, 5, 9},
+      {2, 6, 5},
     };
     const vector<Mint> ps = charPoly(a);
-    assert(ps.size() == 3 + 1);
-    assert(ps[0].x == MO - 90);
-    assert(ps[1].x == MO - 8);
-    assert(ps[2].x == 13);
-    assert(ps[3].x == 1);
+    assert(ps == (vector<Mint>{-90, -8, 13, 1}));
+    assert(ps[0] == det(a));
     assert(ps == charPolyDivFree(a));
   }
   {
     const vector<vector<Mint>> a{
-        {3, -5, 8, 9},
-        {-7, 9, -3, 2},
-        {3, 8, -4, -6},
-        {2, -6, 4, 3},
+      {3, -5, 8, 9},
+      {-7, 9, -3, 2},
+      {3, 8, -4, -6},
+      {2, -6, 4, 3},
     };
     const vector<Mint> ps = charPoly(a);
-    assert(ps.size() == 4 + 1);
-    assert(ps[0].x == 181);
-    assert(ps[1].x == MO - 171);
-    assert(ps[2].x == MO - 14);
-    assert(ps[3].x == 11);
-    assert(ps[4].x == 1);
+    assert(ps == (vector<Mint>{181, -171, -14, 11, 1}));
+    assert(ps[0] == det(a));
     assert(ps == charPolyDivFree(a));
   }
-  {
-    constexpr int n = 100;
-    vector<vector<Mint>> a(n, vector<Mint>(n));
-    for (int i = 0; i < n; ++i) for (int j = 0; j < n; ++j) {
-      a[i][j] = (i * j * j) % 199 - 100;
-    }
-    const vector<Mint> ps = charPoly(a);
-    assert(ps.size() == static_cast<size_t>(n + 1));
-    assert(ps[0].x == 0);
-    assert(ps[1].x == 895461868);
-    assert(ps[2].x == 863013394);
-    assert(ps[49].x == 301922511);
-    assert(ps[50].x == 222844028);
-    assert(ps[51].x == 443314937);
-    assert(ps[98].x == 997237804);
-    assert(ps[99].x == 998243734);
-    assert(ps[100].x == 1);
-    assert(ps == charPolyDivFree(a));
-  }
+}
 
-  // detPoly
+// detPoly
+template <unsigned MO> void unittest_detPoly() {
+  using Mint = ModInt<MO>;
   {
     const vector<vector<Mint>> a;
     const vector<vector<Mint>> b;
     const vector<Mint> ps = detPoly(a, b);
-    assert(ps.size() == 0 + 1);
-    assert(ps[0].x == 1);
+    assert(ps == (vector<Mint>{1}));
     assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{{20}};
     const vector<vector<Mint>> b{{33}};
     const vector<Mint> ps = detPoly(a, b);
-    assert(ps.size() == 1 + 1);
-    assert(ps[0].x == 20);
-    assert(ps[1].x == 33);
+    assert(ps == (vector<Mint>{20, 33}));
     assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
-        {3, 1, 4},
-        {1, 5, 9},
-        {2, 6, 5},
+      {3, 1, 4},
+      {1, 5, 9},
+      {2, 6, 5},
     };
     const vector<vector<Mint>> b{
-        {3, 5, 8},
-        {9, 7, 9},
-        {3, 2, 3},
+      {3, 5, 8},
+      {9, 7, 9},
+      {3, 2, 3},
     };
     const vector<Mint> ps = detPoly(a, b);
-    assert(ps.size() == 3 + 1);
-    assert(ps[0].x == MO - 90);
-    assert(ps[1].x == MO - 15);
-    assert(ps[2].x == 132);
-    assert(ps[3].x == MO - 15);
+    assert(ps == (vector<Mint>{-90, -15, 132, -15}));
     assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
-        {3, 1, 4},
-        {1, 5, 9},
-        {2, 6, 5},
+      {3, 1, 4},
+      {1, 5, 9},
+      {2, 6, 5},
     };
     const vector<vector<Mint>> b{
-        {3, 5, 8},
-        {9, 7, 9},
-        {6, 2, 1},
+      {3, 5, 8},
+      {9, 7, 9},
+      {6, 2, 1},
     };
     const vector<Mint> ps = detPoly(a, b);
-    assert(ps.size() == 3 + 1);
-    assert(ps[0].x == MO - 90);
-    assert(ps[1].x == MO - 76);
-    assert(ps[2].x == 46);
-    assert(ps[3].x == 0);
+    assert(ps == (vector<Mint>{-90, -76, 46, 0}));
     assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<Mint>> a{
-        {1, 2, 3, -5},
-        {8, -3, 1, -4},
-        {5, 9, -4, -3},
-        {-7, 0, -7, -7},
+      {1, 2, 3, -5},
+      {8, -3, 1, -4},
+      {5, 9, -4, -3},
+      {-7, 0, -7, -7},
     };
     const vector<vector<Mint>> b{
-        {0, 0, 1, 2},
-        {0, 0, 3, 4},
-        {5, 6, 7, 8},
-        {10, 12, 4, 6},
+      {0, 0, 1, 2},
+      {0, 0, 3, 4},
+      {5, 6, 7, 8},
+      {10, 12, 4, 6},
     };
     const vector<Mint> ps = detPoly(a, b);
-    assert(ps.size() == 4 + 1);
-    assert(ps[0].x == MO - 6356);
-    assert(ps[1].x == 7362);
-    assert(ps[2].x == MO - 5875);
-    assert(ps[3].x == 646);
-    assert(ps[4].x == 0);
+    assert(ps == (vector<Mint>{-6356, 7362, -5875, 646, 0}));
     assert(ps == detPoly(vector<vector<vector<Mint>>>{a, b}));
   }
   {
     const vector<vector<vector<Mint>>> a{
-        {
-            {2, 0, 3},
-            {0, 4, 8},
-            {1, 5, 4},
-        }, {
-            {-1, -2, -9},
-            {-7, 3, 4},
-            {8, 6, -5},
-        }, {
-            {2, 4, 7},
-            {8, 6, 8},
-            {5, 1, 0},
-        }
+      {
+        {2, 0, 3},
+        {0, 4, 8},
+        {1, 5, 4},
+      }, {
+        {-1, -2, -9},
+        {-7, 3, 4},
+        {8, 6, -5},
+      }, {
+        {2, 4, 7},
+        {8, 6, 8},
+        {5, 1, 0},
+      }
     };
     const vector<Mint> ps = detPoly(a);
-    assert(ps.size() == 6 + 1);
-    assert(ps[0].x == MO - 60);
-    assert(ps[1].x == MO - 318);
-    assert(ps[2].x == 188);
-    assert(ps[3].x == 17);
-    assert(ps[4].x == MO - 488);
-    assert(ps[5].x == 304);
-    assert(ps[6].x == MO - 10);
+    assert(ps == (vector<Mint>{-60, -318, 188, 17, -488, 304, -10}));
   }
   {
     const vector<vector<vector<Mint>>> a{
-        {
-            {2, 0, 3},
-            {0, 4, 8},
-            {1, 5, 4},
-        }, {
-            {-1, -2, -9},
-            {-7, 3, 4},
-            {8, -1, 5},
-        }, {
-            {12, 8, 12},
-            {8, 6, 8},
-            {-16, -12, -16},
-        }
+      {
+        {2, 0, 3},
+        {0, 4, 8},
+        {1, 5, 4},
+      }, {
+        {-1, -2, -9},
+        {-7, 3, 4},
+        {8, -1, 5},
+      }, {
+        {12, 8, 12},
+        {8, 6, 8},
+        {-16, -12, -16},
+      }
     };
     const vector<Mint> ps = detPoly(a);
-    assert(ps.size() == 6 + 1);
-    assert(ps[0].x == MO - 60);
-    assert(ps[1].x == MO - 126);
-    assert(ps[2].x == 459);
-    assert(ps[3].x == MO - 122);
-    assert(ps[4].x == 294);
-    assert(ps[5].x == 152);
-    assert(ps[6].x == 0);
+    assert(ps == (vector<Mint>{-60, -126, 459, -122, 294, 152, 0}));
   }
   {
     const vector<vector<vector<Mint>>> a{
-        {
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-        }, {
-            {0, 1, 0, 0},
-            {0, 0, 1, 0},
-            {0, 1, 0, 0},
-            {0, 0, 0, 1},
-        }, {
-            {0, 0, 0, 1},
-            {0, 1, 1, 0},
-            {0, 0, 0, 0},
-            {0, 1, 0, 0},
-        }, {
-            {1, 0, 0, 0},
-            {0, 1, 1, 0},
-            {1, 1, 0, 0},
-            {0, 0, 0, 1},
-        }, {
-            {0, 0, 0, 1},
-            {0, 0, 1, 0},
-            {0, 1, 0, 1},
-            {0, 1, 1, 0},
-        }, {
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-            {0, 0, 0, 0},
-        }
+      {
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+      }, {
+        {0, 1, 0, 0},
+        {0, 0, 1, 0},
+        {0, 1, 0, 0},
+        {0, 0, 0, 1},
+      }, {
+        {0, 0, 0, 1},
+        {0, 1, 1, 0},
+        {0, 0, 0, 0},
+        {0, 1, 0, 0},
+      }, {
+        {1, 0, 0, 0},
+        {0, 1, 1, 0},
+        {1, 1, 0, 0},
+        {0, 0, 0, 1},
+      }, {
+        {0, 0, 0, 1},
+        {0, 0, 1, 0},
+        {0, 1, 0, 1},
+        {0, 1, 1, 0},
+      }, {
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+      }
     };
     const vector<Mint> ps = detPoly(a);
-    assert(ps.size() == 20 + 1);
-    assert(ps[0].x == 0);
-    assert(ps[1].x == 0);
-    assert(ps[2].x == 0);
-    assert(ps[3].x == 0);
-    assert(ps[4].x == 0);
-    assert(ps[5].x == 0);
-    assert(ps[6].x == 0);
-    assert(ps[7].x == 0);
-    assert(ps[8].x == MO - 2);
-    assert(ps[9].x == MO - 3);
-    assert(ps[10].x == MO - 5);
-    assert(ps[11].x == MO - 5);
-    assert(ps[12].x == MO - 3);
-    assert(ps[13].x == MO - 3);
-    assert(ps[14].x == MO - 1);
-    assert(ps[15].x == 0);
-    assert(ps[16].x == 0);
-    assert(ps[17].x == 0);
-    assert(ps[18].x == 0);
-    assert(ps[19].x == 0);
-    assert(ps[20].x == 0);
+    assert(ps == (vector<Mint>{0, 0, 0, 0, 0, 0, 0, 0, -2, -3, -5, -5, -3, -3, -1, 0, 0, 0, 0, 0, 0}));
   }
+}
 
-  // rankDecompose
+// rankDecompose
+template <unsigned MO> void unittest_rankDecompose() {
+  using Mint = ModInt<MO>;
   auto test_rankDecompose = [&](const vector<vector<Mint>> &a, int r) -> void {
     const int m = a.size(), n = a[0].size();
     const auto res = rankDecompose(a);
@@ -504,7 +455,7 @@ void unittest() {
   {
     test_rankDecompose({{0}}, 0);
     test_rankDecompose({{1}}, 1);
-    test_rankDecompose({{2}}, 1);
+    test_rankDecompose({{2}}, (MO == 2) ? 0 : 1);
     test_rankDecompose({
       {0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0},
@@ -524,7 +475,7 @@ void unittest() {
       {1, 2, 1, 3, 1},
       {2, 1, 4, 1, 2},
       {1, 3, 1, 2, 1},
-    }, 3);
+    }, (MO == 2) ? 2 : 3);
     test_rankDecompose({
       {0, 0, 0},
       {0, 0, 0},
@@ -556,7 +507,15 @@ void unittest() {
   }
 }
 
+template <unsigned MO> void unittests() {
+  unittest_charPoly<MO>(); cerr << "PASSED unittest_charPoly<" << MO << ">" << endl;
+  unittest_detPoly<MO>(); cerr << "PASSED unittest_detPoly<" << MO << ">" << endl;
+  unittest_rankDecompose<MO>(); cerr << "PASSED unittest_rankDecompose<" << MO << ">" << endl;
+}
+
 int main() {
-  unittest(); cerr << "PASSED unittest" << endl;
+  unittests<998244353>();
+  unittests<2>();
+  unittests<3>();
   return 0;
 }
