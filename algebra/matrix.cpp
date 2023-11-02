@@ -212,6 +212,40 @@ template <class T> vector<T> detPoly(vector<vector<vector<T>>> a) {
   return gs;
 }
 
+// pf(a)
+// Assumes a: skew-symmetric (with diagonal 0)
+// pf([[0, t], [-t, 0]]) = t
+// O(n^3)
+//   Call by value: Modifies a (Watch out when using C-style array!)
+template <class T> T pf(vector<vector<T>> a) {
+  const int n = a.size();
+  for (int i = 0; i < n; ++i) assert(!a[i][i]);
+  for (int i = 0; i < n; ++i) for (int j = i + 1; j < n; ++j) assert(a[j][i] == -a[i][j]);
+  if (n % 2 != 0) return 0;
+  T prod = 1;
+  for (int h = 0; h < n; h += 2) {
+    for (int i = h + 1; i < n; ++i) if (a[i][h]) {
+      if (h + 1 != i) {
+        prod = -prod;
+        swap(a[h + 1], a[i]);
+        for (int ii = h; ii < n; ++ii) swap(a[ii][h + 1], a[ii][i]);
+      }
+      break;
+    }
+    if (!a[h][h + 1]) return 0;
+    prod *= a[h][h + 1];
+    const T s = a[h][h + 1].inv();
+    for (int j = h + 2; j < n; ++j) a[h][j] *= s;
+    for (int j = h + 2; j < n; ++j) a[h + 1][j] *= s;
+    for (int i = h + 2; i < n; ++i) {
+      const T t0 = a[i][h + 1], t1 = a[i][h];
+      if (t0) for (int j = h + 2; j < n; ++j) a[i][j] -= t0 * a[h][j];
+      if (t1) for (int j = h + 2; j < n; ++j) a[i][j] += t1 * a[h + 1][j];
+    }
+  }
+  return prod;
+}
+
 // a \in Mat(m, n), rank(a) = r
 // b \in Mat(m, r), c \in Mat(r, n), a = b c
 // O(m n min(m, n))
@@ -247,10 +281,12 @@ pair<vector<vector<T>>, vector<vector<T>>> rankDecompose(vector<vector<T>> a) {
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <random>
 #include "modint.h"
 
 using std::cerr;
 using std::endl;
+using std::mt19937_64;
 
 // det, charPolyDivFree, charPoly
 template <unsigned MO> void unittest_charPoly() {
@@ -435,6 +471,78 @@ template <unsigned MO> void unittest_detPoly() {
   }
 }
 
+// pf
+template <unsigned MO> void unittest_pf() {
+  using Mint = ModInt<MO>;
+  {
+    const vector<vector<Mint>> a;
+    assert(pf(a) == 1);
+  }
+  {
+    const vector<vector<Mint>> a{{0}};
+    assert(pf(a) == 0);
+  }
+  {
+    const vector<vector<Mint>> a{
+      {0, 5},
+      {-5, 0},
+    };
+    assert(pf(a) == 5);
+  }
+  {
+    const vector<vector<Mint>> a{
+      {0, 7, 8},
+      {-7, 0, 10},
+      {-8, -10, 0},
+    };
+    assert(pf(a) == 0);
+  }
+  {
+    const vector<vector<Mint>> a{
+      {0, 12, 45, 67},
+      {-12, 0, 1, -100},
+      {-45, -1, 0, 10000},
+      {-67, 100, -10000, 0},
+    };
+    assert(pf(a) == 124567);
+  }
+  {
+    const vector<vector<Mint>> a{
+      {0, 0, 0, 0, 0, -5},
+      {0, 0, 0, 0, -7, 0},
+      {0, 0, 0, -11, 0, 0},
+      {0, 0, 11, 0, 0, 0},
+      {0, 7, 0, 0, 0, 0},
+      {5, 0, 0, 0, 0, 0},
+    };
+    assert(pf(a) == -385);
+  }
+  {
+    mt19937_64 rng;
+    for (int n = 2; n <= 16; n += 2) for (int k = 0; k <= n * n / 2; k += n) {
+      for (int caseId = 0; caseId < 100; ++caseId) {
+        vector<vector<Mint>> a(n, vector<Mint>(n, 0));
+        for (int l = 0; l < k; ++l) {
+          const int i = rng() % n;
+          const int j = rng() % n;
+          const Mint t = static_cast<unsigned long long>(rng());
+          a[i][j] += t;
+          a[j][i] -= t;
+        }
+        vector<Mint> dp(1 << n, 0);
+        dp[0] = 1;
+        for (int h = 0; h < (1 << n) - 1; ++h) if (dp[h]) {
+          const int i = __builtin_ctz(~h);
+          for (int j = i + 1; j < n; ++j) if (!(h & 1 << j)) {
+            dp[h | 1 << i | 1 << j] += dp[h] * ((__builtin_parity((h >> i) ^ (h >> j))) ? -1 : +1) * a[i][j];
+          }
+        }
+        assert(pf(a) == dp.back());
+      }
+    }
+  }
+}
+
 // rankDecompose
 template <unsigned MO> void unittest_rankDecompose() {
   using Mint = ModInt<MO>;
@@ -510,6 +618,7 @@ template <unsigned MO> void unittest_rankDecompose() {
 template <unsigned MO> void unittests() {
   unittest_charPoly<MO>(); cerr << "PASSED unittest_charPoly<" << MO << ">" << endl;
   unittest_detPoly<MO>(); cerr << "PASSED unittest_detPoly<" << MO << ">" << endl;
+  unittest_pf<MO>(); cerr << "PASSED unittest_pf<" << MO << ">" << endl;
   unittest_rankDecompose<MO>(); cerr << "PASSED unittest_rankDecompose<" << MO << ">" << endl;
 }
 
