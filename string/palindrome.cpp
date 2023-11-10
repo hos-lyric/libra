@@ -46,8 +46,85 @@ template <class Extend> vector<int> manacher(int n, Extend extend) {
   return rs;
 }
 
+// alphabet is [OFFSET, OFFSET + SIZE), with sentinel (OFFSET - 1)
+template <class T, int SIZE, T OFFSET> struct Pam {
+  struct Node {
+    // ts[pos, pos + len]: suffix when created
+    // fail: longest proper palindromic suffix
+    int len, pos, fail;
+    int nxt[SIZE];
+  };
 
-// TODO: no-undo version (to save memory)
+  // nodes[0]: length 0  (also means null in nxt)
+  // nodes[1]: length -1
+  // nodes[2, nodesLen): non-empty palindromic substring
+  // suf: node for longest palindromic suffix
+  int nodesLen, suf;
+  vector<Node> nodes;
+  // current whole string: ts[0, r)  (0 <= r <= nR)
+  int nR, r;
+  vector<T> tsBuffer;
+  T *ts;
+
+  Pam(int nR_) : nR(nR_) {
+    nodesLen = 2;
+    suf = 0;
+    nodes.resize(2 + nR);
+    nodes[0].len =  0; nodes[0].pos = 0; nodes[0].fail = 1;
+    nodes[1].len = -1; nodes[1].pos = 0; nodes[1].fail = 1;
+    memset(nodes[0].nxt, 0, sizeof(nodes[0].nxt));
+    memset(nodes[1].nxt, 0, sizeof(nodes[1].nxt));
+    r = 0;
+    tsBuffer.assign(1 + nR, OFFSET - 1);
+    ts = tsBuffer.data() + 1;
+  }
+  const Node &operator[](int u) const {
+    return nodes[u];
+  }
+
+  void pushBack(T t) {
+    assert(r < nR);
+    const int a = t - OFFSET;
+    ts[r++] = t;
+    for (; ts[r - 2 - nodes[suf].len] != t; suf = nodes[suf].fail) {}
+    Node &f = nodes[suf];
+    if (!f.nxt[a]) {
+      Node &g = nodes[nodesLen];
+      g.len = f.len + 2; g.pos = r - g.len;
+      int u = f.fail;
+      for (; ts[r - 2 - nodes[u].len] != t; u = nodes[u].fail) {}
+      g.fail = nodes[u].nxt[a];
+      memset(g.nxt, 0, sizeof(g.nxt));
+      f.nxt[a] = nodesLen++;  // this needs to be after setting g.fail
+    }
+    suf = f.nxt[a];
+  }
+
+  void dfsPrint(ostream &os, int u, const string &branch, int type) const {
+    const Node &f = nodes[u];
+    os << branch << ((type == 0) ? "" : (type == 1) ? "|-- " : "`-- ");
+    if (f.len <= 0) {
+      os << "(" << f.len << ")";
+    } else {
+      for (int i = f.pos; i < f.pos + f.len; ++i) os << ts[i];
+    }
+    os << " " << u << " " << f.fail;
+    // debug here
+    os << "\n";
+    int a0 = -1;
+    for (int a = 0; a < SIZE; ++a) if (f.nxt[a]) a0 = a;
+    for (int a = 0; a < SIZE; ++a) if (f.nxt[a]) {
+      dfsPrint(os, f.nxt[a],
+               branch + ((type == 0) ? "" : (type == 1) ? "|   " : "    "),
+               (a == a0) ? 2 : 1);
+    }
+  }
+  friend ostream &operator<<(ostream &os, const Pam &pam) {
+    pam.dfsPrint(os, 0, "  ", 0);
+    pam.dfsPrint(os, 1, "", 0);
+    return os;
+  }
+};
 
 // alphabet is [OFFSET, OFFSET + SIZE), with sentinel (OFFSET - 1)
 template <class T, int SIZE, T OFFSET> struct Depam {
@@ -62,6 +139,7 @@ template <class T, int SIZE, T OFFSET> struct Depam {
   // nodes[0]: length 0  (also means null in nxt)
   // nodes[1]: length -1
   // nodes[2, nodesLen): non-empty palindromic substring
+  // pre/suf: node for longest palindromic prefix/suffix
   int nodesLen, pre, suf;
   vector<Node> nodes;
   // current whole string: ts[l, r)  (-nL <= l <= 0 <= r <= nR)
@@ -242,6 +320,75 @@ void unittest_manacher() {
     vector<int> rs(2 * n + 1);
     const int numCases = unittest_manacher_dfs(n, 0, rs);
     cerr << "[unittest_manacher] n = " << n << ": " << numCases << " cases" << endl;
+  }
+}
+
+void unittest_Pam() {
+  // sismississippi
+  {
+    Pam<char, 26, 'a'> pam(14);
+    pam.pushBack('s');
+    pam.pushBack('i');
+    pam.pushBack('s');
+    pam.pushBack('m');
+    pam.pushBack('i');
+    pam.pushBack('s');
+    pam.pushBack('s');
+    pam.pushBack('i');
+    pam.pushBack('s');
+    pam.pushBack('s');
+    pam.pushBack('i');
+    pam.pushBack('p');
+    pam.pushBack('p');
+    pam.pushBack('i');
+    ostringstream oss;
+    oss << pam;
+    assert(oss.str() == string(R"(
+  (0) 0 1
+  |-- pp 11 10
+  |   `-- ippi 12 3
+  `-- ss 6 2
+      `-- issi 7 3
+(-1) 1 1
+|-- i 3 0
+|   `-- sis 4 2
+|       `-- ssiss 8 6
+|           `-- ississi 9 7
+|-- m 5 0
+|-- p 10 0
+`-- s 2 0
+)").substr(1));
+  }
+  {
+    constexpr int NUM_CASES = 100;
+    constexpr int NUM_QUERIES = 100;
+    for (int caseId = 0; caseId < NUM_CASES; ++caseId) {
+      vector<int> ops;
+      string s;
+      Pam<char, 2, '0'> pam(NUM_QUERIES);
+      for (int q = 0; q < NUM_QUERIES; ++q) {
+        const char t = '0' + xrand() % 2;
+        s += t;
+        pam.pushBack(t);
+        const int sLen = s.size();
+        auto isPal = [&](int i, int j) -> bool {
+          assert(0 <= i); assert(i <= j); assert(j <= sLen);
+          for (; i < j; ++i, --j) if (s[i] != s[j - 1]) return false;
+          return true;
+        };
+        for (int u = 2; u < pam.nodesLen; ++u) {
+          const auto &f = pam[u];
+          assert(isPal(f.pos, f.pos + f.len));
+        }
+        set<string> pals;
+        for (int i = 0; i < sLen; ++i) for (int j = i + 1; j <= sLen; ++j) {
+          if (isPal(i, j)) {
+            pals.insert(s.substr(i, j - i));
+          }
+        }
+        assert(pam.nodesLen == 2 + static_cast<int>(pals.size()));
+      }
+    }
   }
 }
 
@@ -439,7 +586,7 @@ void unittest_Depam() {
           return true;
         };
         for (int u = 2; u < depam.nodesLen; ++u) {
-          const auto &f = depam.nodes[u];
+          const auto &f = depam[u];
           assert(isPal(f.pos - depam.l, f.pos + f.len - depam.l));
         }
         set<string> pals;
@@ -456,6 +603,7 @@ void unittest_Depam() {
 
 int main() {
   unittest_manacher(); cerr << "PASSED unittest_manacher" << endl;
+  unittest_Pam(); cerr << "PASSED unittest_Pam" << endl;
   unittest_Depam(); cerr << "PASSED unittest_Depam" << endl;
   return 0;
 }
