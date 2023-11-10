@@ -64,9 +64,10 @@ template <class T, int SIZE, T OFFSET> struct Depam {
   // nodes[2, nodesLen): non-empty palindromic substring
   int nodesLen, pre, suf;
   vector<Node> nodes;
-  // string is ts[l, r)  (1 <= l <= 1 + nL <= r <= 1 + nL + nR)
+  // current whole string: ts[l, r)  (-nL <= l <= 0 <= r <= nR)
   int nL, nR, l, r;
-  vector<T> ts;
+  vector<T> tsBuffer;
+  T *ts;
   // ((~pre)/suf before pushFront/pushBack, parent of created node or -1)
   int historyLen;
   vector<pair<int, int>> history;
@@ -81,13 +82,18 @@ template <class T, int SIZE, T OFFSET> struct Depam {
     memset(nodes[1].nxt, 0, sizeof(nodes[1].nxt));
     for (int a = 0; a < SIZE; ++a) nodes[0].quick[a] = 1;
     for (int a = 0; a < SIZE; ++a) nodes[1].quick[a] = 1;
-    l = r = 1 + nL;
-    ts.assign(1 + nL + nR + 1, OFFSET - 1);
+    l = r = 0;
+    tsBuffer.assign(1 + nL + nR + 1, OFFSET - 1);
+    ts = tsBuffer.data() + (1 + nL);
     historyLen = 0;
     history.resize(nL + nR);
   }
+  const Node &operator[](int u) const {
+    return nodes[u];
+  }
+
   void pushFront(T t) {
-    assert(1 < l);
+    assert(-nL < l);
     const int a = t - OFFSET;
     history[historyLen++] = make_pair(~pre, -1);
     ts[--l] = t;
@@ -105,7 +111,7 @@ template <class T, int SIZE, T OFFSET> struct Depam {
     if (nodes[pre = f.nxt[a]].len == r - l) suf = pre;
   }
   void pushBack(T t) {
-    assert(r < 1 + nL + nR);
+    assert(r < nR);
     const int a = t - OFFSET;
     history[historyLen++] = make_pair(suf, -1);
     ts[r++] = t;
