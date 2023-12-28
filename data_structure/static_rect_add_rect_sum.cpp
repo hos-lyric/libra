@@ -64,7 +64,7 @@ template <class X, class Y, class T> struct StaticRectAddRectSum {
         {
           const T valX = -valXY * as[i].y0;
           const T val1 = -valY * as[i].y0;
-          for (int l = lower_bound(ys.begin(), ys.end(), as[i].y0) - ys.begin(); l < ysLen; l |= l + 1) {
+          for (int l = std::lower_bound(ys.begin(), ys.end(), as[i].y0) - ys.begin(); l < ysLen; l |= l + 1) {
             bit[l].t1 += val1;
             bit[l].tX += valX;
             bit[l].tY += valY;
@@ -86,22 +86,22 @@ template <class X, class Y, class T> struct StaticRectAddRectSum {
         T val1 = 0, valX = 0;
         {
           T sum1 = 0, sumX = 0, sumY = 0, sumXY = 0;
-          for (int l = std::upper_bound(ys.begin(), ys.end(), bs[j].y0) - ys.begin() - 1; l >= 0; l = (l & (l + 1)) - 1) {
-            sum1 += bit[l].t1;
-            sumX += bit[l].tX;
-            sumY += bit[l].tY;
-            sumXY += bit[l].tXY;
+          for (int l = std::upper_bound(ys.begin(), ys.end(), bs[j].y0) - ys.begin(); l > 0; l &= l - 1) {
+            sum1 += bit[l - 1].t1;
+            sumX += bit[l - 1].tX;
+            sumY += bit[l - 1].tY;
+            sumXY += bit[l - 1].tXY;
           }
           val1 -= (sum1 + sumY * bs[j].y0);
           valX -= (sumX + sumXY * bs[j].y0);
         }
         {
           T sum1 = 0, sumX = 0, sumY = 0, sumXY = 0;
-          for (int l = std::upper_bound(ys.begin(), ys.end(), bs[j].y1) - ys.begin() - 1; l >= 0; l = (l & (l + 1)) - 1) {
-            sum1 += bit[l].t1;
-            sumX += bit[l].tX;
-            sumY += bit[l].tY;
-            sumXY += bit[l].tXY;
+          for (int l = std::upper_bound(ys.begin(), ys.end(), bs[j].y1) - ys.begin(); l > 0; l &= l - 1) {
+            sum1 += bit[l - 1].t1;
+            sumX += bit[l - 1].tX;
+            sumY += bit[l - 1].tY;
+            sumXY += bit[l - 1].tXY;
           }
           val1 += (sum1 + sumY * bs[j].y1);
           valX += (sumX + sumXY * bs[j].y1);
