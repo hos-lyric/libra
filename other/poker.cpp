@@ -1,10 +1,12 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string>
 #include <utility>
 #include <vector>
 
 using std::make_pair;
 using std::pair;
+using std::string;
 using std::vector;
 
 int bsr(int a) {
@@ -72,6 +74,12 @@ int readCard() {
   static char buf[3];
   scanf("%s", buf);
   return parseCard(buf);
+}
+
+// Transforms a card in a format as "2C" (or "C2" if rev).
+string cardString(int card, bool rev = false) {
+  const int r = card / 4 + 2, s = card % 4;
+  return rev ? (string() + SUITS_STR[s] + RANKS_STR[r]) : (string() + RANKS_STR[r] + SUITS_STR[s]);
 }
 
 // Returns the best poker hand with the tie-breaker in [0, 2^20).
@@ -151,6 +159,12 @@ void unittest(bool stress) {
   assert(parseCard("CT") == ((10 - 2) << 2 | 0));
   assert(parseCard("SA") == ((14 - 2) << 2 | 3));
   assert(parseCard("AH") == ((14 - 2) << 2 | 2));
+  assert(cardString((2 - 2) << 2 | 0) == "2C");
+  assert(cardString((2 - 2) << 2 | 0, false) == "2C");
+  assert(cardString((2 - 2) << 2 | 0, true) == "C2");
+  assert(cardString((14 - 2) << 2 | 2) == "AH");
+  assert(cardString((14 - 2) << 2 | 2, false) == "AH");
+  assert(cardString((14 - 2) << 2 | 2, true) == "HA");
 
 #define test(c0, c1, c2, c3, c4, hand, tiebreaker) assert(poker({parseCard(c0), parseCard(c1), parseCard(c2), parseCard(c3), parseCard(c4)}) == make_pair(hand, tiebreaker))
   test("CA", "CJ", "CK", "CQ", "CT", STRAIGHT_FLUSH, 14);
