@@ -9,8 +9,6 @@ using std::pair;
 using std::priority_queue;
 using std::vector;
 
-// TODO: find bottleneck and speed up
-
 // !!!Modifies ns and edges!!!
 // n: modified regular bipartite graph
 // d := max degree = edge chromatic number
@@ -146,10 +144,11 @@ struct BipartiteEdgeColoring {
   }
   // Take Eulerian circuit and take edges alternately.
   vector<vector<int>> euler(const vector<int> &is) {
-    const int isLen = is.size();
-    vector<int> used(isLen, 0);
-    vector<vector<pair<int, int>>> graph(n + n);
-    for (int x = 0; x < isLen; ++x) {
+    const int k = is.size() / n;
+    vector<int> pt(n + n);
+    for (int u = 0; u < n + n; ++u) pt[u] = u * k;
+    vector<pair<int, int>> xvs((n + n) * k);
+    for (int x = 0; x < n * k; ++x) {
       const int i = is[x];
       int u, v;
       if (i >= 0) {
@@ -159,23 +158,24 @@ struct BipartiteEdgeColoring {
         u = ~i;
         v = n + ~i;
       }
-      graph[u].emplace_back(x, v);
-      graph[v].emplace_back(x, u);
+      xvs[pt[u]++] = std::make_pair(x, v);
+      xvs[pt[v]++] = std::make_pair(x, u);
     }
-    vector<vector<int>> jss(2);
-    int side = 0;
+    vector<int> used(n * k, 0);
+    int y = 0;
+    vector<vector<int>> jss(2, vector<int>(n * (k / 2)));
     vector<int> stack;
     for (int u0 = 0; u0 < n; ++u0) {
       for (stack.push_back(u0); stack.size(); ) {
         const int u = stack.back();
-        if (graph[u].size()) {
-          const int x = graph[u].back().first;
-          const int v = graph[u].back().second;
-          graph[u].pop_back();
+        if (pt[u] > u * k) {
+          --pt[u];
+          const int x = xvs[pt[u]].first;
+          const int v = xvs[pt[u]].second;
           if (!used[x]) {
             used[x] = 1;
-            jss[side].push_back(is[x]);
-            side ^= 1;
+            jss[y & 1][y >> 1] = is[x];
+            ++y;
             stack.push_back(v);
           }
         } else {
