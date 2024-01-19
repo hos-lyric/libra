@@ -8,7 +8,8 @@ using std::vector;
 // TODO: subsegment
 
 // class Func = TX -> TY
-//   for any f, g: Func, [f < g] must be monotone
+//   Uses TY::operator< for comparison.
+//   For any f, g: Func, [f < g] must be monotone.
 
 template <class Func> struct MinLiChaoTree {
   using TX = typename Func::TX;
@@ -22,12 +23,12 @@ template <class Func> struct MinLiChaoTree {
   const TX XL, XR;
   int rt;
   MinLiChaoTree() : XL(0), XR(0), rt(-1) {}
-  // [L, R)
+  // [XL, XR)
   MinLiChaoTree(TX XL_, TX XR_) : XL(XL_), XR(XR_), rt(-1) {}
   bool empty() const {
     return (!~rt);
   }
-  // Add f to the whole [L, R).
+  // Add f to the whole [XL, XR).
   void add(Func f) {
     int *u = &rt;
     for (TX xL = XL, xR = XR; ; ) {
@@ -37,7 +38,7 @@ template <class Func> struct MinLiChaoTree {
       if (xL + 1 == xR) return;
       if (f(xL) < nodes[*u].f(xL)) {
         u = &nodes[*u].l; xR = xMid;
-      } else if (f(xR) < nodes[*u].f(xR)) {
+      } else if (f(xR - 1) < nodes[*u].f(xR - 1)) {
         u = &nodes[*u].r; xL = xMid;
       } else {
         return;
@@ -77,12 +78,12 @@ template <class Func> struct MaxLiChaoTree {
   const TX XL, XR;
   int rt;
   MaxLiChaoTree() : XL(0), XR(0), rt(-1) {}
-  // [L, R)
+  // [XL, XR)
   MaxLiChaoTree(TX XL_, TX XR_) : XL(XL_), XR(XR_), rt(-1) {}
   bool empty() const {
     return (!~rt);
   }
-  // Add f to the whole [L, R).
+  // Add f to the whole [XL, XR).
   void add(Func f) {
     int *u = &rt;
     for (TX xL = XL, xR = XR; ; ) {
@@ -92,7 +93,7 @@ template <class Func> struct MaxLiChaoTree {
       if (xL + 1 == xR) return;
       if (nodes[*u].f(xL) < f(xL)) {
         u = &nodes[*u].l; xR = xMid;
-      } else if (nodes[*u].f(xR) < f(xR)) {
+      } else if (nodes[*u].f(xR - 1) < f(xR - 1)) {
         u = &nodes[*u].r; xL = xMid;
       } else {
         return;

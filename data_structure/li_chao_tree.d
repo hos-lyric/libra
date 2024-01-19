@@ -1,5 +1,5 @@
 // class Func = TX -> TY
-//   for any f, g: Func, x -> sgn(g(x) - f(x)) must be monotone
+//   For any f, g: Func, x -> sgn(g(x) - f(x)) must be monotone on [L, R].
 class LiChaoTree(Func) {
   import std.algorithm : swap;
   alias TX = Func.TX;
