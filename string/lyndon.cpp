@@ -238,7 +238,7 @@ template <class String> void test(const String &as) {
     String asInverted = as;
     if (n > 0) {
       const auto minmaxA = minmax_element(as.begin(), as.end());
-      const auto minA = *minmaxA.first, maxA = *minmaxA.second;
+      const unsigned long long minA = *minmaxA.first, maxA = *minmaxA.second;
       for (int u = 0; u < n; ++u) asInverted[u] = maxA - (asInverted[u] - minA);
     }
     assert(lyndonPrefixInverted(asInverted,
@@ -253,7 +253,10 @@ void testAllVectors(int n, int sigma) {
   for (; ; ) {
     test(as);
     for (int i = n; ; ) {
-      if (i-- == 0) return;
+      if (i-- == 0) {
+        cerr << "[testAllVectors] PASSED n = " << n << ", sigma = " << sigma << endl;
+        return;
+      }
       if (++as[i] < sigma) break;
       as[i] = 0;
     }

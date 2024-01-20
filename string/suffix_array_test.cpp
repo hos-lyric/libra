@@ -72,7 +72,10 @@ void testAllVectors(int n, int sigma) {
   for (; ; ) {
     test(as);
     for (int i = n; ; ) {
-      if (i-- == 0) return;
+      if (i-- == 0) {
+        cerr << "[testAllVectors] PASSED n = " << n << ", sigma = " << sigma << endl;
+        return;
+      }
       if (++as[i] < sigma) break;
       as[i] = 0;
     }

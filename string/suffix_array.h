@@ -127,7 +127,7 @@ template <class String> vector<int> suffixArrayRec(const String &as) {
 struct SuffixArray {
   int n;
   bool rmq;
-  vector<int> us, su, hs, bsr;
+  vector<int> us, su, hs;
   SuffixArray() : n(0), rmq(false) {}
   SuffixArray(const string &as, bool rmq_) : rmq(rmq_) { build(as); }
   SuffixArray(const vector<int> &as, bool rmq_) : rmq(rmq_) { build(as); }
@@ -153,9 +153,6 @@ struct SuffixArray {
           hes[n + i] = min(hes[i], hes[i + (1 << e)]);
         }
       }
-      bsr.resize(n + 1);
-      bsr[0] = -1;
-      for (int i = 1; i <= n; ++i) bsr[i] = bsr[i >> 1] + 1;
     }
   }
   // Returns longest common prefix of as[u, n) and as[v, n).
@@ -165,7 +162,7 @@ struct SuffixArray {
     if (u == v) return n - u;
     int i = su[u], j = su[v];
     if (i > j) swap(i, j);
-    const int e = bsr[j - i];
+    const int e = 31 - __builtin_clz(j - i);
     return min(hs[e * n + i + 1], hs[e * n + j + 1 - (1 << e)]);
   }
 };
