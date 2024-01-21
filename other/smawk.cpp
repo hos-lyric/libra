@@ -11,8 +11,8 @@ using std::vector;
 // cmp(i, j0, j1): "a[i][j0] -> a[i][j1]"
 //   called only for j0 < j1
 //   for a[i][j0] = a[i][j1]:
-//     true to prefer smaller index
-//     false to prefer larger index
+//     false to prefer smaller index
+//     true to prefer larger index
 
 namespace smawk_impl {
 constexpr int MAX_M = 1 << 20;
@@ -49,7 +49,7 @@ template <class Cmp> struct Smawk {
       const int j1 = (x + 1 < isLen) ? jms[is[x + 1]] : js[jsLen - 1];
       for (; ; ) {
         const int j = js[y];
-        if (!~jms[i] || cmp(i, jms[i], js[y])) jms[i] = j;
+        if (!~jms[i] || cmp(i, jms[i], j)) jms[i] = j;
         if (j == j1) break;
         ++y;
       }
@@ -148,6 +148,12 @@ void dfsSmall(int m, int n, int x, int y, vector<vector<int>> &a) {
 }
 
 void unittest() {
+  for (int m = 0; m <= 4; ++m) for (int n = 1; n <= 4; ++n) {
+    // false to prefer smaller index
+    // true to prefer larger index
+    assert(smawk(m, n, [&](int, int, int) -> bool { return false; }) == vector<int>(m, 0));
+    assert(smawk(m, n, [&](int, int, int) -> bool { return true; }) == vector<int>(m, n - 1));
+  }
   {
     // minima
     // http://web.cs.unlv.edu/larmore/Courses/CSC477/monge.pdf
