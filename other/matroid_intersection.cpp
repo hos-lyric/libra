@@ -145,6 +145,7 @@ struct PseudoforestMatroid {
   }
   vector<int> circuit(int i0) const {
     vector<int> is;
+    // Add edges in the smallest subtree containing us.
     auto addSubtree = [&](vector<int> us) -> void {
       for (; ; ) {
         std::sort(us.begin(), us.end());
