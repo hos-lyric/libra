@@ -9,7 +9,6 @@
 
 using std::ostream;
 using std::min;
-using std::make_pair;
 using std::max;
 using std::pair;
 using std::string;
@@ -164,10 +163,11 @@ struct Substring {
   Substring(const string &str) { build(str); }
   Substring(const vector<int> &str) { build(str); }
   Substring(const vector<long long> &str) { build(str); }
+  // O(n) time
   template <class String> void build(const String &str) {
     n = str.size();
     st = SuffixTree(str, /*lastOcc=*/false);
-    auto strRev = str;
+    String strRev = str;
     std::reverse(strRev.begin(), strRev.end());
     stRev = SuffixTree(strRev, /*lastOcc=*/true);
     for (int u = 0; u < stRev.m; ++u) stRev.nodes[u].occ = n - stRev.nodes[u].r();
@@ -233,31 +233,28 @@ struct Substring {
       }
     }
   }
+  // block id at representative position
+  // st node id
+  // stRev node id
   friend ostream &operator<<(ostream &os, const Substring &sub) {
     const int width = max(static_cast<int>(std::to_string(max(sub.st.m, sub.stRev.m) - 1).size()) + 1, 3);
     for (int phase = 0; phase < 3; ++phase) {
       for (int r = sub.n; r > 0; --r) {
         for (int l = 0; l < r; ++l) {
-          int i;
+          const Location loc = sub.locate(l, r);
           string s;
           switch (phase) {
             case 0: {
-              const int u = sub.locate(l, r).first;
-              i = sub.is[u];
-              if (sub.ls[i] == l && sub.rs[i] == r) s = to_string(i);
+              if (sub.ls[loc.i] == l && sub.rs[loc.i] == r) s = std::to_string(loc.i);
             } break;
             case 1: {
-              const int u = sub.locate(l, r).first;
-              i = sub.is[u];
-              if (sub.st[u].len == r - l) s = to_string(u);
+              if (sub.st[loc.u].len == r - l) s = std::to_string(loc.u);
             } break;
             case 2: {
-              const int u = sub.locate(l, r).second;
-              i = sub.isRev[u];
-              if (sub.stRev[u].len == r - l) s = to_string(u);
+              if (sub.stRev[loc.v].len == r - l) s = std::to_string(loc.v);
             } break;
           }
-          os << "\x1b[" << (41 + i % 6) << "m";
+          os << "\x1b[" << (41 + loc.i % 6) << "m";
           os << string(width - static_cast<int>(s.size()), ' ') << s;
           os << "\x1b[m";
         }
@@ -279,25 +276,124 @@ struct Substring {
   inline int sizeL(int i, int y = 0) const {
     return stRev.size(idRev(i, y));
   }
-  // shallowest node of st    for [l, r') s.t. r <= r'
-  // shallowest node of stRev for [l', r) s.t. l' <= l
-  pair<int, int> locate(int l, int r) const {
+  // i: block id
+  // x, y: coordinate within block i, [ls[i] + x, rs[i] - y)
+  // u = st.locate(l, r)           : shallowest node of st    for [l, r') s.t. r <= r'
+  // v = stRev.locate(n - r, n - l): shallowest node of stRev for [l', r) s.t. l' <= l
+  // O(log(n)) time
+  struct Location {
+    int i, x, y, u, v;
+  };
+  Location locate(int l, int r) const {
     assert(0 <= l); assert(l <= r); assert(r <= n);
-    return make_pair(st.locate(l, r), stRev.locate(n - r, n - l));
+    if (l == r) return Location{-1, 0, 0, 0, 0};
+    Location loc;
+    loc.u = st.locate(l, r);
+    loc.i = is[loc.u];
+    loc.x = st[loc.u].l() - ls[loc.i];
+    loc.y = ((l - loc.x) + (rs[loc.i] - ls[loc.i])) - r;
+    loc.v = idRev(loc.i, loc.y);
+    return loc;
+  }
+
+  // pattern ([l, r), t): (weight of str[l, r)) += t
+  //   l < r
+  //   T: commutative group
+  // query [l, r): \sum[l<=l'<r'<=r] (weight of str[l', r'))
+  // O(n + (|patterns| + |queries|) log(n)) time
+  template <class T>
+  vector<T> countOffline(const vector<pair<pair<int, int>, T>> &patterns,
+                         const vector<pair<int, int>> &queries) const {
+    const int patternsLen = patterns.size();
+    const int queriesLen = queries.size();
+    // x -> ((y, p or ~q))
+    vector<vector<pair<int, int>>> eventss(st.m);
+    // tree DP (path to root)
+    vector<T> dp(st.m), dpRev(stRev.m);
+    for (int p = 0; p < patternsLen; ++p) {
+      const int l = patterns[p].first.first, r = patterns[p].first.second;
+      assert(0 <= l); assert(l < r); assert(r <= n);
+      const Location loc = locate(l, r);
+      eventss[js[loc.i] + loc.x].emplace_back(loc.y, p);
+      dp[loc.u] += patterns[p].second;
+      dpRev[loc.v] += patterns[p].second;
+    }
+    for (int u = 1; u < st.m; ++u) dp[u] += dp[st[u].par];
+    for (int u = 1; u < stRev.m; ++u) dpRev[u] += dpRev[stRev[u].par];
+    // query [ls[i], rs[i])
+    vector<T> corner(size);
+    for (int i = 0; i < size; ++i) {
+      for (int x = 0; x < sizeL(i); ++x) corner[i] += dp[id(i, x)];
+      const int ii = isRev[stRev[idRev(i)].par];
+      if (~ii) corner[i] += corner[ii];
+    }
+    // query [ls[i], rs[i] - y)
+    vector<T> edge(stRev.m);
+    for (int i = 0; i < size; ++i) {
+      const int ii = is[st[id(i)].par];
+      T sum = (~ii) ? corner[ii] : T();
+      for (int y = sizeR(i); --y >= 0; ) edge[jsRev[i] + y] = sum += dpRev[idRev(i, y)];
+    }
+    // suffix sum of dp[st[id(i, x)].par]
+    // can use segment tree if subtraction is unavailable
+    vector<T> sumPar(st.m);
+    for (int i = 0; i < size; ++i) {
+      T sum = T();
+      for (int x = sizeL(i); --x >= 0; ) sumPar[js[i] + x] = sum += dp[st[id(i, x)].par];
+    }
+    // query [l, r)
+    vector<T> ans(queriesLen);
+    vector<int> hasQuery(size, 0);
+    for (int q = 0; q < queriesLen; ++q) {
+      const int l = queries[q].first, r = queries[q].second;
+      assert(0 <= l); assert(l <= r); assert(r <= n);
+      if (l < r) {
+        const Location loc = locate(queries[q].first, queries[q].second);
+        if (loc.x == 0) {
+          if (loc.y == 0) {
+            ans[q] += corner[loc.i];
+          } else {
+            ans[q] += edge[jsRev[loc.i] + loc.y];
+          }
+        } else {
+          hasQuery[loc.i] = 1;
+          eventss[js[loc.i] + loc.x].emplace_back(loc.y, ~q);
+          ans[q] += sumPar[js[loc.i] + loc.x];
+          if (sizeL(loc.i, loc.y) < sizeL(loc.i)) ans[q] -= sumPar[js[loc.i] + sizeL(loc.i, loc.y)];
+          const int vv = stRev[loc.v].par;
+          const int ii = isRev[vv];
+          if (~ii) ans[q] += edge[jsRev[ii] + (rs[ii] - stRev[vv].r())];
+        }
+      }
+    }
+    // offline 2D
+    vector<T> bit(n + 1);
+    for (int i = 0; i < size; ++i) if (hasQuery[i]) {
+      for (int y = 1; y <= sizeR(i); ++y) bit[y] = T();
+      for (int x = sizeL(i); --x >= 0; ) for (const auto &event : eventss[js[i] + x]) {
+        if (event.second >= 0) {
+          const T t = patterns[event.second].second;
+          for (int y = sizeR(i) - event.first; y <= sizeR(i); y += y & -y) bit[y] += t;
+        } else {
+          T sum = T();
+          for (int y = sizeR(i) - event.first; y > 0; y &= y - 1) sum += bit[y];
+          ans[~event.second] += sum;
+        }
+      }
+    }
+    return ans;
   }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
+#include <random>
 
 using std::cerr;
 using std::endl;
 
-unsigned xrand() {
-  static unsigned x = 314159265, y = 358979323, z = 846264338, w = 327950288;
-  unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
-}
+std::mt19937_64 rng;
 
 // String: string, vector<int>, vector<long long>
 template <class String> void test(const String &as) {
@@ -426,16 +522,29 @@ template <class String> void test(const String &as) {
     int ll = l, rr = r;
     for (; rr < n && occss[l][rr + 1].size() == occss[l][rr].size(); ++rr) {}
     for (; ll > 0 && occss[ll - 1][r].size() == occss[ll][r].size(); --ll) {}
-    const auto loc = sub.locate(l, r);
-    assert(0 <= loc.first); assert(loc.first < sub.st.m);
-    assert(0 <= loc.second); assert(loc.second < sub.stRev.m);
+    const Substring::Location loc = sub.locate(l, r);
+    if (l == r) {
+      assert(loc.i == -1);
+      assert(loc.x == 0);
+      assert(loc.y == 0);
+    } else {
+      assert(0 <= loc.i); assert(loc.i < sub.size);
+      assert(0 <= loc.x); assert(loc.x < sub.sizeL(loc.i));
+      assert(0 <= loc.y); assert(loc.y < sub.sizeR(loc.i));
+      assert(corners[loc.i].first == occss[ll][rr][0]);
+      assert(corners[loc.i].second == occss[ll][rr][0] + (rr - ll));
+      assert(corners[loc.i].first + loc.x == occss[l][r][0]);
+      assert(corners[loc.i].second - loc.y == occss[l][r][0] + (r - l));
+    }
+    assert(0 <= loc.u); assert(loc.u < sub.st.m);
+    assert(0 <= loc.v); assert(loc.v < sub.stRev.m);
     {
-      const SuffixTree::Node &node = sub.st[loc.first];
+      const SuffixTree::Node &node = sub.st[loc.u];
       assert(node.len == rr - l);
       assert(node.occ == occss[l][rr][0]);
     }
     {
-      const SuffixTree::Node &node = sub.stRev[loc.second];
+      const SuffixTree::Node &node = sub.stRev[loc.v];
       assert(node.len == r - ll);
       assert(node.occ == occss[ll][r][0]);
     }
@@ -484,6 +593,61 @@ template <class String> void test(const String &as) {
       }
     }
   }
+
+  // Substring::countOffline
+  for (int phase = 0; phase < 2; ++phase) {
+    int patternsLen, queriesLen;
+    vector<pair<pair<int, int>, unsigned long long>> patterns;
+    vector<pair<int, int>> queries;
+    if (phase == 0) {
+      for (int l = 0; l <= n; ++l) for (int r = l; r <= n; ++r) {
+        if (l < r) {
+          patterns.emplace_back(std::make_pair(l, r), rng());
+        }
+        queries.emplace_back(l, r);
+      }
+      patternsLen = patterns.size();
+      queriesLen = queries.size();
+    } else {
+      patternsLen = rng() % (2 * n * n + 1);
+      queriesLen = rng() % (2 * n * n + 1);
+      for (int p = 0; p < patternsLen; ++p) {
+        for (; ; ) {
+          const int l = rng() % (n + 1);
+          const int r = rng() % (n + 1);
+          if (l < r) {
+            patterns.emplace_back(std::make_pair(l, r), rng());
+            break;
+          }
+        }
+      }
+      for (int q = 0; q < queriesLen; ++q) {
+        for (; ; ) {
+          const int l = rng() % (n + 1);
+          const int r = rng() % (n + 1);
+          if (l <= r) {
+            queries.emplace_back(l, r);
+            break;
+          }
+        }
+      }
+    }
+    vector<vector<unsigned long long>> expected(n + 1, vector<unsigned long long>(n + 1, 0));
+    for (int p = 0; p < patternsLen; ++p) {
+      const int l = patterns[p].first.first, r = patterns[p].first.second;
+      for (int ll = 0; ll + (r - l) <= n; ++ll) if (lcp[l][ll] >= r - l) {
+        expected[ll][ll + (r - l)] += patterns[p].second;
+      }
+    }
+    for (int l = n; l > 0; --l) for (int r = l; r <= n; ++r) expected[l - 1][r] += expected[l][r];
+    for (int l = 0; l <= n; ++l) for (int r = l; r < n; ++r) expected[l][r + 1] += expected[l][r];
+    const vector<unsigned long long> actual = sub.countOffline(patterns, queries);
+    assert(static_cast<int>(actual.size()) == queriesLen);
+    for (int q = 0; q < queriesLen; ++q) {
+      const int l = queries[q].first, r = queries[q].second;
+      assert(actual[q] == expected[l][r]);
+    }
+  }
 }
 
 void testAllVectors(int n, int sigma) {
@@ -504,7 +668,7 @@ void testAllVectors(int n, int sigma) {
 void unittest() {
   {
     Substring sub("abbab");
-    cerr << sub << flush;
+    cerr << sub << std::flush;
     // 0                         
     // |-ab----- 4               
     // |         `-bab--------- 5
@@ -518,27 +682,35 @@ void unittest() {
     //      |-a- 2               
     //      |    `-abb--------- 3
     //      `-ab----- 4          
-    assert(sub.locate(0, 0) == std::make_pair(0, 0));
-    assert(sub.locate(0, 1) == std::make_pair(4, 5));
-    assert(sub.locate(0, 2) == std::make_pair(4, 2));
-    assert(sub.locate(0, 3) == std::make_pair(5, 4));
-    assert(sub.locate(0, 4) == std::make_pair(5, 6));
-    assert(sub.locate(0, 5) == std::make_pair(5, 3));
-    assert(sub.locate(1, 1) == std::make_pair(0, 0));
-    assert(sub.locate(1, 2) == std::make_pair(1, 1));
-    assert(sub.locate(1, 3) == std::make_pair(2, 4));
-    assert(sub.locate(1, 4) == std::make_pair(2, 6));
-    assert(sub.locate(1, 5) == std::make_pair(2, 3));
-    assert(sub.locate(2, 2) == std::make_pair(0, 0));
-    assert(sub.locate(2, 3) == std::make_pair(1, 1));
-    assert(sub.locate(2, 4) == std::make_pair(3, 6));
-    assert(sub.locate(2, 5) == std::make_pair(3, 3));
-    assert(sub.locate(3, 3) == std::make_pair(0, 0));
-    assert(sub.locate(3, 4) == std::make_pair(4, 5));
-    assert(sub.locate(3, 5) == std::make_pair(4, 2));
-    assert(sub.locate(4, 4) == std::make_pair(0, 0));
-    assert(sub.locate(4, 5) == std::make_pair(1, 1));
-    assert(sub.locate(5, 5) == std::make_pair(0, 0));
+    auto checkLocate = [&](int l, int r, int i, int x, int y, int u, int v) -> void {
+      Substring::Location loc = sub.locate(l, r);
+      assert(loc.i == i);
+      assert(loc.x == x);
+      assert(loc.y == y);
+      assert(loc.u == u);
+      assert(loc.v == v);
+    };
+    checkLocate(0, 0, -1, 0, 0, 0, 0);
+    checkLocate(0, 1, 1, 0, 1, 4, 5);
+    checkLocate(0, 2, 1, 0, 0, 4, 2);
+    checkLocate(0, 3, 2, 0, 2, 5, 4);
+    checkLocate(0, 4, 2, 0, 1, 5, 6);
+    checkLocate(0, 5, 2, 0, 0, 5, 3);
+    checkLocate(1, 1, -1, 0, 0, 0, 0);
+    checkLocate(1, 2, 0, 0, 0, 1, 1);
+    checkLocate(1, 3, 2, 1, 2, 2, 4);
+    checkLocate(1, 4, 2, 1, 1, 2, 6);
+    checkLocate(1, 5, 2, 1, 0, 2, 3);
+    checkLocate(2, 2, -1, 0, 0, 0, 0);
+    checkLocate(2, 3, 0, 0, 0, 1, 1);
+    checkLocate(2, 4, 2, 2, 1, 3, 6);
+    checkLocate(2, 5, 2, 2, 0, 3, 3);
+    checkLocate(3, 3, -1, 0, 0, 0, 0);
+    checkLocate(3, 4, 1, 0, 1, 4, 5);
+    checkLocate(3, 5, 1, 0, 0, 4, 2);
+    checkLocate(4, 4, -1, 0, 0, 0, 0);
+    checkLocate(4, 5, 0, 0, 0, 1, 1);
+    checkLocate(5, 5, -1, 0, 0, 0, 0);
     // +-+-+-+-+-+
     // |2    |1|0|
     // +     + +-+
@@ -568,10 +740,67 @@ void unittest() {
     assert(sub.sizeL(1, 0) == 1); assert(sub.sizeL(1, 1) == 1);
     assert(sub.sizeR(2, 0) == 3); assert(sub.sizeR(2, 1) == 3); assert(sub.sizeR(2, 2) == 2);
     assert(sub.sizeL(2, 0) == 3); assert(sub.sizeL(2, 1) == 3); assert(sub.sizeL(2, 2) == 2);
+    // a     100000000000100
+    // ab     10000000000010
+    // abb     1000000000000
+    // abba     100000000000
+    // abbab     10000000000
+    //  b         1000100001
+    //  bb         100000000
+    //  bba         10000000
+    //  bbab         1000000
+    //   ba            10000
+    //   bab            1000
+    assert(sub.countOffline<long long>({
+      {{0, 1}, 100000000000000LL},
+      {{0, 2},  10000000000000LL},
+      {{0, 3},   1000000000000LL},
+      {{0, 4},    100000000000LL},
+      {{0, 5},     10000000000LL},
+      {{1, 2},      1000000000LL},
+      {{1, 3},       100000000LL},
+      {{1, 4},        10000000LL},
+      {{1, 5},         1000000LL},
+      {{2, 3},          100000LL},
+      {{2, 4},           10000LL},
+      {{2, 5},            1000LL},
+      {{3, 4},             100LL},
+      {{3, 5},              10LL},
+      {{4, 5},               1LL},
+    }, {
+      {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
+              {1, 1}, {1, 2}, {1, 3}, {1, 4}, {1, 5},
+                      {2, 2}, {2, 3}, {2, 4}, {2, 5},
+                              {3, 3}, {3, 4}, {3, 5},
+                                      {4, 4}, {4, 5},
+                                              {5, 5},
+    }) == (vector<long long>{
+                    0LL,
+      100000000000100LL,
+      110001000100111LL,
+      111002100200112LL,
+      211102110210212LL,
+      221113111311223LL,
+                    0LL,
+           1000100001LL,
+           2100200002LL,
+      100002110210102LL,
+      110003111311113LL,
+                    0LL,
+           1000100001LL,
+      100001000110101LL,
+      110002000211112LL,
+                    0LL,
+      100000000000100LL,
+      110001000100111LL,
+                    0LL,
+           1000100001LL,
+                    0LL,
+    }));
   }
   {
     Substring sub("abbababbab");
-    cerr << sub << flush;
+    cerr << sub << std::flush;
     // 0                                                  
     // |-ab----- 7                                        
     // |         |-abbab----------------- 10              
@@ -676,12 +905,12 @@ void unittest() {
     for (int caseId = 0; caseId < 100; ++caseId) {
       vector<long long> cs(sigma);
       for (int a = 0; a < sigma; ++a) {
-        cs[a] = xrand() | static_cast<unsigned long long>(xrand()) << 32;
+        cs[a] = rng();
       }
-      const int n = xrand() % 100;
+      const int n = rng() % 100;
       vector<long long> as(n);
       for (int u = 0; u < n; ++u) {
-        as[u] = cs[xrand() % sigma];
+        as[u] = cs[rng() % sigma];
       }
       test(as);
     }
