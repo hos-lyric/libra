@@ -51,6 +51,8 @@ template <class T> struct PointAddRangeSum {
   }
 };
 
+////////////////////////////////////////////////////////////////////////////////
+
 // get i
 // add val to [a, b)
 // count < val in [a, b)
