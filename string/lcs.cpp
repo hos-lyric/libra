@@ -187,8 +187,8 @@ void unittest() {
       const int m = rng() % 201;
       const int n = rng() % 201;
       vector<long long> as(m), bs(n);
-      for (int i = 0; i < m; ++i) as[i] = rng();
-      for (int j = 0; j < n; ++j) bs[j] = rng();
+      for (int i = 0; i < m; ++i) as[i] = rng() >> 60 << 60;
+      for (int j = 0; j < n; ++j) bs[j] = rng() >> 60 << 60;
       test(as, bs, 10);
     }
     cerr << "[unittest] DONE random cases" << endl;
@@ -228,8 +228,8 @@ void yosupo_prefix_substring_lcs() {
 }
 
 int main() {
-  // unittest(); cerr << "PASSED unittest" << endl;
+  unittest(); cerr << "PASSED unittest" << endl;
   // yosupo_prefix_substring_lcs();
-  loj_6564();
+  // loj_6564();
   return 0;
 }
