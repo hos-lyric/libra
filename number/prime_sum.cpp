@@ -265,6 +265,7 @@ void measurement_gpf_tree_1(long long N) {
 }
 
 // https://judge.yosupo.jp/problem/counting_primes
+// https://loj.ac/p/6235
 void yosupo_counting_primes() {
   long long N;
   for (; ~scanf("%lld", &N); ) {
