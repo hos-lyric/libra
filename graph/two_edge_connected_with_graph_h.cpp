@@ -1,6 +1,8 @@
 #include <assert.h>
 #include <vector>
 
+#include "graph.h"
+
 using std::vector;
 
 // TODO: isStillReachable (!!!check rs!!!) etc.
@@ -13,7 +15,7 @@ using std::vector;
 // ids[u]: component ID
 struct TwoEdgeConnected {
   int n;
-  vector<vector<int>> g, f;
+  Graph g, f;
   int l;
   vector<int> pt;
   vector<int> us;
@@ -22,10 +24,7 @@ struct TwoEdgeConnected {
   TwoEdgeConnected() {}
   explicit TwoEdgeConnected(int n_) : n(n_), g(n_), l(0), stackLen(0), usLen(0), zeit(0) {}
   void ae(int u, int v) {
-    assert(0 <= u); assert(u < n);
-    assert(0 <= v); assert(v < n);
-    g[u].push_back(v);
-    g[v].push_back(u);
+    g.ae(u, v);
   }
 
   int stackLen, usLen;
@@ -37,12 +36,13 @@ struct TwoEdgeConnected {
   void dfs(int u) {
     stack[stackLen++] = u;
     dis[u] = low[u] = zeit++;
-    for (const int v : g[u]) {
+    for (int j = g.pt[u]; j < g.pt[u + 1]; ++j) {
+      const int v = g[j];
       if (par[u] == v && !cntPar[u]++) continue;
       if (~dis[v]) {
         if (low[u] > dis[v]) low[u] = dis[v];
       } else {
-        f[u].push_back(v);
+        f.ae(u, v);
         par[v] = u;
         rs[v] = rs[u];
         dfs(v);
@@ -60,7 +60,8 @@ struct TwoEdgeConnected {
     }
   }
   void build() {
-    f.assign(n, {});
+    g.build(false);
+    f = Graph(n);
     l = 0;
     pt.resize(n + 1);
     pt[0] = 0;
@@ -79,6 +80,7 @@ struct TwoEdgeConnected {
       rs[u] = u;
       dfs(u);
     }
+    f.build(true);
     pt.resize(l + 1);
     ids.resize(n);
     for (int i = 0; i < l; ++i) for (int j = pt[i]; j < pt[i + 1]; ++j) {
@@ -100,8 +102,16 @@ void unittest() {
   {
     TwoEdgeConnected b(0);
     b.build();
-    assert(b.g == (vector<vector<int>>{}));
-    assert(b.f == (vector<vector<int>>{}));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=0;)");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=0;)");
+    }
     assert(b.l == 0);
     assert(b.pt == (vector<int>{0}));
     assert(b.us == (vector<int>{}));
@@ -111,8 +121,16 @@ void unittest() {
     TwoEdgeConnected b(1);
     b.ae(0, 0);
     b.build();
-    assert(b.g == (vector<vector<int>>{{0, 0}}));
-    assert(b.f == (vector<vector<int>>{{}}));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=1; 0:[0,0])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=1; 0:[])");
+    }
     assert(b.l == 1);
     assert(b.pt == (vector<int>{0, 1}));
     assert(b.us == (vector<int>{0}));
@@ -122,8 +140,16 @@ void unittest() {
     TwoEdgeConnected b(2);
     b.ae(0, 1);
     b.build();
-    assert(b.g == (vector<vector<int>>{{1}, {0}}));
-    assert(b.f == (vector<vector<int>>{{1}, {}}));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=2; 0:[1] 1:[0])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=2; 0:[1] 1:[])");
+    }
     assert(b.l == 2);
     assert(b.pt == (vector<int>{0, 1, 2}));
     assert(b.us == (vector<int>{1, 0}));
@@ -134,8 +160,16 @@ void unittest() {
     b.ae(0, 1);
     b.ae(1, 0);
     b.build();
-    assert(b.g == (vector<vector<int>>{{1, 1}, {0, 0}}));
-    assert(b.f == (vector<vector<int>>{{1}, {}}));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=2; 0:[1,1] 1:[0,0])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=2; 0:[1] 1:[])");
+    }
     assert(b.l == 1);
     assert(b.pt == (vector<int>{0, 2}));
     assert(b.us == (vector<int>{1, 0}));
@@ -152,8 +186,16 @@ void unittest() {
     b.ae(4, 5);
     b.ae(4, 5);
     b.build();
-    assert(b.g == (vector<vector<int>>{{1, 2, 3}, {0, 4}, {0, 3}, {0, 2}, {1, 5, 5}, {4, 4}}));
-    assert(b.f == (vector<vector<int>>{{1, 2}, {4}, {3}, {}, {5}, {}}));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=6; 0:[1,2,3] 1:[0,4] 2:[0,3] 3:[0,2] 4:[1,5,5] 5:[4,4])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=6; 0:[1,2] 1:[4] 2:[3] 3:[] 4:[5] 5:[])");
+    }
     assert(b.l == 3);
     assert(b.pt == (vector<int>{0, 2, 3, 6}));
     assert(b.us == (vector<int>{5, 4, 1, 3, 2, 0}));
@@ -186,18 +228,24 @@ void unittest() {
     b.ae(12, 17);
     b.ae(13, 14);
     b.build();
-    assert(b.g == (vector<vector<int>>{
-      {2, 3, 4, 8}, {18, 19}, {0, 3}, {0, 2, 4}, {0, 3},
-      {}, {7, 8}, {6, 8}, {0, 7, 6, 9, 16, 10}, {8, 10, 16},
-      {9, 16, 8}, {16}, {13, 17}, {12, 14}, {16, 13},
-      {}, {10, 8, 9, 16, 16, 11, 14, 17}, {16, 12}, {1}, {1},
-    }));
-    assert(b.f == (vector<vector<int>>{
-      {2, 8}, {18, 19}, {3}, {4}, {},
-      {}, {}, {6}, {7, 9}, {10},
-      {16}, {}, {17}, {12}, {13},
-      {}, {11, 14}, {}, {}, {},
-    }));
+    {
+      ostringstream oss;
+      oss << b.g;
+      assert(oss.str() == "Graph(n=20;"
+          " 0:[2,3,4,8] 1:[18,19] 2:[0,3] 3:[0,2,4] 4:[0,3]"
+          " 5:[] 6:[7,8] 7:[6,8] 8:[0,7,6,9,16,10] 9:[8,10,16]"
+          " 10:[9,16,8] 11:[16] 12:[13,17] 13:[12,14] 14:[16,13]"
+          " 15:[] 16:[10,8,9,16,16,11,14,17] 17:[16,12] 18:[1] 19:[1])");
+    }
+    {
+      ostringstream oss;
+      oss << b.f;
+      assert(oss.str() == "Graph(n=20;"
+          " 0:[2,8] 1:[18,19] 2:[3] 3:[4] 4:[]"
+          " 5:[] 6:[] 7:[6] 8:[7,9] 9:[10]"
+          " 10:[16] 11:[] 12:[17] 13:[12] 14:[13]"
+          " 15:[] 16:[11,14] 17:[] 18:[] 19:[])");
+    }
     assert(b.l == 8);
     assert(b.pt == (vector<int>{0, 1, 11, 15, 16, 17, 18, 19, 20}));
     assert(b.us == (vector<int>{
