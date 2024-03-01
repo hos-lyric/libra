@@ -59,7 +59,7 @@ struct Scc {
     for (int u = 0; u < n; ++u) uss[ids[u]].push_back(u);
     return uss;
   }
-};
+};  // Scc
 
 // get0(u): should return a neighbor of u and remove it (or -1).
 // get1(u): the same for reversed edge
@@ -109,10 +109,17 @@ template <class Get0, class Get1> struct SccDyn {
     for (int u = 0; u < n; ++u) uss[ids[u]].push_back(u);
     return uss;
   }
-};
+};  // SccDyn
 template <class Get0, class Get1>
 SccDyn<Get0, Get1> sccDyn(int n, Get0 get0, Get1 get1) {
   return SccDyn<Get0, Get1>(n, get0, get1);
+}
+template <class Get> auto sccDyn(int n, Get get) {
+  return sccDyn(
+    n,
+    [&](int u) -> int { return get(0, u); },
+    [&](int u) -> int { return get(1, u); }
+  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -159,21 +166,15 @@ void unittest_Scc() {
 
 void unittest_SccDyn() {
   constexpr int n = 11;
-  vector<vector<int>> graph(n), hparg(n);
+  vector<vector<vector<int>>> graphs(2, vector<vector<int>>(n));
   auto ae = [&](int u, int v) -> void {
-    graph[u].push_back(v);
-    hparg[v].push_back(u);
+    graphs[0][u].push_back(v);
+    graphs[1][v].push_back(u);
   };
-  auto get0 = [&](int u) -> int {
-    if (graph[u].empty()) return -1;
-    const int v = graph[u].back();
-    graph[u].pop_back();
-    return v;
-  };
-  auto get1 = [&](int u) -> int {
-    if (hparg[u].empty()) return -1;
-    const int v = hparg[u].back();
-    hparg[u].pop_back();
+  auto get = [&](int h, int u) -> int {
+    if (graphs[h][u].empty()) return -1;
+    const int v = graphs[h][u].back();
+    graphs[h][u].pop_back();
     return v;
   };
   ae(7, 5);
@@ -195,11 +196,13 @@ void unittest_SccDyn() {
   ae(8, 1);
   ae(6, 8);
   // to have the same output as scc
-  for (int u = 0; u < n; ++u) {
-    std::reverse(graph[u].begin(), graph[u].end());
-    std::reverse(hparg[u].begin(), hparg[u].end());
+  for (int h = 0; h < 2; ++h) for (int u = 0; u < n; ++u) {
+    std::reverse(graphs[h][u].begin(), graphs[h][u].end());
   }
-  const auto scc = sccDyn(n, get0, get1);
+  const auto scc = sccDyn(n, get);
+  for (int h = 0; h < 2; ++h) for (int u = 0; u < n; ++u) {
+    assert(graphs[h][u].empty());
+  }
 
   assert(scc.l == 5);
   const vector<int> expected{2, 3, 3, 1, 0, 4, 3, 1, 3, 1, 2};
@@ -238,26 +241,20 @@ void yosupo__scc() {
 void yosupo__scc__sccDyn() {
   int N, M;
   scanf("%d%d", &N, &M);
-  vector<vector<int>> graph(N), hparg(N);
+  vector<vector<vector<int>>> graphs(2, vector<vector<int>>(N));
   for (int i = 0; i < M; ++i) {
     int u, v;
     scanf("%d%d", &u, &v);
-    graph[u].push_back(v);
-    hparg[v].push_back(u);
+    graphs[0][u].push_back(v);
+    graphs[1][v].push_back(u);
   }
-  auto get0 = [&](int u) -> int {
-    if (graph[u].empty()) return -1;
-    const int v = graph[u].back();
-    graph[u].pop_back();
+  auto get = [&](int h, int u) -> int {
+    if (graphs[h][u].empty()) return -1;
+    const int v = graphs[h][u].back();
+    graphs[h][u].pop_back();
     return v;
   };
-  auto get1 = [&](int u) -> int {
-    if (hparg[u].empty()) return -1;
-    const int v = hparg[u].back();
-    hparg[u].pop_back();
-    return v;
-  };
-  const auto scc = sccDyn(N, get0, get1);
+  const auto scc = sccDyn(N, get);
   const vector<vector<int>> uss = scc.group();
   printf("%d\n", scc.l);
   for (int x = 0; x < scc.l; ++x) {
