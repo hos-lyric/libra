@@ -15,7 +15,7 @@ template <class X, class Y, class T> struct KdTree {
   int n, nn;
   // ((x, y), i): permuted
   using Point = pair<pair<X, Y>, int>;
-  vector<pair<pair<X, Y>, int>> ps;
+  vector<Point> ps;
   // leaf for point i
   vector<int> us;
   struct Node {
