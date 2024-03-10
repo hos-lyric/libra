@@ -1,3 +1,5 @@
+// TODO: update like prime.cpp
+
 // a b (mod m)
 ulong multiply(ulong a, ulong b, ulong m)
 in {

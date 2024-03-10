@@ -1,4 +1,5 @@
 // TODO: speed up
+// TODO: update like prime.cpp
 
 #include <assert.h>
 #include <stdio.h>
