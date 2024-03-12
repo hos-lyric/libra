@@ -52,11 +52,10 @@ template <class T> struct SegmentTreePoint {
   T get(int a, int b) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return T();
-    a += n; b += n;
     T prodL, prodR, t;
-    for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
-      if (aa & 1) { t.pull(prodL, ts[aa++]); prodL = t; }
-      if (bb & 1) { t.pull(ts[--bb], prodR); prodR = t; }
+    for (a += n, b += n; a < b; a >>= 1, b >>= 1) {
+      if (a & 1) { t.pull(prodL, ts[a++]); prodL = t; }
+      if (b & 1) { t.pull(ts[--b], prodR); prodR = t; }
     }
     t.pull(prodL, prodR);
     return t;
@@ -74,11 +73,10 @@ template <class T> struct SegmentTreePoint {
   get(int a, int b, Op op, E e, F f, Args &&... args) {
     assert(0 <= a); assert(a <= b); assert(b <= n);
     if (a == b) return e();
-    a += n; b += n;
     auto prodL = e(), prodR = e();
-    for (int aa = a, bb = b; aa < bb; aa >>= 1, bb >>= 1) {
-      if (aa & 1) prodL = op(prodL, (ts[aa++].*f)(args...));
-      if (bb & 1) prodR = op((ts[--bb].*f)(args...), prodR);
+    for (a += n, b += n; a < b; a >>= 1, b >>= 1) {
+      if (a & 1) prodL = op(prodL, (ts[a++].*f)(args...));
+      if (b & 1) prodR = op((ts[--b].*f)(args...), prodR);
     }
     return op(prodL, prodR);
   }
@@ -124,7 +122,7 @@ template <class T> struct SegmentTreePoint {
       if (!(b & (b - 1))) return -1;
     }
   }
-};
+};  // SegmentTreePoint<T>
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -143,7 +141,6 @@ unsigned xrand() {
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace point_change_range_min_range_max {
-
 //   update point  a[i] <- b
 //   get  min a[l, r)
 //   get  max a[l, r)
@@ -318,13 +315,11 @@ void unittest() {
     }
   }
 }
-
 }  // namespace point_change_range_min_range_max
 
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace yosupo_point_set_range_composite {
-
 // https://judge.yosupo.jp/problem/point_set_range_composite
 //   update point  a[i] <- b
 //   get  prod a[l, r)
@@ -392,7 +387,6 @@ void solve() {
     }
   }
 }
-
 }  // namespace yosupo_point_set_range_composite
 
 ////////////////////////////////////////////////////////////////////////////////
