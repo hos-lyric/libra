@@ -13,12 +13,12 @@ using std::vector;
 // sz: size of the matching
 // mate[u]: matching mate of u or -1
 // need[u]: every max matching contains u? (call run(true))
-struct MaxMatch {
+struct MaxMatching {
   int n, sz;
   vector<vector<int>> graph;
   vector<int> mate, need;
-  MaxMatch() {}
-  MaxMatch(int n_) : n(n_), graph(n_) {}
+  MaxMatching() {}
+  MaxMatching(int n_) : n(n_), graph(n_) {}
   void ae(int u, int v) {
     assert(0 <= u); assert(u < n);
     assert(0 <= v); assert(v < n);
@@ -103,7 +103,7 @@ struct MaxMatch {
       for (int u = 0; u < n; ++u) need[u] = (~mate[u] && ts[u] != sz) ? 1 : 0;
     }
   }
-};
+};  // MaxMatching
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -115,7 +115,7 @@ using std::endl;
 
 void unittest() {
   {
-    MaxMatch mxm(6);
+    MaxMatching mxm(6);
     mxm.ae(0, 1);
     mxm.ae(1, 2);
     mxm.ae(1, 2);
@@ -149,7 +149,7 @@ void unittest() {
           }
         }
       }
-      MaxMatch mxm(n);
+      MaxMatching mxm(n);
       for (const auto &edge : edges) mxm.ae(edge.first, edge.second);
       mxm.run(true);
       assert(brt[(1 << n) - 1] == mxm.sz);
@@ -180,7 +180,7 @@ void unittest() {
 void yosupo__general_matching() {
   int N, M;
   for (; ~scanf("%d%d", &N, &M); ) {
-    MaxMatch mxm(N);
+    MaxMatching mxm(N);
     for (int i = 0; i < M; ++i) {
       int u, v;
       scanf("%d%d", &u, &v);
@@ -198,7 +198,7 @@ void yosupo__general_matching() {
 void uoj_79() {
   int N, M;
   for (; ~scanf("%d%d", &N, &M); ) {
-    MaxMatch mxm(N);
+    MaxMatching mxm(N);
     for (int i = 0; i < M; ++i) {
       int u, v;
       scanf("%d%d", &u, &v);
@@ -222,7 +222,7 @@ void codechef_HAMILG() {
     for (int caseId = 0; caseId < numCases; ++caseId) {
       int N, M;
       scanf("%d%d", &N, &M);
-      MaxMatch mxm(N);
+      MaxMatching mxm(N);
       for (int i = 0; i < M; ++i) {
         int u, v;
         scanf("%d%d", &u, &v);
