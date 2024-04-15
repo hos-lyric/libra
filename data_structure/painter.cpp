@@ -1,3 +1,5 @@
+// fast_set.cpp for fast set version
+
 #include <assert.h>
 #include <map>
 
@@ -11,7 +13,8 @@ template <class K, class V> struct Painter : map<K, V> {
   Painter(K k, const V &v) : map<K, V>{{k, v}}, kLim(k) {}
   // Paint [a, b) with v, calling f(left, right, (old color)).
   template <class F> void paint(K a, K b, const V &v, F f) {
-    assert(a < b); assert(b < kLim);
+    assert(a <= b); assert(b < kLim);
+    if (a == b) return;
     auto it = this->lower_bound(a);
     if (b < it->first) {
       f(a, b, it->second);
@@ -53,9 +56,12 @@ template <class K, class V> struct Painter : map<K, V> {
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <iostream>
 #include <string>
 #include <vector>
 
+using std::cerr;
+using std::endl;
 using std::string;
 using std::vector;
 
@@ -93,7 +99,7 @@ void unittest() {
       for (; ; ) {
         const int a = xrand() % (n + 1);
         const int b = xrand() % (n + 1);
-        if (a < b) {
+        if (a <= b) {
           for (int i = a; i < b; ++i) {
             brt[i] = queryId;
           }
@@ -116,6 +122,6 @@ void unittest() {
 }
 
 int main() {
-  unittest();
+  unittest(); cerr << "PASSED unittest" << endl;
   return 0;
 }

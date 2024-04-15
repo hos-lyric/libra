@@ -73,16 +73,67 @@ struct Set {
   }
 };
 
+template <class T> struct Painter {
+  int n;
+  Set s;
+  vector<T> ts;
+  Painter() {}
+  Painter(int n_, const T &t) : n(n_), s(n + 1), ts(n + 2, t) {}
+  template <class F> void paint(int a, int b, const T &t, F f) {
+    assert(0 <= a); assert(a <= b); assert(b <= n);
+    if (a == b) return;
+    // auto it = this->lower_bound(a);
+    int c = s.next(a);
+    if (b < c) {
+      f(a, b, ts[c]);
+      s.insert(a); ts[a] = ts[c];
+      s.insert(b); ts[b] = t;
+    } else if (a < c) {
+      const T ta = ts[c];
+      int k = a;
+      for (; c <= b; s.erase(c), c = s.next(c)) {
+        f(k, c, ts[c]);
+        k = c;
+      }
+      if (k < b) {
+        f(k, b, ts[c]);
+      }
+      s.insert(a); ts[a] = ta;
+      s.insert(b); ts[b] = t;
+    } else {
+      c = s.next(c + 1);
+      int k = a;
+      for (; c <= b; s.erase(c), c = s.next(c)) {
+        f(k, c, ts[c]);
+        k = c;
+      }
+      if (k < b) {
+        f(k, b, ts[c]);
+      }
+      s.insert(b); ts[b] = t;
+    }
+  }
+  void paint(int a, int b, const T &t) {
+    paint(a, b, t, [&](int, int, const T &) -> void {});
+  }
+  T get(int k) const {
+    assert(0 <= k); assert(k < n);
+    return ts[s.next(k + 1)];
+  }
+};
+
 ////////////////////////////////////////////////////////////////////////////////
 
 #include <iostream>
 #include <random>
+#include <string>
 
 using std::cerr;
 using std::endl;
 using std::mt19937_64;
+using std::string;
 
-void unittest() {
+void unittest_Set() {
   {
     Set s;
     assert(s.empty());
@@ -187,6 +238,57 @@ void unittest() {
   }
 }
 
+void unittest_Painter() {
+  {
+    Painter<string> painter(9, "-1");
+    painter.paint(0, 5, "-2");
+    painter.paint(3, 6, "-3");
+    painter.paint(4, 8, "-4");
+    painter.paint(2, 7, "-5");
+    painter.paint(5, 9, "-6");
+    painter.paint(2, 7, "-7");
+    painter.paint(5, 9, "-8");
+    painter.paint(1, 5, "-9");
+    assert(painter.get(0) == "-2");
+    assert(painter.get(1) == "-9");
+    assert(painter.get(2) == "-9");
+    assert(painter.get(3) == "-9");
+    assert(painter.get(4) == "-9");
+    assert(painter.get(5) == "-8");
+    assert(painter.get(6) == "-8");
+    assert(painter.get(7) == "-8");
+    assert(painter.get(8) == "-8");
+  }
+  mt19937_64 rng;
+  for (int caseId = 0; caseId < 1000; ++caseId) {
+    const int n = 1 + rng() % 1000;
+    vector<int> brt(n, -1), sol(n, -1);
+    Painter<int> painter(n, -1);
+    for (int queryId = 0; queryId < 1000; ++queryId) {
+      for (; ; ) {
+        const int a = rng() % (n + 1);
+        const int b = rng() % (n + 1);
+        if (a <= b) {
+          for (int i = a; i < b; ++i) {
+            brt[i] = queryId;
+          }
+          painter.paint(a, b, queryId, [&](int l, int r, int old) -> void {
+            assert(0 <= l); assert(l < r); assert(r <= n);
+            for (int i = l; i < r; ++i) {
+              assert(sol[i] == old);
+              sol[i] = queryId;
+            }
+          });
+          for (int i = 0; i < n; ++i) {
+            assert(sol[i] == painter.get(i));
+          }
+          assert(brt == sol);
+          break;
+        }
+      }
+    }
+  }
+}
 
 // https://judge.yosupo.jp/problem/predecessor_problem
 #include <stdio.h>
@@ -230,7 +332,8 @@ void yosupo_predecessor_problem() {
 }
 
 int main() {
-  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_Set(); cerr << "PASSED unittest_Set" << endl;
+  unittest_Painter(); cerr << "PASSED unittest_Painter" << endl;
   // yosupo_predecessor_problem();
   return 0;
 }
