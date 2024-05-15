@@ -237,7 +237,6 @@ unittest {
 
 // MultiplicativeSum
 unittest {
-import std.stdio;
   // \phi
   {
     auto ms = new MultiplicativeSum!long(100);
