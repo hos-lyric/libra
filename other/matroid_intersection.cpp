@@ -10,6 +10,53 @@ using std::pair;
 using std::queue;
 using std::vector;
 
+// Find max size independet set.
+//   score: max size
+//   on: optimal independent set (0/1)
+// M0, M1: matroid
+//   size(): |ground set|
+//   build(on): Current independent set is given.
+//   circuit(u): Returns the circuit by adding u (must contain u), or {} if still independent.
+template <class M0, class M1>
+pair<int, vector<int>> matroidIntersection(M0 &m0, M1 &m1) {
+  const int n = m0.size();
+  assert(m1.size() == n);
+  vector<int> on(n, 0);
+  for (; ; ) {
+    m0.build(on);
+    m1.build(on);
+    vector<vector<int>> graph(n + 2);
+    for (int u = 0; u < n; ++u) if (!on[u]) {
+      const vector<int> c0 = m0.circuit(u);
+      if (c0.empty()) graph[n].push_back(u);
+      for (const int v : c0) if (u != v) graph[v].push_back(u);
+      const vector<int> c1 = m1.circuit(u);
+      if (c1.empty()) graph[u].push_back(n + 1);
+      for (const int v : c1) if (u != v) graph[u].push_back(v);
+    }
+    queue<int> que;
+    vector<int> prv(n + 2, -1);
+    prv[n] = -2; que.push(n);
+    for (; que.size() && !~prv[n + 1]; ) {
+      const int u = que.front(); que.pop();
+      for (const int v : graph[u]) {
+        if (!~prv[v]) {
+          prv[v] = u;
+          que.push(v);
+        }
+      }
+    }
+    if (~prv[n + 1]) {
+      for (int u = n + 1; (u = prv[u]) != n; ) on[u] ^= 1;
+    } else {
+      break;
+    }
+  }
+  int score = 0;
+  for (int u = 0; u < n; ++u) if (on[u]) ++score;
+  return std::make_pair(score, on);
+};
+
 // Find max weight independet set.
 //   score: max weight
 //   on: optimal independent set (0/1)
@@ -64,7 +111,7 @@ pair<T, vector<int>> matroidIntersection(M0 &m0, M1 &m1, const vector<T> &weight
   return std::make_pair(score, on);
 };
 
-// independent <=> forest
+// independent  <=>  forest
 struct ForestMatroid {
   int n;
   vector<pair<int, int>> edges;
@@ -116,7 +163,7 @@ struct ForestMatroid {
   }
 };
 
-// independent <=> each connected component contains (<= 1) cycle
+// independent  <=>  each connected component contains (<= 1) cycle
 struct PseudoforestMatroid {
   int n;
   vector<pair<int, int>> edges;
@@ -189,6 +236,34 @@ struct PseudoforestMatroid {
       }
     }
   }
+};
+
+// independent  <=>  #{ i | colors[i] = c } <= lims[c]
+struct PartitionMatroid {
+  int n;
+  vector<int> colors;
+  vector<int> lims;
+  PartitionMatroid() {}
+  PartitionMatroid(const vector<int> &colors_, const vector<int> &lims_)
+      : n(colors_.size()), colors(colors_), lims(lims_) {}
+  inline int size() const {
+    return n;
+  }
+  void build(const vector<int> &on) {
+    iss.assign(lims.size(), {});
+    for (int i = 0; i < n; ++i) if (on[i]) iss[colors[i]].push_back(i);
+  }
+  vector<int> circuit(int i0) const {
+    const int c = colors[i0];
+    if (static_cast<int>(iss[c].size()) == lims[c]) {
+      vector<int> is = iss[c];
+      is.push_back(i0);
+      return is;
+    } else {
+      return {};
+    }
+  }
+  vector<vector<int>> iss;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
