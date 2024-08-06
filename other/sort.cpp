@@ -1,6 +1,8 @@
+#include <assert.h>
 #include <utility>
 #include <vector>
 
+using std::pair;
 using std::vector;
 
 // Sorts [first, last) so that for any adjacent elements a, b in this order,
@@ -28,9 +30,31 @@ template <class T, class Comp> void mergeSort(vector<T> &as, Comp comp) {
   mergeSort(as.begin(), as.end(), buffer.begin(), comp);
 }
 
+// Each operation consists of disjoint pairs (compare and swap).
+// Batcher's algorithm
+// (1 + 2 + ... + ceil(log_2(n))) operations
+vector<vector<pair<int, int>>> parallelSort(int n) {
+  assert(n >= 0);
+  vector<vector<pair<int, int>>> ops;
+  for (int m = 1; m < n; m <<= 1) {
+    // sorted blocks of m elements
+    for (int d = m; d >= 1; d >>= 1) {
+      // operate on pairs of distance d
+      ops.emplace_back();
+      for (int i = 0; i < n; i += (m << 1)) {
+        for (int j = i + d % m; j + d < i + (m << 1); j += (d << 1)) {
+          for (int k = j; k < j + d && k + d < n; ++k) {
+            ops.back().emplace_back(k, k + d);
+          }
+        }
+      }
+    }
+  }
+  return ops;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
-#include <assert.h>
 #include <functional>
 #include <iostream>
 
@@ -42,7 +66,7 @@ unsigned xrand() {
   unsigned t = x ^ x << 11; x = y; y = z; z = w; return w = w ^ w >> 19 ^ t ^ t >> 8;
 }
 
-void unittest() {
+void unittest_mergeSort() {
   {
     vector<int> seqs[6]{
       {3, 1, 4, 1, 5, 9},
@@ -100,7 +124,49 @@ void unittest() {
   }
 }
 
+void unittest_parallelSort() {
+  assert(parallelSort(0) == (vector<vector<pair<int, int>>>{}));
+  assert(parallelSort(1) == (vector<vector<pair<int, int>>>{}));
+  assert(parallelSort(2) == (vector<vector<pair<int, int>>>{
+    {{0, 1}},
+  }));
+  assert(parallelSort(8) == (vector<vector<pair<int, int>>>{
+    {{0, 1}, {2, 3}, {4, 5}, {6, 7}},
+    {{0, 2}, {1, 3}, {4, 6}, {5, 7}},
+    {{1, 2}, {5, 6}},
+    {{0, 4}, {1, 5}, {2, 6}, {3, 7}},
+    {{2, 4}, {3, 5}},
+    {{1, 2}, {3, 4}, {5, 6}},
+  }));
+  for (int n = 0; n <= 20; ++n) {
+    const vector<vector<pair<int, int>>> ops = parallelSort(n);
+    for (const auto &op : ops) {
+      assert(op.size() >= 1);
+      vector<int> used(n, 0);
+      for (const auto &o : op) {
+        assert(0 <= o.first); assert(o.first < n);
+        assert(0 <= o.second); assert(o.second < n);
+        assert(o.first < o.second);
+        assert(!used[o.first]); used[o.first] = 1;
+        assert(!used[o.second]); used[o.second] = 1;
+      }
+    }
+    for (int p = 0; p < 1 << n; ++p) {
+      int q = p;
+      for (const auto &op : ops) {
+        for (const auto &o : op) {
+          if (!(q >> o.first & 1) && (q >> o.second & 1)) {
+            q ^= 1 << o.first ^ 1 << o.second;
+          }
+        }
+      }
+      assert(!(q & (q + 1)));
+    }
+  }
+}
+
 int main() {
-  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_mergeSort(); cerr << "PASSED unittest_mergeSort" << endl;
+  unittest_parallelSort(); cerr << "PASSED unittest_parallelSort" << endl;
   return 0;
 }
