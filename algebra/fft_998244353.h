@@ -2,6 +2,7 @@
 #define LIBRA_ALGEBRA_FFT_998244353_H_
 
 #include <assert.h>
+#include <algorithm>
 #include <vector>
 
 #include "modint.h"
@@ -145,6 +146,25 @@ vector<Mint> square(vector<Mint> as) {
   for (int i = 0; i < n; ++i) as[i] *= as[i];
   invFft(as);
   as.resize(len);
+  return as;
+}
+// m := |as|, n := |bs|
+// cs[k] = \sum[i-j=k] as[i] bs[j]  (0 <= k <= m-n)
+// transpose of ((multiply by bs): K^[0,m-n] -> K^[0,m-1])
+vector<Mint> middle(vector<Mint> as, vector<Mint> bs) {
+  const int m = as.size(), n = bs.size();
+  assert(m >= n); assert(n >= 1);
+  int len = 1;
+  for (; len < m; len <<= 1) {}
+  as.resize(len, 0);
+  fft(as);
+  std::reverse(bs.begin(), bs.end());
+  bs.resize(len, 0);
+  fft(bs);
+  for (int i = 0; i < len; ++i) as[i] *= bs[i];
+  invFft(as);
+  as.resize(m);
+  as.erase(as.begin(), as.begin() + (n - 1));
   return as;
 }
 ////////////////////////////////////////////////////////////////////////////////

@@ -107,6 +107,29 @@ void unittest_square() {
   }
 }
 
+void unittest_middle() {
+  assert(middle({2}, {3}) == (vector<Mint>{6}));
+  assert(middle({4, 5}, {6}) == (vector<Mint>{24, 30}));
+  assert(middle({7, 8}, {9, 10}) == (vector<Mint>{143}));
+  for (const auto &lens : {vector<int>{123, 1234}, vector<int>{100, 1000}}) {
+    const int asLen = lens[0], bsLen = lens[1];
+    if (asLen >= bsLen) {
+      vector<Mint> as(asLen), bs(bsLen);
+      for (int i = 0; i < asLen; ++i) {
+        as[i] = xrand();
+      }
+      for (int i = 0; i < bsLen; ++i) {
+        bs[i] = xrand();
+      }
+      vector<Mint> cs(asLen - bsLen + 1, 0);
+      for (int k = 0; k <= asLen - bsLen; ++k) for (int j = 0; j < bsLen; ++j) {
+        cs[k] += as[k + j] * bs[j];
+      }
+      assert(cs == convolve(as, bs));
+    }
+  }
+}
+
 void solve(const int N, const unsigned expected) {
   static constexpr int NUM_CASES = 100;
   const auto timerBegin = std::chrono::high_resolution_clock::now();
@@ -147,5 +170,6 @@ int main() {
   unittest_invFft();
   unittest_convolve();
   unittest_square();
+  unittest_middle();
   return 0;
 }
