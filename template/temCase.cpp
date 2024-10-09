@@ -37,7 +37,13 @@ template <class T> bool chmax(T &t, const T &f) { if (t < f) { t = f; return tru
 
 
 int main() {
-  
-  
+  for (int numCases; ~scanf("%d", &numCases); ) { for (int caseId = 1; caseId <= numCases; ++caseId) {
+    
+    
+  }
+#ifndef LOCAL
+  break;
+#endif
+  }
   return 0;
 }

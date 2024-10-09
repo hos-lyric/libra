@@ -23,7 +23,10 @@ int upperBound(T)(in T[] as, T val) { return as.binarySearch!(a => (a > val)); }
 void main() {
   try {
     for (; ; ) {
-      
+      const numCases = readInt;
+      foreach (caseId; 0 .. numCases) {
+        
+      }
     }
   } catch (EOFException e) {
   }
