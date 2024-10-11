@@ -1,0 +1,252 @@
+\documentclass{jsarticle}
+\usepackage{amsmath,amssymb,url}
+
+\def\<#1>{\langle #1 \rangle}
+\newcommand{\abs}[1]{\lvert #1 \rvert}
+\renewcommand{\S}{\mathfrak{S}}
+
+\everymath{\displaystyle}
+
+\title{Permutation Basis}
+\author{hos}
+
+\begin{document}
+\maketitle
+
+\section{Schreier の補題}
+$G$ を群，$S$ を $G$ の生成系とする．
+$H \le G$ を部分群，
+$\sigma\colon G/H \to G$ を
+標準全射 $G \twoheadrightarrow G/H$ の section であって
+$\sigma(H) = 1$ を満たすものとする．
+$R = \sigma(G/H)$ とおく ($R$ は $1$ を含む $G/H$ の完全代表系である)．
+このとき，
+\[
+  T = \{ \sigma(srH)^{-1} sr \mid r \in R,\, s \in S \}
+\]
+とおくと $H = \<T>$ となる．
+
+特に，$G$ が有限生成ならば $H$ も有限生成である．
+
+\
+
+\noindent\textbf{証明.}
+まず，
+\[
+  T^{-1} = \{ \sigma(s^{-1}rH)^{-1} s^{-1}r \mid r \in R,\, s \in S \}
+\]
+を示す．
+$r \in R$, $s \in S$ をとる．
+$r' = \sigma(srH) \in R$ とおくと，
+$\sigma(s^{-1}r'H) = \sigma(s^{-1}srH) = \sigma(rH) = r$ であるから，
+\[
+  (\sigma(srH)^{-1} sr)^{-1}
+  = r^{-1}s^{-1} \sigma(srH)
+  = \sigma(s^{-1}r'H)^{-1} s^{-1}r'
+\]
+となるから $T^{-1} \subseteq (右辺)$ である．
+逆向きも同様．
+
+$H \subseteq \<T>$ を示す．
+任意の $h \in H$ は $h \in G = \<S>$ より
+$h = s_0 s_1 \cdots s_{k-1}$ ($s_i \in S \cup S^{-1})$ と書ける．
+\begin{itemize}
+  \item $0 \le i \le k$ に対し $r_i = \sigma(s_i s_{i+1} \cdots s_{k-1} H)$ とおく．
+  \item $0 \le i \le k-1$ に対し $t_i = r_i^{-1} s_i r_{i+1}$ とおく．
+\end{itemize}
+すると，$r_0 = \sigma(hH) = \sigma(H) = 1$ および $r_k = \sigma(H) = 1$ より
+$h = t_0 t_1 \cdots t_{k-1}$ であり，
+$0 \le i \le k-1$ に対し
+\[
+  \sigma(s_i r_{i+1} H) = \sigma(s_i (s_{i+1} \cdots s_{k-1} H)) = r_i
+\]
+なので $t_i \in T \cup T^{-1}$ である．
+よって $h \in \<T>$ となるのでよい．
+
+$H \supseteq \<T>$ を示す．
+$r \in R$, $s \in S$ をとる．
+$\sigma(srH) H = srH$ なので
+$H = \sigma(srH)^{-1} srH$ となり，
+$\sigma(srH)^{-1} sr \in H$ が従うのでよい．
+\hfill ■
+
+\
+
+\noindent\textbf{注.}
+$\sigma(H) = 1$ を仮定しない場合は証明に修正が必要．
+$r_k, t_k$ を $r_k = h^{-1} \sigma(H) h$ によって置き換える
+($r_k \in R$ とは限らない) ことで，
+\[
+  \sigma(s_{k-1} r_k H)
+  = \sigma(s_{k-1} H)
+  = r_{k-1}
+\]
+および
+\[
+  t_0 t_1 \cdots t_{k-1}
+  = r_0^{-1} h r_k
+  = \sigma(H)^{-1} h h^{-1} \sigma(H) h
+  = h
+\]
+が成り立つのでよい．
+
+
+\section{Sims filter}
+$[l, r) := \{l, l+1, \ldots, r-1\}$ 上の対称群を $\S_{[l,r)}$ で表す．
+$l' \le l \le r \le r'$ に対し，$\S_{[l,r)} \le S_{[l',r')}$ とみなす．
+
+$G \le \S_n := \S_{[0,n)}$ を置換群とし，
+$G$ の生成系 $S$ が与えられているとする．
+このとき，$G$ の生成系 $T$ であって，$T \subseteq S$ であり，
+\begin{quote}
+任意の $0 \le u < v < n$ に対し，$t \in T$ であって
+「$t \in \S_{[u,n)}$ かつ $t(u) = v$ を満たすもの」は
+高々 $1$ 個である
+\end{quote}
+という条件を満たすもの (特に $\abs{T} \le \binom{n}{2}$ を満たす) を，
+以下のようにして $O(\abs{S} n^2)$ 時間・$O(n^3)$ 空間で得られる：
+
+$T$ の元を管理する配列 $t_{u,v}$ を null で初期化する．
+各 $s \in S$ に対し，$u = 0, 1, \ldots, n-1$ の順に以下を行う：
+\begin{itemize}
+  \item $t_{u,s(u)}$ が null でない場合，
+    $s \gets t_{u,s(u)}^{-1} s \in \S_{[u+1,n)}$ とする．
+  \item $t_{u,s(u)}$ が null の場合，$t_{u,s(u)} \gets s$ として break する．
+\end{itemize}
+
+
+\section{Schreier--Sims}
+$G \le \S_n$ を置換群とし，
+$G$ の生成系 $S$ が与えられているとする．
+$0 \le u \le n$ に対し，$G_u = G \cap \S_{[u,n)}$ とおく．
+$G = G_0 \ge G_1 \ge \cdots \ge G_{n-1} \ge G_n = 1$ である．
+
+各 $0 \le u \le n-1$ に対し，
+$1$ を含む $G_u/G_{u+1}$ の完全代表系 $R_u$ を構成したい．
+
+\
+
+$0 \le u \le n-1$ に対し，
+$G_u$ の生成系 $S_u$ が与えられたとき，
+$R_u$ を構成し，さらに $G_{u+1}$ の生成系 $S_{u+1}$ を求めたい．
+
+$G_u$ による $u$ の軌道を $O_u = \{ g(u) \mid g \in G_u \}$ とすると，
+$R_u \to O_u;\, r \mapsto r(u)$ は全単射である：
+\begin{itemize}
+  \item 全射性：$v \in O_u$ をとると，$g(u) = v$ なる $g \in G_u$ がとれて，
+      $g = rh$ なる $r \in R_u$, $h \in G_{u+1}$ がとれて，
+      $r(u) = r(h(u)) = g(u) = v$ となる．
+  \item 単射性：$r, r' \in R_u$ が $r(u) = r'(u)$ を満たすと，
+      $rr'^{-1} \in G_{u+1}$ より $r G_{u+1} = r' G_{u+1}$ なので $r = r'$．
+\end{itemize}
+
+$O_u$ を DFS または BFS によって求める．
+すなわち，訪問した $v \in O_u$ について，
+各 $s \in S_u$ に対し，
+$s(v)$ が未訪問なら辺 $v \overset{s}{\to} s(v)$ を張って $s(v) \in O_u$ を訪問する
+(有限群なので $S_u^{-1}$ の元を追加で調べる必要はない)．
+このようにして $u$ を根とする外向木が得られる．
+
+$v \in O_u$ に対し，根からのパスを
+$u \overset{s_0}{\to} * \overset{s_1}{\to} \cdots \overset{s_{k-1}}{\to} v$ として，
+対応する元を $r_{u,v} = s_{k-1} \cdots s_1 s_0 \in G_u$ と定め，
+$R_u = \{ r_{u,v} \mid v \in O_u \}$ とするとこれが所望の完全代表系である．
+
+その後，Schreier の補題を適用し
+\[
+  S_{u+1}
+  = \{ \sigma(sr G_{u+1})^{-1} sr \mid r \in R_u,\, s \in S_u \}
+  = \{ r_{u,s(v)}^{-1} s r_{u,v} \mid v \in O_u,\, s \in S_u \}
+\]
+とすればよい．
+この生成系は閉路の生成系と考えられる．
+
+\
+
+計算量を解析する．
+
+各 $S_u$ に対して Sims filter を適用して $\abs{S_u} \le \binom{n-u}{2}$ を仮定してよい．
+入力の $S$ に対する Sims filter は $O(\abs{S} n^2)$ 時間・$O(n^3)$ 空間．
+
+各 $0 \le u \le n-1$ について，
+DFS または BFS は $\abs{O_u} \abs{S_u} = O(n^3)$ 時間，
+木 DP で $r_{u,v}$ たちを求めるのに $O(n^2)$ 時間，記録に $O(n^2)$ 空間．
+Schreier の補題によって構成した生成系のサイズは $\abs{O_u} \abs{S_u} = O(n^3)$ なので，
+それに対する Sims filter の適用は $O(n^5)$ 時間・$O(n^3)$ 空間．
+
+以上より，合計 $O(\abs{S} n^2 + n^6)$ 時間・$O(n^3)$ 空間．
+
+\
+
+任意の $g \in G$ は $g = r_0 r_1 \cdots r_{n-1}$ ($r_u \in R_u$) の形に一意に書ける．
+特に，$\abs{G} = \abs{R_0} \abs{R_1} \cdots \abs{R_{n-1}}$．
+
+$g \in \S_n$ が与えられたとき $g \in G$ か否かの判定は $O(n^2)$ 時間でできる：
+\begin{itemize}
+  \item $g(0) \in O_0$ のとき，$r_{0,g(0)}^{-1} g \in \S_{[1,n)}$ が $G_1$ に含まれるかの判定に帰着．
+  \item $g(0) \not\in O_0$ のとき，$g \not\in G$．
+\end{itemize}
+
+
+\section{incremental}
+前節のアルゴリズムを追うと，$S$ の元が incremental に与えられたとき，
+$R_u, S_u$ もすべて incremental に管理できることがわかる [2]．
+
+$g \in \S_{[u,n)}$ に対する以下の関数を設計する：
+\begin{itemize}
+  \item $\mathtt{contains}(u, g)$：$g \in G_u$ かどうか判定する．
+    \begin{itemize}
+      \item $u = n$ のとき true を返す．
+      \item $g(u) \in O_u$ のとき，$\mathtt{contains}(u+1, r_{u,g(u)}^{-1} g)$ を返す．
+      \item $g(u) \not\in O_u$ のとき，false を返す．
+    \end{itemize}
+  \item $\mathtt{add}(u, g)$：$G_u$ に $g$ を追加する．
+    \begin{enumerate}
+      \item $\mathtt{contains}(u, g)$ を呼び，$g \in G_u$ なら何もせず返す．
+      \item $S_u$ に $g$ を追加する．
+      \item 各 $v \in O_u$ に対し，$\mathtt{dfs}(u, g r_{u,v})$ を呼ぶ (各頂点から新しい辺を辿る)．
+    \end{enumerate}
+  \item $\mathtt{dfs}(u, g)$：$O_u$ において頂点 $v := g(u)$ を訪れる．
+    \begin{itemize}
+      \item $v \in O_u$ のとき，$\mathtt{add}(u+1, r_{u,v}^{-1} g)$ を呼ぶ (閉路)．
+      \item $v \not\in O_u$ のとき，
+        \begin{enumerate}
+          \item $O_u$ に $v$ を追加し，$r_{u,v} = g$ とする．
+          \item 各 $s \in S_u$ に対し，$\mathtt{dfs}(u, s g)$ を呼ぶ (新しい頂点から各辺を辿る)．
+        \end{enumerate}
+    \end{itemize}
+\end{itemize}
+
+Sims filter の代わりの生成系として，
+追加しようとしている元が実際に群を広げるときのみ生成系に足すことにしている．
+$G_u$ が真に広がるのは
+$\left\lfloor\frac{3(n-u)-1}{2}\right\rfloor - \mathrm{popcnt}(n-u)$ 回
+しか起こらないことが知られており [4]，
+$\abs{S_u} = O(n)$ と抑えられる．
+
+各 $u$ に対し，$\mathtt{dfs}(u, *)$ は
+$\abs{O_u} \abs{S_u} = O(n^2)$ 辺を過不足なく見る．
+各辺の置換計算が $O(n)$ 時間なので $O(n^3)$ 時間．
+
+$\mathtt{add}$ の呼び出しは，
+外から $u = 0$ で呼ぶのが $O(\abs{S})$ 回，
+$\mathtt{dfs}$ から呼ぶのが各 $u$ から $O(\abs{O_u} \abs{S_u}) = O(n^2)$ 回．
+これらにそれぞれに対し $\mathtt{contains}$ が呼ばれ，$O(n^2)$ 時間．
+
+以上より，合計 $O(\abs{S} n^2 + n^5)$ 時間・$O(n^3)$ 空間．
+
+
+\section{参考文献}
+\begin{enumerate}\renewcommand{\labelenumi}{[\arabic{enumi}]}
+  \item adamant,
+    Permutation group basis construction (Schreier–Sims algorithm),
+    \url{https://codeforces.com/blog/entry/111290}
+  \item Benq,
+    \url{https://codeforces.com/gym/421334/submission/210708091}
+  \item \url{https://planetmath.org/schreierslemma}
+  \item Peter J Cameron, Ron Solomon, Alexandre Turull,
+    Chains of subgroups in symmetric groups,
+    \url{https://doi.org/10.1016/0021-8693(89)90256-1}
+\end{enumerate}
+
+\end{document}
