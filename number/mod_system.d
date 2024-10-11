@@ -17,38 +17,62 @@ S gojo(S)(S a, S b, out S x, out S y) {
   }
 }
 
+// x == b0  (mod m0),  x == b1  (mod m1)
+// S: signed integer
+Tuple!(S, "m", S, "b") modSystem(S)(S m0, S b0, S m1, S b1) {
+  import std.algorithm.mutation : swap;
+  import std.typecons : tuple;
+  assert(m0 >= 1, "[modSystem] m0 >= 1 must hold.");
+  assert(m1 >= 1, "[modSystem] m1 >= 1 must hold.");
+  if ((b0 %= m0) < 0) b0 += m0;
+  if ((b1 %= m1) < 0) b1 += m1;
+  if (m0 < m1) {
+    swap(m0, m1);
+    swap(b0, b1);
+  }
+  // to avoid overflow
+  if (m0 % m1 == 0) {
+    if (b0 % m1 != b1) return tuple!(S, "m", S, "b")(0, 0);
+    return tuple!(S, "m", S, "b")(m0, b0);
+  }
+  S z0, z1;
+  const S g = gojo(m0, m1, z0, z1);
+  b1 -= b0;
+  if (b1 % g != 0) return tuple!(S, "m", S, "b")(0, 0);
+  (b1 /= g) %= m1;
+  m1 /= g;
+  b0 += m0 * ((z0 * b1) % m1);
+  m0 *= m1;
+  if (b0 < 0) b0 += m0;
+  return tuple!(S, "m", S, "b")(m0, b0);
+}
+Tuple!(S, "m", S, "b") modSystem(S)(Tuple!(S, "m", S, "b") mb0, Tuple!(S, "m", S, "b") mb1) {
+  return modSystem(mb0.m, mb0.b, mb1.m, mb1.b);
+}
+
 // x == bs[i]  (mod ms[i])
 // S: signed integer
 Tuple!(S, "m", S, "b") modSystem(S)(const(S[]) ms, const(S[]) bs) {
-  import std.algorithm.mutation : swap;
   import std.typecons : tuple;
+  assert(ms.length == bs.length, "[modSystem] |ms| = |bs| must hold.");
   const len = cast(int)(ms.length);
-  assert(len == bs.length, "[modSystem] |ms| = |bs| must hold.");
-  S m0 = 1, b0 = 0;
+  auto mb0 = tuple!(S, "m", S, "b")(1, 0);
   foreach (i; 0 .. len) {
     assert(ms[i] >= 1, "[modSystem] ms[i] >= 1 must hold.");
-    S m1 = ms[i], b1 = bs[i];
-    if ((b1 %= m1) < 0) b1 += m1;
-    if (m0 < m1) {
-      swap(m0, m1);
-      swap(b0, b1);
-    }
-    // to avoid overflow
-    if (m0 % m1 == 0) {
-      if (b0 % m1 != b1) return tuple!(S, "m", S, "b")(0, 0);
-      continue;
-    }
-    S z0, z1;
-    const S g = gojo(m0, m1, z0, z1);
-    b1 -= b0;
-    if (b1 % g != 0) return tuple!(S, "m", S, "b")(0, 0);
-    (b1 /= g) %= m1;
-    m1 /= g;
-    b0 += m0 * ((z0 * b1) % m1);
-    m0 *= m1;
-    if (b0 < 0) b0 += m0;
+    mb0 = modSystem(mb0.m, mb0.b, ms[i], bs[i]);
+    if (!mb0.m) return tuple!(S, "m", S, "b")(0, 0);
   }
-  return tuple!(S, "m", S, "b")(m0, b0);
+  return mb0;
+}
+Tuple!(S, "m", S, "b") modSystem(S)(const(Tuple!(S, "m", S, "b")[]) mbs) {
+  import std.typecons : tuple;
+  auto mb0 = tuple!(S, "m", S, "b")(1, 0);
+  foreach (mb1; mbs) {
+    assert(mb1.m >= 1, "[modSystem] mbs[i].m >= 1 must hold.");
+    mb0 = modSystem(mb0, mb1);
+    if (!mb0.m) return tuple!(S, "m", S, "b")(0, 0);
+  }
+  return mb0;
 }
 
 // TODO: modSystem(ms, as, bs)
@@ -92,8 +116,8 @@ unittest {
 unittest {
   import std.typecons : tuple;
   import std.numeric : gcd;
-  assert(modSystem([6, 10], [13, -1]) == tuple!(int, "m", int, "b")(30, 19));
-  assert(modSystem([6, 10], [5, 8]) == tuple!(int, "m", int, "b")(0, 0));
+  assert(modSystem(6, 13, 10, -1) == tuple!(int, "m", int, "b")(30, 19));
+  assert(modSystem([tuple!(int, "m", int, "b")(6, 5), tuple!(int, "m", int, "b")(10, 8)]) == tuple!(int, "m", int, "b")(0, 0));
   // TODO: test large values
   {
     enum long lim = 100;

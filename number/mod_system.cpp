@@ -26,37 +26,62 @@ template <class S> S gojo(S a, S b, S &x, S &y) {
   }
 }
 
+// x == b0  (mod m0),  x == b1  (mod m1)
+// S: signed integer
+template <class S>
+pair<S, S> modSystem(S m0, S b0, S m1, S b1) {
+  assert(m0 >= 1);
+  assert(m1 >= 1);
+  if ((b0 %= m0) < 0) b0 += m0;
+  if ((b1 %= m1) < 0) b1 += m1;
+  if (m0 < m1) {
+    swap(m0, m1);
+    swap(b0, b1);
+  }
+  // to avoid overflow
+  if (m0 % m1 == 0) {
+    if (b0 % m1 != b1) return make_pair(0, 0);
+    return make_pair(m0, b0);
+  }
+  S z0, z1;
+  const S g = gojo(m0, m1, z0, z1);
+  b1 -= b0;
+  if (b1 % g != 0) return make_pair(0, 0);
+  (b1 /= g) %= m1;
+  m1 /= g;
+  b0 += m0 * ((z0 * b1) % m1);
+  m0 *= m1;
+  if (b0 < 0) b0 += m0;
+  return make_pair(m0, b0);
+}
+template <class S>
+pair<S, S> modSystem(const pair<S, S> &mb0, const pair<S, S> &mb1) {
+  return modSystem(mb0.first, mb0.second, mb1.first, mb1.second);
+}
+
 // x == bs[i]  (mod ms[i])
 // S: signed integer
 template <class S>
 pair<S, S> modSystem(const vector<S> &ms, const vector<S> &bs) {
+  assert(ms.size() == bs.size());
   const int len = ms.size();
-  assert(static_cast<size_t>(len) == bs.size());
-  S m0 = 1, b0 = 0;
+  pair<S, S> mb0(1, 0);
   for (int i = 0; i < len; ++i) {
     assert(ms[i] >= 1);
-    S m1 = ms[i], b1 = bs[i];
-    if ((b1 %= m1) < 0) b1 += m1;
-    if (m0 < m1) {
-      swap(m0, m1);
-      swap(b0, b1);
-    }
-    // to avoid overflow
-    if (m0 % m1 == 0) {
-      if (b0 % m1 != b1) return make_pair(0, 0);
-      continue;
-    }
-    S z0, z1;
-    const S g = gojo(m0, m1, z0, z1);
-    b1 -= b0;
-    if (b1 % g != 0) return make_pair(0, 0);
-    (b1 /= g) %= m1;
-    m1 /= g;
-    b0 += m0 * ((z0 * b1) % m1);
-    m0 *= m1;
-    if (b0 < 0) b0 += m0;
+    mb0 = modSystem(mb0.first, mb0.second, ms[i], bs[i]);
+    if (!mb0.first) return mb0;
   }
-  return make_pair(m0, b0);
+  return mb0;
+}
+template <class S>
+pair<S, S> modSystem(const vector<pair<S, S>> &mbs) {
+  pair<S, S> mb0(1, 0);
+  for (const auto &mb1 : mbs) {
+    assert(mb1.first >= 1);
+    mb0 = modSystem(mb0, mb1);
+    if (!mb0.first) return mb0;
+  }
+  return mb0;
 }
 
 // TODO: modSystem(ms, as, bs)
@@ -103,8 +128,8 @@ void unittest_gojo() {
 }
 
 void unittest_modSystem() {
-  assert(modSystem<int>({6, 10}, {13, -1}) == make_pair(30, 19));
-  assert(modSystem<int>({6, 10}, {5, 8}) == make_pair(0, 0));
+  assert(modSystem<int>(6, 13, 10, -1) == make_pair(30, 19));
+  assert(modSystem<int>({make_pair(6, 5), make_pair(10, 8)}) == make_pair(0, 0));
   // TODO: test large values
   {
     using Int = long long;
@@ -127,7 +152,7 @@ void unittest_modSystem() {
       }
       for (Int b0 = -lim; b0 <= lim; ++b0) for (Int b1 = -lim; b1 <= lim; ++b1) {
         const Int x = tab[(b0 % m0 + m0) % m0][(b1 % m1 + m1) % m1];
-        const pair<Int, Int> res = modSystem<Int>({m0, m1}, {b0, b1});
+        const pair<Int, Int> res = modSystem<Int>(vector<Int>{m0, m1}, vector<Int>{b0, b1});
         if (~x) {
           assert(res.first == l);
           assert(res.second == x);
