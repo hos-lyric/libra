@@ -1,0 +1,189 @@
+\documentclass{jsarticle}
+\usepackage{amsmath,amssymb,url}
+\usepackage[all]{xy}
+
+\newcommand{\abs}[1]{\lvert #1 \rvert}
+\newcommand{\R}{\mathbb{R}}
+
+\everymath{\displaystyle}
+
+\title{Shortest Path Replacement}
+\author{hos}
+
+\begin{document}
+\maketitle
+
+
+\section{問題}
+無向・\textbf{正}重み付きグラフ $G = (V, E, w)$ ($w\colon E \to \R_{>0}$) および
+$s, t \in V$ が与えられる．
+各 $e \in E$ に対し，$G-e$ での $s$-$t$ ウォークの重みの最小値 $z_e$ を求めたい．
+
+重みの加算・比較が可能として，
+$O((\abs{V} + \abs{E}) \log(\abs{V}))$ 時間 $O(\abs{V} + \abs{E})$ 空間．
+辺重みに $0$ を許す場合は $0$ を $\varepsilon$ にして解く．
+
+
+\section{準備}
+最短と言ったら重み最小のこととする．
+$u, v \in V$ に対し，$G$ での $u$-$v$ 最短ウォークの重みを $d(u, v)$ と書く．
+
+$d(s, t) = \infty$ のときは任意の $e \in E$ に対し $z_e = \infty$ である．
+以下 $d(s, t) < \infty$ を仮定する．
+
+$s = t$ のときは任意の $e \in E$ に対し $z_e = 0$ である．
+以下 $s \ne t$ を仮定する．
+
+\begin{itemize}
+  \item $s$ を始点とする最短路木 $S$ を $1$ つとって固定する．
+      $S$ の頂点 $u$ に対し，$S$ での $s$-$u$ 単純パスを $S(u)$ と書く．
+  \item $t$ を終点とする最短路木 $T$ を $1$ つとって固定する．
+      $T$ の頂点 $u$ に対し，$T$ での $u$-$t$ 単純パスを $T(u)$ と書く．
+\end{itemize}
+
+\
+
+\noindent\textbf{補題.}
+$e \in E$ とし，
+$G-e$ に $s$-$t$ ウォークが存在するとする．
+このとき，$G-e$ での $s$-$t$ 最短ウォーク $Q$ であって，
+$Q$ 上の任意の頂点 $u$ に対し，以下の少なくとも一方が成り立つようなものが存在する：
+\begin{itemize}
+  \item $Q$ の $u$ までの prefix が $S(u)$ である
+  \item $Q$ の $u$ からの suffix が $T(u)$ である
+\end{itemize}
+
+\noindent\textbf{証明.}
+条件をいずれも満たさない頂点の個数が最小となるような $Q$ をとる．
+$Q$ 上のある頂点 $u$ が条件をいずれも満たさないと仮定して矛盾を導く．
+\begin{itemize}
+  \item $S(u)$ が $e$ を含まないとすると，$Q$ の prefix を $S(u)$ に置き換えて
+      より良いウォークを得られるので矛盾．
+  \item $T(u)$ が $e$ を含まないとすると，$Q$ の suffix を $T(u)$ に置き換えて
+      より良いウォークを得られるので矛盾．
+\end{itemize}
+
+よって $S(u), T(u)$ は $e$ を含むとしてよい．
+これらは最短路木の単純パスなのでそれぞれ $e$ をちょうど $1$ 回含む．
+$e$ の前後に分解して $S(u) = Q_0 e Q_1$, $T(u) = Q_2 e Q_3$ とおく．
+
+$S(u), T(u)$ が $e$ を同じ向きに通る場合．
+$s$-$u$ ウォーク $Q_0 \overline{Q_2}$ および
+$u$-$t$ ウォーク $\overline{Q_1} Q_3$ を考えることにより，
+\begin{align*}
+  w(Q_0) + w(e) + w(Q_1) &= d(s, u) \le w(Q_0) + w(Q_2) \\
+  w(Q_2) + w(e) + w(Q_3) &= d(u, t) \le w(Q_1) + w(Q_3)
+\end{align*}
+を得るが，
+両辺足して $w(e) \le 0$ となり矛盾．
+
+$S(u), T(u)$ が $e$ を逆向きに通る場合，
+$G-e$ での $s$-$t$ ウォーク $Q_0 Q_3$ を考えると，
+その重みは
+\[
+  w(Q_0) + w(Q_3) < d(s, u) + d(u, t) = w(Q)
+\]
+なので $Q$ の最短性に矛盾．
+\hfill ■
+
+\
+
+\noindent\textbf{注意.}
+辺重みに $0$ を許すと補題は成り立たない：
+\[
+  \xymatrix{
+    *++[o][F]{s} \ar@{-}[rd]^1 \ar@{-}[rr]^1 & & *++[o][F]{u} \ar@{-}[ld]^0 \ar@{-}[rr]^1 & & *++[o][F]{t} \\
+    & *++[o][F]{a} \ar@{--}[rr]^0_e & & *++[o][F]{b} \ar@{-}[lu]^0 \ar@{-}[ru]^1 &
+  }
+\]
+上図で，$P = sabt$ として，最短路木として
+\begin{itemize}
+  \item $S$ の辺は $sa, ab, bt, bu$
+  \item $T$ の辺は $sa, ab, bt, ua$
+\end{itemize}
+となるものをとると，
+$Q = sut, saut, subt, saubt$ のどれについても，頂点 $u$ で条件を満たさない．
+
+有向グラフの場合も補題は成り立たない：
+\[
+  \xymatrix{
+    *++[o][F]{s} \ar[rd]^1 \ar[rr]^{10} & & *++[o][F]{u} \ar[ld]^1 \ar[rr]^{10} & & *++[o][F]{t} \\
+    & *++[o][F]{a} \ar@{-->}[rr]^1_e & & *++[o][F]{b} \ar[lu]^1 \ar[ru]^1 &
+  }
+\]
+上図で $G-e$ での $s$-$t$ ウォークは $Q = sut$ のみだが，
+$d(s, u) = d(u, t) = 3$ より頂点 $u$ で条件を満たさない．
+
+
+\section{解法}
+$G$ での $s$-$t$ 最短単純パス $P$ を $1$ つとって固定する．
+$P = (s = p_0, e_0, p_1, e_1, \ldots, e_{k-1}, p_k = t)$
+($p_i \in V$, $e_i \in E$, $e_i$ の両端点は $p_i, p_{i+1}$)
+とおく．
+
+$e \in E \setminus \{e_0, \ldots, e_{k-1}\}$ に対しては
+$z_e = d(s, t)$ である．
+
+$u \in V$ に対し，$l(u), r(u)$ を以下で定める：
+\begin{itemize}
+  \item $u$ が $S$ の頂点のとき，$P$ と $S(u)$ の共通部分 (prefix である) を
+      $(p_0, e_0, \ldots, e_{l(u)-1}, p_{l(u)})$ とする．
+      そうでないとき $l(u) = +\infty$ とする．
+  \item $u$ が $T$ の頂点のとき，$P$ と $T(u)$ の共通部分 (suffix である) を
+      $(p_{r(u)}, e_{r(u)}, \ldots, e_{k-1}, p_k)$ とする．
+      そうでないとき $r(u) = -\infty$ とする．
+\end{itemize}
+
+このとき，
+\[
+  z_{e_i}
+  = \min\{ \quad
+      d(s, u) + w(e) + d(v, t)
+      \quad \mid \quad
+      e \in E \setminus \{e_i\},\quad \text{$e$ の両端点は $u, v$},\quad l(u) \le i < r(v)
+  \quad \}
+\]
+が成り立つ．
+
+\
+
+\noindent\textbf{$\le$ の証明.}
+右辺の条件を満たす $e, u, v$ を任意にとる．
+\begin{itemize}
+  \item $l(u)$ の定め方と $l(u) \le i$ より，$S(u)$ は $e_i$ を含まない．
+  \item $r(v)$ の定め方と $i <   r(v)$ より，$T(v)$ は $e_i$ を含まない．
+\end{itemize}
+
+すると，$S(u) e T(v)$ が $G-e_i$ のウォークとなり，
+\[
+  z_{e_i} \le w(S(u) e T(v)) = d(s, u) + w(e) + d(v, t)
+\]
+である．
+
+\noindent\textbf{$\ge$ の証明.}
+$z_{e_i} = \infty$ のときはよい．
+そうでないとき，
+$G-e_i$ について補題を適用して，
+$G-e_i$ での $s$-$t$ 最短ウォーク $Q$ を $1$ つとる．
+$s \ne t$ および
+\begin{itemize}
+  \item $Q$ の $s$ までの prefix は $S(s)$ である
+  \item $Q$ の $t$ からの suffix は $T(t)$ である
+\end{itemize}
+ということと補題の性質を合わせると，
+$Q$ に含まれる辺 $e$ であって，両端点を通る順に $u, v$ として，
+\begin{itemize}
+  \item $Q$ の $u$ までの prefix は $S(u)$ である
+  \item $Q$ の $v$ からの suffix は $T(v)$ である
+\end{itemize}
+ようなものがとれる．
+このとき，$Q$ が $e_i$ を含まないことから
+$e \in E \setminus \{e_i\}$ および $l(u) \le i < r(v)$ が成り立ち，
+\[
+  z_{e_i} = w(Q) = d(s, u) + w(e) + d(v, t)
+\]
+であるからよい．
+\hfill ■
+
+
+\end{document}
