@@ -4,6 +4,12 @@
 using std::pair;
 using std::swap;
 
+// T: monoid representing information of an element and an interval.
+//   T()  should return the identity.
+//   T::push(T *l, T *r)  should push the lazy update.
+//   T::pull(const Node *l, const Node *r)  should pull two intervals.
+//     The node itself contains an element: This should calculate l * self * r.
+//   T::operator<(const T &t)  is used for "Cmp" functions.
 template <class T> struct Splay {
   Splay *p, *l, *r;
   T t;
@@ -64,26 +70,37 @@ template <class T> struct Splay {
     l = r = nullptr;
     pull();
   }
+  // Splays the leftmost node.
   Splay *leftmost() {
     Splay *a = this;
     for (; a->l; a = a->l) {}
     return a->splay();
   }
+  // Splays the rightmost node.
   Splay *rightmost() {
     Splay *a = this;
     for (; a->r; a = a->r) {}
     return a->splay();
   }
+  // Iterates the tree, calling f on each node.
   template <class F> void dfs(F f) {
     push();
     if (l) l->dfs(f);
     f(this);
     if (r) r->dfs(f);
   }
+  // Concatenates two trees.
+  friend Splay *concat(Splay *a, Splay *b) {
+    if (!a) return b;
+    if (!b) return a;
+    a = a->rightmost();
+    a->linkR(b);
+    return a;
+  }
+  // Splays the k-th element.
   Splay *at(int k) {
     assert(0 <= k); assert(k < t.size);
-    Splay *a = this;
-    for (; ; ) {
+    for (Splay *a = this; ; ) {
       const int sizeL = a->l ? a->l->t.size : 0;
       if (k < sizeL) {
         a = a->l;
@@ -95,13 +112,7 @@ template <class T> struct Splay {
       }
     }
   }
-  friend Splay *concat(Splay *a, Splay *b) {
-    if (!a) return b;
-    if (!b) return a;
-    a = a->rightmost();
-    a->linkR(b);
-    return a;
-  }
+  // Splits the tree by size: [0, k), [k, a->size).
   friend pair<Splay *, Splay *> splitAt(Splay *a, int k) {
     assert(0 <= k); assert(k <= (a ? a->t.size : 0));
     if (k == 0) return std::make_pair(nullptr, a);
@@ -111,6 +122,52 @@ template <class T> struct Splay {
     a->cutL();
     return std::make_pair(l, a);
   }
+  // Splits the tree by operator<: (< target), (>= target).
+  // Splays the rightmost (< target) and the leftmost (>= target).
+  friend pair<Splay *, Splay *> splitCmp(Splay *a, const T &target) {
+    Splay *l = nullptr, *r = nullptr;
+    for (; a; ) {
+      a->push();
+      if (a->t < target) {
+        l = a;
+        a = a->r;
+      } else {
+        r = a;
+        a = a->l;
+      }
+    }
+    if (l) {
+      l->splay();
+      l->cutR();
+    }
+    if (r) r->splay();
+    return std::make_pair(l, r);
+  }
+  // Inserts b into the tree, using T::operator<.
+  friend void insertCmp(Splay *&a, Splay *b) {
+    auto s = splitCmp(a, b->t);
+    b->linkLR(s.first, s.second);
+    a = b;
+  }
+  // Inserts b's nodes into the tree one by one, using T::operator<.
+  friend void meldRecCmp(Splay *&a, Splay *b) {
+    if (!b) return;
+    Splay *l = b->l, *r = b->r;
+    b->push();
+    b->cutLR();
+    meldRecCmp(a, l);
+    insertCmp(a, b);
+    meldRecCmp(a, r);
+  }
+  // Meld two trees, using T::operator<.
+  friend Splay *meldCmp(Splay *a, Splay *b) {
+    if (!a) return b;
+    if (!b) return a;
+    if (a->t.size < b->t.size) swap(a, b);
+    meldRecCmp(a, b);
+    return a;
+  }
+  // Cuts out [kL, kR) of the tree and calls f.
   template <class F> friend void range(Splay *&a, int kL, int kR, F f) {
     assert(0 <= kL); assert(kL <= kR); assert(kR <= (a ? a->t.size : 0));
     if (kL == kR) { f(nullptr); return; }
@@ -125,10 +182,12 @@ template <class T> struct Splay {
     if (b) b->linkL(a->splay());
     a->splay();
   }
+  // Applies T::f(args...) to [kL, kR).
   template <class F, class... Args>
   friend void ch(Splay *&a, int kL, int kR, F f, Args &&... args) {
     range(a, kL, kR, [&](Splay *b) -> void { if (b) (b->t.*f)(args...); });
   }
+  // Calculates the product for [kL, kR).
   friend T get(Splay *&a, int kL, int kR) {
     T t;
     range(a, kL, kR, [&](Splay *b) -> void { if (b) t = b->t; });
@@ -143,15 +202,20 @@ struct Node {
   void pull(const Node *l, const Node *r) {
     size = (l ? l->size : 0) + 1 + (r ? r->size : 0);
   }
+  bool operator<(const Node &t) {
+    return false;
+  }
 };
 
 ////////////////////////////////////////////////////////////////////////////////
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
 using std::cerr;
 using std::endl;
+using std::min;
 using std::vector;
 
 void unittest() {
@@ -259,8 +323,74 @@ void run() {
 }
 }  // yosupo_dynamic_sequence_range_affine_range_sum
 
+namespace qoj7961 {
+// dp[u]: convex function on [0, sz[u]]
+// dp[u] = 0_[0,1] * *[v] (|K - 2 x| + dp[v])
+//   *: min-plus convolution
+struct Node {
+  int size;
+  int val, lz;
+  Node() : size(0), val(0), lz(0) {}
+  Node(int val_) : size(1), val(val_), lz(0) {}
+  void push(Node *l, Node *r) {
+    if (l) l->add(lz);
+    if (r) r->add(lz);
+    lz = 0;
+  }
+  void pull(const Node *l, const Node *r) {
+    size = (l ? l->size : 0) + 1 + (r ? r->size : 0);
+  }
+  void add(int a) {
+    val += a;
+    lz += a;
+  }
+  bool operator<(const Node &t) {
+    return (val < t.val);
+  }
+};
+int N, K;
+vector<int> A, B;
+vector<vector<int>> graph;
+vector<Splay<Node>> nodes;
+Splay<Node> *solve(int u, int p) {
+  auto ret = &(nodes[u] = Node(0));
+  for (const int v : graph[u]) if (p != v) {
+    auto res = solve(v, u);
+    ch(res, 0, min(K/2, res->t.size), &Node::add, -2);
+    if ((K+1)/2 < res->t.size) ch(res, (K+1)/2, res->t.size, &Node::add, +2);
+    ret = meldCmp(ret, res);
+  }
+  return ret;
+}
+void run() {
+  for (; ~scanf("%d%d", &N, &K); ) {
+    A.resize(N - 1);
+    B.resize(N - 1);
+    for (int i = 0; i < N - 1; ++i) {
+      scanf("%d%d", &A[i], &B[i]);
+      --A[i];
+      --B[i];
+    }
+    graph.assign(N, {});
+    for (int i = 0; i < N - 1; ++i) {
+      graph[A[i]].push_back(B[i]);
+      graph[B[i]].push_back(A[i]);
+    }
+    nodes.resize(N);
+    auto res = solve(0, -1);
+    long long ans = static_cast<long long>(N - 1) * K;
+    int k = 0;
+    res->dfs([&](const Splay<Node> *a) -> void {
+      if (k++ < K) ans += a->t.val;
+    });
+    printf("%lld\n", ans);
+  }
+}
+}  // qoj7961
+
 int main() {
-  // unittest(); cerr << "PASSED unittest" << endl;
-  yosupo_dynamic_sequence_range_affine_range_sum::run();
+  unittest(); cerr << "PASSED unittest" << endl;
+  // yosupo_dynamic_sequence_range_affine_range_sum::run();
+  // qoj7961::run();
   return 0;
 }
