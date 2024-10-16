@@ -388,9 +388,83 @@ void run() {
 }
 }  // qoj7961
 
+namespace qoj5421 {
+// dp[u]: concave function on [0, sz[u]]
+// dp[u] = 0_[0,1] * *[v] (x (K - x) + dp[v])
+//   *: max-plus convolution
+struct Node {
+  int size, sizeL;
+  // += (a + d k)
+  long long val, lzA, lzD;
+  Node() : size(0), sizeL(0), val(0), lzA(0), lzD(0) {}
+  Node(long long val_) : size(1), sizeL(0), val(val_), lzA(0), lzD(0) {}
+  void push(Node *l, Node *r) {
+    if (l) l->add(lzA, lzD);
+    if (r) r->add(lzA + lzD * (sizeL + 1), lzD);
+    lzA = lzD = 0;
+  }
+  void pull(const Node *l, const Node *r) {
+    size = (l ? l->size : 0) + 1 + (r ? r->size : 0);
+    sizeL = (l ? l->size : 0);
+  }
+  void add(long long a, long long d) {
+    val += (a + d * sizeL);
+    lzA += a;
+    lzD += d;
+  }
+  // decreasing
+  bool operator<(const Node &t) {
+    return (val > t.val);
+  }
+};
+int N, K;
+vector<int> A, B;
+vector<long long> C;
+vector<vector<int>> G;
+vector<Splay<Node>> nodes;
+Splay<Node> *solve(int u, int p) {
+  auto ret = &(nodes[u] = Node(0));
+  for (const int i : G[u]) {
+    const int v = A[i] ^ B[i] ^ u;
+    if (p != v) {
+      auto res = solve(v, u);
+      ch(res, 0, res->t.size, &Node::add, C[i] * (K - 1), C[i] * -2);
+      ret = meldCmp(ret, res);
+    }
+  }
+  return ret;
+}
+void run() {
+  for (; ~scanf("%d%d", &N, &K); ) {
+    A.resize(N - 1);
+    B.resize(N - 1);
+    C.resize(N - 1);
+    for (int i = 0; i < N - 1; ++i) {
+      scanf("%d%d%lld", &A[i], &B[i], &C[i]);
+      --A[i];
+      --B[i];
+    }
+    G.assign(N, {});
+    for (int i = 0; i < N - 1; ++i) {
+      G[A[i]].push_back(i);
+      G[B[i]].push_back(i);
+    }
+    nodes.resize(N);
+    auto res = solve(0, -1);
+    long long ans = 0;
+    int k = 0;
+    res->dfs([&](const Splay<Node> *a) -> void {
+      if (k++ < K) ans += a->t.val;
+    });
+    printf("%lld\n", ans);
+  }
+}
+}  // qoj5421
+
 int main() {
   unittest(); cerr << "PASSED unittest" << endl;
   // yosupo_dynamic_sequence_range_affine_range_sum::run();
   // qoj7961::run();
+  // qoj5421::run();
   return 0;
 }
