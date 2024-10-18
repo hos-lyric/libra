@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <initializer_list>
 #include <iostream>
+#include <utility>
 #include <vector>
 
 #include "fft_998244353.h"
@@ -10,6 +11,7 @@
 
 using std::max;
 using std::min;
+using std::swap;
 using std::vector;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +211,7 @@ struct Poly : public vector<Mint> {
     Poly gs = fs.inv(m);  // 5 E(n)
     gs.resize(m << 1);
     fft(gs.data(), m << 1);  // 1 E(n)
-    memcpy(polyWork0, data(), min(m, size()) * sizeof(Mint));
+    if (size()) memcpy(polyWork0, data(), min(m, size()) * sizeof(Mint));
     memset(polyWork0 + min(m, size()), 0, ((m << 1) - min(m, size())) * sizeof(Mint));
     fft(polyWork0, m << 1);  // 1 E(n)
     for (int i = 0; i < m << 1; ++i) polyWork0[i] *= gs[i];
@@ -254,7 +256,7 @@ struct Poly : public vector<Mint> {
     polyWork0[0] = Mint(2U).inv();
     for (int hh = 0; hh < h; ++hh) for (int i = 0; i < 1 << hh; ++i) polyWork0[1 << hh | i] = polyWork0[i] * INV_FFT_ROOTS[hh + 2];
     const Mint a = FFT_ROOTS[h + 1];
-    memcpy(polyWork2, data(), size() * sizeof(Mint));
+    if (size()) memcpy(polyWork2, data(), size() * sizeof(Mint));
     memset(polyWork2 + size(), 0, ((m << 1) - size()) * sizeof(Mint));
     fft(polyWork2, m << 1);  // 2 E(|f|)
     memcpy(polyWork1, fs.data(), fs.size() * sizeof(Mint));
@@ -563,7 +565,7 @@ struct SubproductTree {
       invAll.resize(mm, 0U);
       fft(invAll);  // E(|f| + 2^(ceil(log_2 n)))
       vector<Mint> ffs(mm, 0U);
-      memcpy(ffs.data(), fs.data(), fs.size() * sizeof(Mint));
+      if (fs.size()) memcpy(ffs.data(), fs.data(), fs.size() * sizeof(Mint));
       fft(ffs);  // E(|f| + 2^(ceil(log_2 n)))
       for (int i = 0; i < mm; ++i) ffs[i] *= invAll[i];
       invFft(ffs);  // E(|f| + 2^(ceil(log_2 n)))
@@ -618,14 +620,112 @@ struct SubproductTree {
     return Poly(vector<Mint>(work.data() + nn - n, work.data() + nn));
   }
 };
+
+// q: rev([0, m]) * [0, n], [t^0] q(t, x) = 1 omitted
+// ret: [0, m-1] * [0, n]
+vector<Mint> comRec(int m, int n, const vector<Mint> &as, const vector<Mint> &qss) {
+  if (!n) { auto ret = as; ret.resize(m, 0); return ret; }
+  // reuse DFT(q(t, -x)); (2n+2) instead of (2n+1)
+  int len;
+  for (len = 2; len < (2*m) * (2*n+2); len <<= 1) {}
+  vector<Mint> qs(len, 0);
+  for (int i = 0; i < m; ++i) for (int j = 0; j <= n; ++j) qs[i * (2*n+2) + j] = qss[i * (n+1) + j];
+  fft(qs);
+  vector<Mint> work(len >> 1, 0);
+  for (int k = 0; k < len >> 1; ++k) { work[k] = qs[k << 1] * qs[k << 1 | 1]; swap(qs[k << 1], qs[k << 1 | 1]); }
+  invFft(work);
+  vector<Mint> qqss((2*m) * (n/2+1), 0);
+  for (int i = 0; i < 2*m-1; ++i) for (int j = 0; j <= n/2; ++j) qqss[i * (n/2+1) + j] = work[i * (n+1) + j];
+  for (int i = 0; i < m; ++i) for (int j = 0; j <= n/2; ++j) qqss[(m+i) * (n/2+1) + j] += qss[i * (n+1) + 2*j] + qss[i * (n+1) + 2*j];
+  const auto res = comRec(2*m, n/2, as, qqss);
+  vector<Mint> ps(len, 0);
+  for (int i = 0; i < 2*m; ++i) for (int j = 0; j <= n/2; ++j) ps[i * (2*n+2) + (2*n+1) - (2*j+(n&1))] = res[i * (n/2+1) + j];
+  fft(ps);
+  for (int k = 0; k < len; ++k) ps[k] *= qs[k];
+  invFft(ps);
+  vector<Mint> ret(m * (n+1));
+  for (int i = 0; i < m; ++i) for (int j = 0; j <= n; ++j) ret[i * (n+1) + j] = ps[(m+i) * (2*n+2) + (2*n+1) - j];
+  for (int i = 0; i < m; ++i) for (int j = 0; j <= n/2; ++j) ret[i * (n+1) + (2*j+(n&1))] += res[i * (n/2+1) + j];
+  return ret;
+}
+// a(b(x)) mod x^n
+// transpose and rev: p(x) -> [x^(n-1)] p(x) b(x)^i for each 0 <= i < n
+// [x^(n-1)] p(x) / (1 - t b(x))
+vector<Mint> com(const vector<Mint> &as, const vector<Mint> &bs, int n) {
+  assert(bs.size() == 0 || !bs[0]);
+  if (n == 0) return {};
+  vector<Mint> qss(n, 0);
+  for (int j = 0; j < min<int>(bs.size(), n); ++j) qss[j] = -bs[j];
+  auto cs = comRec(1, n - 1, as, qss);
+  reverse(cs.begin(), cs.end());
+  return cs;
+}
+// [x^(n-1)] a(x) b(x)^i for each 0 <= i < n
+// [x^(n-1)] a(x) / (1 - t b(x))
+vector<Mint> powProj(const vector<Mint> &as, const vector<Mint> &bs, int n) {
+  assert(bs.size() == 0 || !bs[0]);
+  assert(n >= 1);
+  // p(t, x): [0, m-1] * [0, n]
+  // q(t, x): rev([0, m]) * [0, n],  [t^0] q(t, x) = 1 omitted
+  vector<Mint> pss(n, 0), qss(n, 0);
+  for (int j = 0; j < min<int>(as.size(), n); ++j) pss[j] = as[j];
+  for (int j = 0; j < min<int>(bs.size(), n); ++j) qss[j] = -bs[j];
+  const int n0 = n--;
+  for (int m = 1; n; m *= 2, n /= 2) {
+    // reuse DFT(q(t, -x)); (2n+2) instead of (2n+1)
+    int len;
+    for (len = 2; len < (m*2) * (n*2+2); len <<= 1) {}
+    vector<Mint> qs(len, 0);
+    for (int i = 0; i < m; ++i) for (int j = 0; j <= n; ++j) qs[i * (n*2+2) + j] = qss[i * (n+1) + j];
+    fft(qs);
+    vector<Mint> work(len >> 1, 0);
+    for (int k = 0; k < len >> 1; ++k) { work[k] = qs[k << 1] * qs[k << 1 | 1]; swap(qs[k << 1], qs[k << 1 | 1]); }
+    invFft(work);
+    vector<Mint> qqss((m*2) * (n/2+1), 0);
+    for (int i = 0; i <= m*2-2; ++i) for (int j = 0; j <= n/2; ++j) qqss[i * (n/2+1) + j] = work[i * (n+1) + j];
+    for (int i = 0; i < m; ++i) for (int j = 0; j <= n/2; ++j) qqss[(m+i) * (n/2+1) + j] += qss[i * (n+1) + j*2] + qss[i * (n+1) + j*2];
+    vector<Mint> ps(len, 0);
+    for (int i = 0; i < m; ++i) for (int j = 0; j <= n; ++j) ps[i * (n*2+2) + j] = pss[i * (n+1) + j];
+    fft(ps);
+    for (int k = 0; k < len; ++k) ps[k] *= qs[k];
+    invFft(ps);
+    vector<Mint> ppss((m*2) * (n/2+1), 0);
+    for (int i = 0; i <= m*2-2; ++i) for (int j = 0; j <= n/2; ++j) ppss[i * (n/2+1) + j] = ps[i * (n*2+2) + (j*2+(n&1))];
+    for (int i = 0; i < m; ++i) for (int j = 0; j <= n/2; ++j) ppss[(m+i) * (n/2+1) + j] += pss[i * (n+1) + (j*2+(n&1))];
+    pss.swap(ppss);
+    qss.swap(qqss);
+  }
+  std::reverse(pss.begin(), pss.end());
+  pss.resize(n0, 0);
+  return pss;
+}
+// a^<-1>(x) mod x^n
+// (n-1) [x^(n-1)] a(x)^i = i [x^(n-1-i)] (x/a^<-1>(x))^(n-1)
+Poly comInv(const Poly &as, int n) {
+  assert(as.size() >= 2); assert(!as[0]); assert(as[1]);
+  assert(n >= 0);
+  if (n <= 1) return Poly(n);
+  // reduce to [x^1] a(x) = 1 in order to take (n-1)-th root
+  const Mint t = as[1].inv();
+  const auto res = powProj({1}, t * as, n);
+  Poly ret(n - 1);
+  for (int i = 1; i < n; ++i) ret[n - 1 - i] = inv[i] * (n - 1) * res[i];
+  ret = ret.pow1(-inv[n - 1], n - 1);
+  ret.insert(ret.begin(), 0);
+  { Mint tt = 1; for (int i = 0; i < n; ++i) { ret[i] *= tt; tt *= t; } }
+  return ret;
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 
 #include <chrono>
 #include <iostream>
+#include <random>
 #include <set>
+
 using std::cerr;
 using std::endl;
+using std::mt19937_64;
 
 void unittest() {
   // ModIntPreparator
@@ -1170,6 +1270,61 @@ void unittest() {
   }
 }
 
+void unittest_com() {
+  mt19937_64 rng;
+  // com
+  assert(com(Poly{3, 1, 4, 1}, Poly{0, 5, 9, 2}, 4) == (Poly{3, 5, 109, 487}));
+  for (int asLen = 0; asLen <= 10; ++asLen) for (int bsLen = 0; bsLen <= 10; ++bsLen) for (int n = 0; n <= 10; ++n) {
+    Poly as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = static_cast<unsigned>(rng() % MO);
+    for (int i = 1; i < bsLen; ++i) bs[i] = static_cast<unsigned>(rng() % MO);
+    Poly expected;
+    for (int i = asLen; --i >= 0; ) (expected *= bs) += Poly{as[i]};
+    expected.resize(n, 0);
+    assert(com(as, bs, n) == expected);
+  }
+  // powProj
+  assert(powProj(Poly{3, 1, 4, 1}, Poly{0, 5, 9, 2}, 4) == (Poly{1, 35, 295, 375}));
+  for (int asLen = 0; asLen <= 10; ++asLen) for (int bsLen = 0; bsLen <= 10; ++bsLen) for (int n = 1; n <= 10; ++n) {
+    Poly as(asLen), bs(bsLen);
+    for (int i = 0; i < asLen; ++i) as[i] = static_cast<unsigned>(rng() % MO);
+    for (int i = 1; i < bsLen; ++i) bs[i] = static_cast<unsigned>(rng() % MO);
+    vector<Mint> expected(n);
+    {
+      Poly cs = as;
+      for (int i = 0; i < n; ++i) {
+        expected[i] = cs.at(n - 1);
+        cs *= bs;
+      }
+    }
+    expected.resize(n, 0);
+    assert(powProj(as, bs, n) == expected);
+  }
+  // comInv
+  assert(comInv(Poly{0, 1, 1}, 8) == (Poly{0, 1, -1, 2, -5, 14, -42, 132}));
+  for (int asLen = 2; asLen <= 10; ++asLen) for (int n = 1; n <= 10; ++n) {
+    Poly as(asLen);
+    as[1] = static_cast<unsigned>(1 + rng() % (MO - 1));
+    for (int i = 2; i < asLen; ++i) as[i] = static_cast<unsigned>(rng() % MO);
+    const Poly bs = comInv(as, n);
+    assert(bs.size() == n);
+    assert(!bs[0]);
+    if (1 < n) assert(bs[1]);
+    {
+      Poly cs;
+      for (int i = asLen; --i >= 0; ) (cs *= bs) += Poly{as[i]};
+      cs.resize(n, 0);
+      for (int i = 0; i < n; ++i) assert(cs[i] == ((i == 1) ? 1 : 0));
+    }
+    {
+      Poly cs;
+      for (int i = n; --i >= 0; ) (cs *= as) += Poly{bs[i]};
+      cs.resize(n, 0);
+      for (int i = 0; i < n; ++i) assert(cs[i] == ((i == 1) ? 1 : 0));
+    }
+  }
+}
+
 // -----------------------------------------------------------------------------
 
 unsigned xrand() {
@@ -1411,12 +1566,13 @@ void measurement_interpolate() {
 }
 
 int main() {
-  unittest();
-  measurement_inv();
-  measurement_log();
-  measurement_exp();
-  measurement_sqrt();
-  measurement_multiEval();
-  measurement_interpolate();
+  unittest(); cerr << "PASSED unittest" << endl;
+  unittest_com(); cerr << "PASSED unittest_com" << endl;
+  // measurement_inv();
+  // measurement_log();
+  // measurement_exp();
+  // measurement_sqrt();
+  // measurement_multiEval();
+  // measurement_interpolate();
   return 0;
 }
