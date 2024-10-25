@@ -96,7 +96,7 @@ vector<T> setExp(int n, const vector<T> &as, ZT1 zas, ZT zbs) {
 
 // \sum[0<=i<=n] fs[i] as^i/i!
 //   assume as[0] == 0
-//   f(a0 + a1 X) + f(a0) + f'(a0) a1 X
+//   f(a0 + a1 X) = f(a0) + f'(a0) a1 X
 // ZT1: T[2^(n-1)][n]
 // ZT: T[2^(n+1)][n+1]
 template <class T, class ZT1, class ZT>

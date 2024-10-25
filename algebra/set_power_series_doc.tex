@@ -1,0 +1,384 @@
+\documentclass{jsarticle}
+\usepackage{amsmath,amssymb}
+\usepackage[all]{xy}
+
+\newcommand{\abs}[1]{\lvert #1 \rvert}
+\newcommand{\minuseq}{\mathrel{-}=}
+\newcommand{\pluseq}{\mathrel{+}=}
+\renewcommand{\labelitemii}{$\circ$}
+
+\everymath{\displaystyle}
+
+\title{集合冪級数}
+\author{hos}
+
+\begin{document}
+\maketitle
+
+
+係数環を $R$ とする．
+$x_0, \ldots, x_{n-1}$ を不定元として，
+$I \subseteq [n] := \{0, \ldots, n-1\}$ に対し
+$x^I = \prod_{i\in I} x_i$ と書く．
+$I$ と $\sum_{i\in I} 2^i$ をしばしば同一視する．
+
+\section{subset convolution}
+subset convolution とは，
+$R 2^X := R[x_0, \ldots, x_{n-1}] / (x_0^2, \ldots, x_{n-1}^2)$ での積．
+
+不定元 $t$ を導入して，
+$R[x_0, \ldots, x_{n-1}] / (x_0(x_0-t), \ldots, x_{n-1}(x_{n-1}-t))$ での積
+を計算して $t \to 0$ とすることにする．
+中国剰余定理より，これは $\{0, t\}^n$ で多点評価して各点積をとって補間すればよい．
+各次元では $(a, b) \mapsto (a, a+bt)$, $(a, b) \mapsto (a, (b-a)/t)$ という変換になるので，
+$t$ で割るのを後回しにすると考えて，
+以下のアルゴリズムが得られる：
+\begin{enumerate}
+  \item 入力のそれぞれについて，$x^I$ を $x^I t^{\abs{I}}$ に置き換える．
+  \item 入力のそれぞれについて，累積和をとる：$(a_I)_I \mapsto \left(\sum_{J\subseteq I} a_J\right)_I$
+  \item $t$ の多項式として各点積をとる．
+  \item 差分をとる：$(a_I)_I \mapsto \left(\sum_{J\subseteq I} (-1)^{\abs{I}-\abs{J}} c_J\right)_I$
+  \item $[x^I t^{\abs{I}}]$ をとると出力の $[x^I]$ である．
+\end{enumerate}
+
+2, 4 がボトルネックで $O(2^n n^2)$ 時間．
+3 は FFT で $O(2^n n \log(n))$ 時間にもできるが恩恵が少ない．
+
+\
+
+メモリアクセスを考慮して，ステップ 2, 3, 4 を再帰で実装する (segment tree 上の DFS)．
+
+入力を $A, B \in R 2^X$ とする．
+$2^n \times (n+1)$ 配列 $a, b$ を用意し，
+$0 \le h < 2^n$, $0 \le k \le n$ について，
+\begin{itemize}
+  \item $a[h][k] \gets [\abs{h} = k] \cdot [x^h] A$
+  \item $b[h][k] \gets [\abs{h} = k] \cdot [x^h] B$
+\end{itemize}
+として，
+以下の $\mathtt{rec}(n, 0)$ を呼ぶ．
+すると出力が $[x^h] A(x) B(x) = a[h][\abs{h}]$ として得られる．
+\begin{quote}
+  $\mathtt{rec}(m, h_0)$ ($0 \le m \le n$, $0 \le h_0 < 2^n$, $2^m \mid h_0$)
+  \begin{itemize}
+    \item $m > 0$ のとき
+      \begin{enumerate}
+        \item $h_0 \le h < h_0 + 2^{m-1}$ について，
+          \textcircled{1}各 $k$ について，
+          \begin{itemize}
+            \item $a[h + 2^{m-1}][k] \pluseq a[h][k]$
+            \item $b[h + 2^{m-1}][k] \pluseq b[h][k]$
+          \end{itemize}
+          とする．
+        \item $\mathtt{rec}(m-1, h)$, $\mathtt{rec}(m-1, h + 2^{m-1})$ を呼ぶ．
+        \item $h_0 \le h < h_0 + 2^{m-1}$ について，
+          \textcircled{2}各 $k$ について，
+          $a[h + 2^{m-1}][k] \minuseq a[h][k]$ とする．
+      \end{enumerate}
+    \item $m = 0$ のとき
+      \begin{enumerate}
+      \item \textcircled{3}各 $k$ について，
+        $a[h_0][k] \gets \sum_{0\le l\le k} a[h_0][l] \cdot b[h_0][k-l]$ とする．
+      \end{enumerate}
+  \end{itemize}
+\end{quote}
+
+\textcircled{1}, \textcircled{2}, \textcircled{3} で操作する $k, l$ の範囲は
+$0 \le k \le n$, $0 \le l \le k$ より狭くできる．
+
+\textcircled{1} について，
+非 $0$ の値が入る場所を考えると，
+$\abs{h} - \abs{h_0} \le k \le \abs{h}$ としてよい．
+例えば $n = 3$ では以下の表のようになる．
+
+\begin{center}
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=3$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ &     &     &     \\\hline
+    $1$ &     & $*$ &     &     \\\hline
+    $2$ &     & $*$ &     &     \\\hline
+    $3$ &     &     & $*$ &     \\\hline
+    $4$ &     & $*$ &     &     \\\hline
+    $5$ &     &     & $*$ &     \\\hline
+    $6$ &     &     & $*$ &     \\\hline
+    $7$ &     &     &     & $*$ \\\hline
+  \end{tabular}
+  →\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=2$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ &     &     &     \\\hline
+    $1$ &     & $*$ &     &     \\\hline
+    $2$ &     & $*$ &     &     \\\hline
+    $3$ &     &     & $*$ &     \\\hline
+    $4$ & $*$ & $*$ &     &     \\\hline
+    $5$ &     & $*$ & $*$ &     \\\hline
+    $6$ &     & $*$ & $*$ &     \\\hline
+    $7$ &     &     & $*$ & $*$ \\\hline
+  \end{tabular}
+  →\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=1$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ &     &     &     \\\hline
+    $1$ &     & $*$ &     &     \\\hline
+    $2$ & $*$ & $*$ &     &     \\\hline
+    $3$ &     & $*$ & $*$ &     \\\hline
+    $4$ & $*$ & $*$ &     &     \\\hline
+    $5$ &     & $*$ & $*$ &     \\\hline
+    $6$ & $*$ & $*$ & $*$ &     \\\hline
+    $7$ &     & $*$ & $*$ & $*$ \\\hline
+  \end{tabular}
+  →\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=0$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ &     &     &     \\\hline
+    $1$ & $*$ & $*$ &     &     \\\hline
+    $2$ & $*$ & $*$ &     &     \\\hline
+    $3$ & $*$ & $*$ & $*$ &     \\\hline
+    $4$ & $*$ & $*$ &     &     \\\hline
+    $5$ & $*$ & $*$ & $*$ &     \\\hline
+    $6$ & $*$ & $*$ & $*$ &     \\\hline
+    $7$ & $*$ & $*$ & $*$ & $*$ \\\hline
+  \end{tabular}
+\end{center}
+
+\textcircled{2} について，
+出力に寄与する場所を考える (転置を考える) と，
+$\abs{h} \le k \le \abs{h} + (n - (m-1) - \abs{h_0})$ としてよい．
+例えば $n = 3$ では以下の表のようになる．
+
+\begin{center}
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=3$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ &     &     &     \\\hline
+    $1$ &     & $*$ &     &     \\\hline
+    $2$ &     & $*$ &     &     \\\hline
+    $3$ &     &     & $*$ &     \\\hline
+    $4$ &     & $*$ &     &     \\\hline
+    $5$ &     &     & $*$ &     \\\hline
+    $6$ &     &     & $*$ &     \\\hline
+    $7$ &     &     &     & $*$ \\\hline
+  \end{tabular}
+  ←\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=2$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ & $*$ &     &     \\\hline
+    $1$ &     & $*$ & $*$ &     \\\hline
+    $2$ &     & $*$ & $*$ &     \\\hline
+    $3$ &     &     & $*$ & $*$ \\\hline
+    $4$ &     & $*$ &     &     \\\hline
+    $5$ &     &     & $*$ &     \\\hline
+    $6$ &     &     & $*$ &     \\\hline
+    $7$ &     &     &     & $*$ \\\hline
+  \end{tabular}
+  ←\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=1$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ & $*$ & $*$ &     \\\hline
+    $1$ &     & $*$ & $*$ & $*$ \\\hline
+    $2$ &     & $*$ & $*$ &     \\\hline
+    $3$ &     &     & $*$ & $*$ \\\hline
+    $4$ &     & $*$ & $*$ &     \\\hline
+    $5$ &     &     & $*$ & $*$ \\\hline
+    $6$ &     &     & $*$ &     \\\hline
+    $7$ &     &     &     & $*$ \\\hline
+  \end{tabular}
+  ←\
+  \begin{tabular}{|l|c|c|c|c|}\hline
+    \multicolumn{5}{|c|}{$m=0$} \\\hline
+        & $0$ & $1$ & $2$ & $3$ \\\hline
+    $0$ & $*$ & $*$ & $*$ & $*$ \\\hline
+    $1$ &     & $*$ & $*$ & $*$ \\\hline
+    $2$ &     & $*$ & $*$ & $*$ \\\hline
+    $3$ &     &     & $*$ & $*$ \\\hline
+    $4$ &     & $*$ & $*$ & $*$ \\\hline
+    $5$ &     &     & $*$ & $*$ \\\hline
+    $6$ &     &     & $*$ & $*$ \\\hline
+    $7$ &     &     &     & $*$ \\\hline
+  \end{tabular}
+\end{center}
+
+\textcircled{3} について，
+非 $0$ の値が入る場所を考えて $k \le 2\abs{h_0}$ としてよく
+($2$ 個の多項式の積であることを用いた)，
+出力に寄与する場所を考えて $\abs{h_0} \le k$ としてよい．
+非 $0$ の値が入る場所を考えて $0 \le l \le \abs{h_0}$, $0 \le k-l \le \abs{h_0}$ としてよい．
+
+さらに，\textcircled{2} について，
+非 $0$ の値が入る場所を考えて $k \le 2\abs{h}$ としてよい．
+
+
+\section{exp}
+$[x^\emptyset] A = 0$ なる $A \in R 2^X$ に対して，
+$\exp(A) := \sum_{i=0}^\infty \frac{A^i}{i!} = \sum_{i=0}^n \frac{A^i}{i!}$ を求めたい．
+$\frac{A^i}{i!}$ は環演算のみで定義できることに注意する．
+
+$x_{n-1}$ の次数で分けて
+$A = A_0 + A_1 x_{n-1}$ とおくと
+\[
+  \exp(A)
+  = \exp(A_0) \exp(A_1 x_{n-1})
+  = \exp(A_0) (1 + A_1 x_{n-1})
+  = \exp(A_0) + \exp(A_0) A_1 x_{n-1}
+\]
+となり，サイズ $n-1$ の subset convolution $1$ 回とサイズ $n-1$ の $\exp$ に帰着できる．
+$O(2^n n^2)$ 時間．
+
+\
+
+毎回補間をせず，多点評価した状態で持っておくことができる．
+
+$I \subseteq [n-1]$ とする．
+$\exp(A_0), \exp(A_1)$ を $x_i = [i \in I] \cdot t$ で評価した値を
+それぞれ $a_0, a_1 \in R[t]$ とすると，
+$\exp(A)$ をさらに $x_{n-1} = 0, t$ で評価した値はそれぞれ $a_0, a_0 + a_0 a_1 t$ となる．
+ここで補間時に $x_{n-1}$ の軸から差分をとると，
+$(a_0, a_0 + a_0 a_1 t) \mapsto (a_0, a_0 a_1)$ となるが，
+$a_0$ が $O(t^n)$ ずれていても，残り $n-1$ 軸の変換後 $t \to 0$ とすると消えるので，
+出力に影響がないことがわかる．
+
+以上より，サイズ $n$ の部分問題としては $2^n \times (n+1)$ 配列を求めればよい．
+
+\
+
+実測だと毎回 subset convolution を呼ぶほうが速い．
+TODO: 添え字の範囲を詰められていないかもしれないし，本当に枝刈りが効きにくくなっているかもしれない．
+
+
+\section{合成}
+EGF $f(y) = \sum_{i=0}^\infty f_i \frac{y^i}{i!}$ ($f_i \in R$) と
+$[x^\emptyset] A = 0$ なる $A \in R 2^X$ に対して，
+$f(A) = \sum_{i=0}^\infty f_i \frac{A^i}{i!} = \sum_{i=0}^n f_i \frac{A^i}{i!}$ を求めたい．
+
+$x_{n-1}$ の次数で分けて
+$A = A_0 + A_1 x_{n-1}$ とおくと
+\[
+  f(A) = f(A_0) + f'(A_0) A_1 x_{n-1}
+\]
+であるから，
+$f$ の $i$ 階微分を $f^{(i)}$ と書いて，
+サイズ $m$ で $f^{(0)}, \ldots, f^{(n-m)}$ との合成を求める問題に帰着される．
+base case は $f_0, \ldots, f_n$ である．
+時間計算量は $\sum_{0\le m<n} (n-m) \cdot O(2^m m^2) = O(2^n n^2)$．
+
+\
+
+以下のように subset convolution を除いてサイズ $2^n$ の配列上で実装できる：
+\[
+  \xymatrix{
+    & [0, 1) & [1, 2) & [2, 4) & [4, 8) \\
+    f_3 \ar[r] & f^{(3)}(A[0,1)) \ar[dr]_{A[1,2)} & & & \\
+    & & f^{(2)}(A[0,2)) \ar[ddr]_(.7){A[2,4)} & & \\
+    f_2 \ar[r] & f^{(2)}(A[0,1)) \ar[ddr]_{A[1,2)} \ar[drr] & & & \\
+    & & & f^{(1)}(A[0,4)) \ar[dddr]_(.7){A[4,8)} & \\
+    & & f^{(1)}(A[0,2)) \ar[dddr]_(.7){A[2,4)} \ar[ddrr] & & \\
+    f_1 \ar[r] & f^{(1)}(A[0,1)) \ar[dddr]_{A[1,2)} \ar[ddrr] \ar[drrr] & & & \\
+    & & & & f^{(0)}(A[4,8)) \ar[dddd] & \\
+    & & & f^{(0)}(A[0,4)) \ar[ddd] & \\
+    & & f^{(0)}(A[0,2)) \ar[dd] & & \\
+    f_0 \ar[r] & f^{(0)}(A[0,1)) \ar[d] & & & \\
+    & f(A)[0,1) & f(A)[1,2) & f(A)[2,4) & f(A)[4,8) \\
+  }
+\]
+
+\
+
+(TODO: 多点評価した状態で持つ方針で定数倍を詰める)
+
+\
+
+多項式 $f(y) = \sum_i f_i y^i \in R[y]$ と
+$A \in R 2^X$ に対しても
+$f(A)$ が定まる．
+これは，定数項 $a = [x^\emptyset] A$ を分けて Taylor 展開して，
+\[
+  f(A) = f(a + (A-a)) = \sum_{i=0}^\infty f^{(i)}(a) \frac{(A-a)^i}{i!}
+\]
+によって EGF の場合に帰着できる．
+
+
+\section{転置}
+$A \in R 2^X$ を固定するとき，
+$A$ 倍写像 $R 2^X \to R 2^X$ の転置は，
+$A$・入力・出力すべてを reverse しての subset convolution となる．
+これは，
+$A$ 倍写像を行列で書くと $([i \supseteq j] \cdot a_{i-j})_{i,j}$ となり，
+その転置行列が
+\[
+  ([j \supseteq i] \cdot a_{j-i})_{i,j}
+  = \bigl(\bigl[[n]-i \supseteq [n]-j\bigr] \cdot a_{([n]-i)-([n]-j)}\bigr)_{i,j}
+\]
+となることからわかる．
+
+\
+
+$[x^\emptyset] B = 0$ なる
+$B \in R 2^X$ を固定するとき，
+EGF 合成 $[n+1] \to R 2^X; f \mapsto f(B)$ の転置は，
+適切に reverse を挟むことで，
+EGF power projection $R 2^X \to [n+1]; A \mapsto \left([x^{[n]}] A \frac{B^i}{i!}\right)_i$
+である．
+
+直接アルゴリズムを導出する．
+不定元 $t$ を導入して，
+答えの EGF $[x^{[n]}] \sum_{i=0}^\infty A \frac{(tB)^i}{i!} = [x^{[n]}] A \exp(tB)$ を求めたい．
+$x_{n-1}$ の次数で分けて
+$A = A_0 + A_1 x_{n-1}$,
+$B = B_0 + B_1 x_{n-1}$ とおくと，
+\begin{align*}
+  [x^{[n]}] A \exp(tB)
+  &= [x^{[n]}] (A_0 + A_1 x_{n-1}) \exp(t (B_0 + B_1 x_{n-1})) \\
+  &= [x^{[n]}] (A_0 + A_1 x_{n-1}) \exp(t B_0) (1 + t B_1 x_{n-1})) \\
+  &= [x^{[n]}] \left(A_0 \exp(t B_0) + (A_1 + t A_0 B_1) \exp(t B_0) x_{n-1}\right) \\
+  &= [x^{[n-1]}] (A_1 + t A_0 B_1) \exp(t B_0)
+\end{align*}
+であるから，
+サイズ $m$ では $t$ の $n-m$ 次式が登場する (power projection を $n-m+1$ 回解けばよい)．
+base case では $\exp(t B) = 1$ である．
+
+サイズ $m$ の部分問題を $[x^{[m]}] \left( C_m \frac{B^i}{i!} \right)_i$
+($C_m \in R 2^{\{x_0,\ldots,x_{m-1}\}} [t]$) とおくと，
+計算過程は以下のようになる：
+\[
+  \xymatrix{
+    [0, 4) & [4, 6) & [6, 7) & [7, 8) & \\
+    & & & [t^3] C_0 \ar[r] & \mathit{out}_3 \\
+    & & [t^2] C_1 \ar[ur]_{B[1,2)} & & \\
+    & & & [t^2] C_0 \ar[r] & \mathit{out}_2 \\
+    & [t^1] C_2 \ar[uur]_(.3){B[2,4)} \ar[urr] & & & \\
+    & & [t^1] C_1 \ar[uur]_{B[1,2)} & & \\
+    & & & [t^1] C_0 \ar[r] & \mathit{out}_1 \\
+    [t^0] C_3 \ar[uuur]_(.3){B[4,8)} \ar[uurr] \ar[urrr] & & & & \\
+    & [t^0] C_2 \ar[uuur]_(.3){B[2,4)} \ar[uurr] & & &\\
+    & & [t^0] C_1 \ar[uuur]_{B[1,2)} & & \\
+    & & & [t^0] C_0 \ar[r] & \mathit{out}_0 \\
+    A[0,4) \ar[uuuu] & A[4,6) \ar[uuu] & A[6,7) \ar[uu] & A[7,8) \ar[u] & \\
+  }
+\]
+
+\
+
+$B \in R 2^X$ を固定するとき，
+多項式合成 $R[y] \to R 2^X; f \mapsto f(B)$ の転置は，
+適切に reverse を挟むことで，
+power projection $A \mapsto \left([x^{[n]}] A B^i\right)_i$
+である．
+
+\
+
+定数項 $b = [x^\emptyset] B$ を分けて，
+\[
+  A B^i
+  = A (b + (B-b))^i
+  = \sum_j \frac{i!}{(i-j)!} b^{i-j} A \frac{(B-b)^j}{j!}
+\]
+となるので EGF の場合に帰着できる．
+
+
+\end{document}
