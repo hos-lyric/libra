@@ -15,6 +15,7 @@ template <class Flow> struct MaxFlow {
   vector<int> ptr, nxt, zu;
   vector<Flow> capa;
 
+  MaxFlow() {}
   explicit MaxFlow(int n_) : n(n_), m(0), ptr(n_, -1) {}
   void ae(int u, int v, Flow w0, Flow w1 = 0) {
     assert(0 <= u); assert(u < n);
