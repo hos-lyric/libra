@@ -13,6 +13,7 @@ struct Scc {
   vector<int> ids;
   int operator[](int u) const { return ids[u]; }
 
+  Scc() {}
   explicit Scc(int n_) : n(n_), as(), bs(), l(-1) {}
   void ae(int u, int v) {
     assert(0 <= u); assert(u < n);
@@ -72,6 +73,7 @@ template <class Get0, class Get1> struct SccDyn {
   vector<int> ids;
   int operator[](int u) const { return ids[u]; }
 
+  SccDyn() {}
   SccDyn(int n_, Get0 get0_, Get1 get1_) : n(n_), get0(get0_), get1(get1_) {
     ids.assign(n, 0);
     us.clear();
