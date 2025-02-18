@@ -231,7 +231,9 @@ struct Poly : public vector<Mint> {
   Mint at(long long k) const { return (0 <= k && k < size()) ? (*this)[k] : 0U; }
   int ord() const { for (int i = 0; i < size(); ++i) if ((*this)[i]) return i; return -1; }
   int deg() const { for (int i = size(); --i >= 0; ) if ((*this)[i]) return i; return -1; }
-  Poly mod(int n) const { return Poly(vector<Mint>(data(), data() + min(n, size()))); }
+  Poly mod(int n) const { return Poly(vector<Mint>(data(), data() + min(max(n, 0), size()))); }
+  Poly operator>>(int n) const { return Poly(vector<Mint>(data() + min(max(n, 0), size()), data() + size())); }
+  Poly operator<<(int n) const { Poly fs = *this; fs.insert(fs.begin(), max(n, 0), 0); return fs; }
   friend std::ostream &operator<<(std::ostream &os, const Poly &fs) {
     os << "[";
     for (int i = 0; i < fs.size(); ++i) { if (i > 0) os << ", "; os << fs[i]; }
