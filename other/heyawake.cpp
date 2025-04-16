@@ -38,13 +38,13 @@ vector<string> heyawakeMax(int n) {
     "...#..",
     "#.#..#",
   }, {
-    "#...#.#",
-    ".#.#...",
-    "..#.#.#",
-    "#......",
-    "..#.#.#",
-    ".#.#...",
-    "#...#.#",
+    "#.#.#.#",
+    ".......",
+    "#.#.#.#",
+    "...#...",
+    "#.#.#.#",
+    ".......",
+    "#.#.#.#",
   }};
   static const vector<string> INSIDE[8] = {{}, {}, SMALL[2], {
     "#.#",
@@ -56,7 +56,15 @@ vector<string> heyawakeMax(int n) {
     "..#..",
     ".#.#.",
     "#...#",
-  }, SMALL[6], SMALL[7]};
+  }, SMALL[6], {
+    "#...#.#",
+    ".#.#...",
+    "..#.#.#",
+    "#......",
+    "..#.#.#",
+    ".#.#...",
+    "#...#.#",
+  }};
   assert(n >= 2);
   if (n <= 7) return SMALL[n];
   vector<string> a(n, string(n, '.'));
@@ -113,15 +121,13 @@ using std::endl;
 using std::pair;
 
 void unittest() {
-  for (int n = 2; n <= 23; ++n) {
-    const int value = heyawakeMaxValue(n);
-    const auto a = heyawakeMax(n);
-    cerr << n << " " << value << endl;
-    for (int x = 0; x < n; ++x) cerr << a[x] << endl;
-  }
   for (int n = 2; n <= 100; ++n) {
     const int value = heyawakeMaxValue(n);
     const auto a = heyawakeMax(n);
+    if (n <= 23) {
+      cerr << n << " " << value << endl;
+      for (const auto &row : a) cerr << row << endl;
+    }
     assert(static_cast<int>(a.size()) == n);
     for (int x = 0; x < n; ++x) assert(static_cast<int>(a[x].size()) == n);
     for (int x = 0; x < n; ++x) for (int y = 0; y < n; ++y) assert(a[x][y] == '.' || a[x][y] == '#');
@@ -139,7 +145,7 @@ void unittest() {
           const int y = stack.back().second;
           stack.pop_back();
           auto visit = [&](int xx, int yy) -> void {
-            if (0 <= xx && xx < n && 0 <= yy && yy < n && !vis[xx][yy]) {
+            if (0 <= xx && xx < n && 0 <= yy && yy < n && a[x][y] == '.' && !vis[xx][yy]) {
               vis[xx][yy] = 1;
               stack.emplace_back(xx, yy);
             }
