@@ -32,13 +32,13 @@ Tuple!(S, "m", S, "b") modSystem(S)(S m0, S b0, S m1, S b1) {
   }
   // to avoid overflow
   if (m0 % m1 == 0) {
-    if (b0 % m1 != b1) return tuple!(S, "m", S, "b")(0, 0);
+    if (b0 % m1 != b1) return tuple!(S, "m", S, "b")(S(0), S(0));
     return tuple!(S, "m", S, "b")(m0, b0);
   }
   S z0, z1;
   const S g = gojo(m0, m1, z0, z1);
   b1 -= b0;
-  if (b1 % g != 0) return tuple!(S, "m", S, "b")(0, 0);
+  if (b1 % g != 0) return tuple!(S, "m", S, "b")(S(0), S(0));
   (b1 /= g) %= m1;
   m1 /= g;
   b0 += m0 * ((z0 * b1) % m1);
@@ -114,10 +114,17 @@ unittest {
 
 // modSystem
 unittest {
+  import std.bigint : BigInt;
   import std.typecons : tuple;
   import std.numeric : gcd;
   assert(modSystem(6, 13, 10, -1) == tuple!(int, "m", int, "b")(30, 19));
   assert(modSystem([tuple!(int, "m", int, "b")(6, 5), tuple!(int, "m", int, "b")(10, 8)]) == tuple!(int, "m", int, "b")(0, 0));
+  assert(modSystem(BigInt(10^^9 + 7) * BigInt(10^^9 + 9), BigInt(193000001008L),
+                   BigInt(10^^9 + 7) * BigInt(10^^9 + 21), BigInt(637000004116L)) ==
+         tuple!(BigInt, "m", BigInt, "b")(BigInt(10^^9 + 7) * BigInt(10^^9 + 9) * BigInt(10^^9 + 21), BigInt(10)^^27));
+  assert(modSystem(BigInt(10^^9 + 7) * BigInt(10^^9 + 9), BigInt(193000001008L),
+                   BigInt(10^^9 + 7) * BigInt(10^^9 + 21), BigInt(637000004117L)) ==
+         tuple!(BigInt, "m", BigInt, "b")(BigInt(0), BigInt(0)));
   // TODO: test large values
   {
     enum long lim = 100;
