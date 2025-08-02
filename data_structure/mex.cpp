@@ -13,7 +13,7 @@ using std::vector;
 //   number of calls to add
 //     - extend existing interval at most once for each l
 //     - otherwise create new open rectangle
-//   number of open rectangle (l0 not determined)
+//   number of open rectangles (l0 not determined)
 //     - decreases by at most 1 for each l
 //     - remains <= n + 1
 vector<vector<pair<pair<int, int>, pair<int, int>>>> allRangeMex(const vector<int> &as) {
