@@ -9,6 +9,7 @@ using std::vector;
 // A[d] = [ +A[d-1] +A[d-1] I ]
 //        [ +A[d-1] -A[d-1] 0 ]
 // size: (2^d) * (2^d (2+d)/2)
+//   0 <= d <= 10: 1 3 8 20 48 112 256 576 1280 2816 6144
 // columns permuted
 // ++++++++ ++++ + +  +   
 // +-+-+-+-       + +  +  
@@ -21,9 +22,12 @@ using std::vector;
 struct SysSign {
   int d, m, n, nn;
   vector<vector<char>> a;
+  static int maxN(int d) {
+    return ((2 + d) << d) / 2;
+  }
   SysSign() {}
   explicit SysSign(int n_) : n(n_) {
-    for (d = 0; (nn = ((2+d)<<d)/2) < n; ++d) {}
+    for (d = 0; (nn = maxN(d)) < n; ++d) {}
     a.assign(m = 1<<d, vector<char>(nn, 0));
     for (int i = 0; i < m; ++i) {
       for (int p = 0; p < m; ++p) a[i][p] = __builtin_parity(i & p) ? -1 : +1;
@@ -60,6 +64,7 @@ struct SysSign {
 // A[d] = [ A[d-1] S ]  where S - T: SysSign for d-1
 //        [ A[d-1] T ]
 // size: (2^d) * (1 + 2^d d/2)
+//   0 <= d <= 10: 1 2 5 13 33 81 193 449 1025 2305 5121
 // 1 1 111 1111111*
 // 1 0 10* 1010***1
 // 1 1 000 110010**
@@ -76,9 +81,12 @@ struct Sys01 {
   vector<vector<char>> a;
   vector<int> pt;
   vector<SysSign> sysSigns;
+  static int maxN(int d) {
+    return 1 + (d << d) / 2;
+  }
   Sys01() {}
   explicit Sys01(int n_) : n(n_) {
-    for (d = 0; (nn = 1 + (d<<d)/2) < n; ++d) {}
+    for (d = 0; (nn = maxN(d)) < n; ++d) {}
     pt.resize(d + 1);
     sysSigns.resize(d + 1);
     pt[0] = 1;
@@ -94,6 +102,7 @@ struct Sys01 {
         const int ii = i & ((1<<e)-1);
         const int sig = (i >> e & 1) ? -1 : +1;
         for (int j = 0; j < sysSigns[e].nn; ++j) {
+          // Replace >= 0 with > when we want a sparse matrix (solveExam fails).
           a[i][pt[e] + j] = (sig * sysSigns[e].a[ii][j] >= 0) ? 1 : 0;
         }
       }
@@ -143,6 +152,9 @@ unsigned xrand() {
 }
 
 void unittest_SysSign() {
+  cerr << "SysSign::maxN = ";
+  for (int d = 0; d <= 10; ++d) cerr << SysSign::maxN(d) << " ";
+  cerr << endl;
   assert(SysSign(0).d == 0);
   assert(SysSign(1).d == 0);
   assert(SysSign(2).d == 1);
@@ -203,6 +215,9 @@ void unittest_SysSign() {
 }
 
 void unittest_Sys01() {
+  cerr << "Sys01::maxN = ";
+  for (int d = 0; d <= 10; ++d) cerr << Sys01::maxN(d) << " ";
+  cerr << endl;
   assert(Sys01(0).d == 0);
   assert(Sys01(1).d == 0);
   assert(Sys01(2).d == 1);
