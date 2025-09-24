@@ -84,7 +84,7 @@ template <class T> struct Dirichlet {
   Dirichlet operator*(const T &t) const { return Dirichlet(*this) *= t; }
   friend Dirichlet operator*(const T &t, const Dirichlet &A) { return A * t; }
 
-  // Assumes a: completely multiplicative
+  // Assumes a: completely multiplicative.
   // a(n) *= [n: prime]
   // O(N^(3/4) log(N)^-1) time (O(N^(3/4)) if broken)
   // for p: prime <= N^(1/2) (incr.):
@@ -109,9 +109,9 @@ template <class T> struct Dirichlet {
     for (int i = 1; i < quo.len; ++i) A[i] -= 1;
   }
 
-  // Assumes a(n) = [n: prime] f(n)
-  // Makes a to be multiplicative, a(p^e) = f(p^e)
-  //   f(p, e, p^e) (e >= 2) should return f(p^e)
+  // Assumes a(n) = [n: prime] f(n).
+  // Makes a to be multiplicative, a(p^e) = f(p^e).
+  //   f(p, e, p^e) (e >= 2) should return f(p^e).
   // O(N^(3/4) log(N)^-1) time
   // for p: prime <= N^(1/2) (decr.):
   //   for p^2 <= n <= N (decr.):
