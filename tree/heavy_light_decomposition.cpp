@@ -148,6 +148,8 @@ struct Hld {
   }
   // [u, v) or [u, v]
   template <class F> void doPathUp(int u, int v, bool inclusive, F f) const {
+    assert(0 <= u); assert(u < n);
+    assert(0 <= v); assert(v < n);
     assert(contains(v, u));
     for (; head[u] != head[v]; u = par[head[u]]) f(dis[head[u]], dis[u] + 1);
     if (inclusive) {
@@ -158,9 +160,29 @@ struct Hld {
   }
   // not path order, include lca(u, v) or not
   template <class F> void doPath(int u, int v, bool inclusive, F f) const {
+    assert(0 <= u); assert(u < n);
+    assert(0 <= v); assert(v < n);
     const int l = lca(u, v);
     doPathUp(u, l, false, f);
     doPathUp(v, l, inclusive, f);
+  }
+  // find deepest true for pred: [u, root] -> bool, increasing
+  // -1 if !pred(rt)
+  template <class Pred> int findUp(int u, Pred pred) const {
+    assert(0 <= u); assert(u < n);
+    for (; ~u; ) {
+      const int h = head[u];
+      if (pred(h)) {
+        int lo = dis[h], hi = dis[u] + 1;
+        for (; lo + 1 < hi; ) {
+          const int mid = (lo + hi) / 2;
+          (pred(sid[mid]) ? lo : hi) = mid;
+        }
+        return sid[lo];
+      }
+      u = par[h];
+    }
+    return -1;
   }
 
   // (vs, ps): compressed tree
@@ -378,6 +400,10 @@ void unittest() {
       assert(ls == (vector<int>{13, 10}));
       assert(rs == (vector<int>{14, 13}));
     }
+    assert(hld.findUp(6, [&](int u) -> bool {
+      assert(u == 8 || u == 12 || u == 0 || u == 6);
+      return (u == 8 || u == 12);
+    }) == 12);
     assert(hld.compress({6, 3}) ==
            make_pair(vector<int>{0, 3, 6}, vector<int>{-1, 0, 0}));
     assert(hld.ids[0] == 0);
@@ -529,6 +555,23 @@ void unittest() {
         });
         std::sort(actual.begin(), actual.end());
         assert(expected == actual);
+      }
+      // findUp
+      for (int u = 0; u < N; ++u) {
+        vector<int> fs(N, -1);
+        auto pred = [&](int v) -> bool {
+          assert(~fs[v]);
+          return fs[v];
+        };
+        vector<int> vs;
+        for (int v = u; ~v; v = hld.par[v]) vs.push_back(v);
+        const int vsLen = vs.size();
+        for (int k = 0; k < vsLen; ++k) fs[vs[k]] = 0;
+        assert(hld.findUp(u, pred) == -1);
+        for (int k = vsLen; --k >= 0; ) {
+          fs[vs[k]] = 1;
+          assert(hld.findUp(u, pred) == vs[k]);
+        }
       }
       // compress
       for (int q = 0; q < NUM_QUERIES_COMPRESS; ++q) {
