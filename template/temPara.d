@@ -30,9 +30,9 @@ class Solver : core.thread.Thread {
   void main() {
     try {
       run;
-      stderr.writefln("DONE  Case #%s", caseId);
+      stderr.writefln("%sDONE  Case #%s%s", COLOR("92"), caseId, COLOR);
     } catch (Throwable e) {
-      stderr.writefln("ERROR Case #%s: %s", caseId, e.msg);
+      stderr.writefln("%sERROR Case #%s: %s%s", COLOR("91"), caseId, e.msg, COLOR);
     } finally {
       stderr.flush;
     }
@@ -62,7 +62,7 @@ void main(string[] args) {
     const numThreads = args[1].to!int;
     for (int caseIdL = 1, caseIdR; caseIdL <= numCases; caseIdL = caseIdR) {
       caseIdR = min(caseIdL + numThreads, numCases + 1);
-      stderr.writefln("PARALLEL Case #[%s, %s]", caseIdL, caseIdR - 1);
+      stderr.writefln("%sPARALLEL Case #[%s, %s]%s", COLOR("93"), caseIdL, caseIdR - 1, COLOR);
       stderr.flush;
       auto solvers = new Solver[caseIdR - caseIdL];
       foreach (caseId; caseIdL .. caseIdR) {

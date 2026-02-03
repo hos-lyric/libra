@@ -6,6 +6,7 @@
 #include <cstring>
 #include <algorithm>
 #include <bitset>
+#include <chrono>
 #include <complex>
 #include <deque>
 #include <functional>
@@ -53,10 +54,10 @@ struct Solver {
   void main() {
     try {
       run();
-      fprintf(stderr, "DONE  Case #%d\n", caseId);
+      fprintf(stderr, "%sDONE  Case #%d\n%s", COLOR("92"), caseId, COLOR());
       fflush(stderr);
     } catch (exception &e) {
-      fprintf(stderr, "ERROR Case #%d: %s\n", caseId, e.what());
+      fprintf(stderr, "%sERROR Case #%d: %s\n%s", COLOR("91"), caseId, e.what(), COLOR());
       fflush(stderr);
     }
   }
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
       const int numThreads = atoi(argv[1]);
       for (int caseIdL = 1, caseIdR; caseIdL <= numCases; caseIdL = caseIdR) {
         caseIdR = min(caseIdL + numThreads, numCases + 1);
-        fprintf(stderr, "PARALLEL Case #[%d, %d]\n", caseIdL, caseIdR - 1);
+        fprintf(stderr, "%sPARALLEL Case #[%d, %d]\n%s", COLOR("93"), caseIdL, caseIdR - 1, COLOR());
         fflush(stderr);
         vector<Solver> solvers(caseIdR - caseIdL);
         for (int caseId = caseIdL; caseId < caseIdR; ++caseId) {
