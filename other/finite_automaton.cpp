@@ -1,13 +1,13 @@
-// TODO: minimize() has broken complexity?
-
 #include <assert.h>
 #include <algorithm>
 #include <map>
 #include <queue>
+#include <utility>
 #include <vector>
 
 using std::map;
 using std::queue;
+using std::swap;
 using std::vector;
 
 // Dfa::ac can be any int.
@@ -35,15 +35,19 @@ struct Dfa {
   vector<vector<int>> uss;
   Dfa minimize() {
     assert(0 <= s); assert(s < n);
-    for (int u = 0; u < n; ++u) for (int e = 0; e < a; ++e) assert(~to[u][e]);
+    for (int u = 0; u < n; ++u) for (int e = 0; e < a; ++e) {
+      assert(0 <= to[u][e]); assert(to[u][e] < n);
+    }
     // BFS to find reachable states
-    int queLen = 0;
-    vector<int> que(n);
-    ids.assign(n, -1);
-    ids[que[queLen++] = s] = -2;
-    for (int j = 0; j < queLen; ++j) {
-      const int u = que[j];
-      for (int e = 0; e < a; ++e) if (!~ids[to[u][e]]) ids[que[queLen++] = to[u][e]] = -2;
+    {
+      int queLen = 0;
+      vector<int> que(n);
+      ids.assign(n, -1);
+      ids[que[queLen++] = s] = -2;
+      for (int j = 0; j < queLen; ++j) {
+        const int u = que[j];
+        for (int e = 0; e < a; ++e) if (!~ids[to[u][e]]) ids[que[queLen++] = to[u][e]] = -2;
+      }
     }
     // reverse transitions
     from.assign(n, vector<vector<int>>(a));
@@ -59,46 +63,57 @@ struct Dfa {
     // uss as queue
     uss.assign(n, {});
     for (int u = 0; u < n; ++u) if (~ids[u]) uss[std::lower_bound(acs.begin(), acs.end(), ac[u]) - acs.begin()].push_back(u);
-    int xm = 0;
-    for (int x = 1; x < nn; ++x) if (uss[xm].size() < uss[x].size()) xm = x;
-    uss[0].swap(uss[xm]);
-    for (int x = 0; x < nn; ++x) for (const int u : uss[x]) ids[u] = x;
-    // (reused)
-    vector<int> parting(n, 0), app(n, 0);
-    for (int x = 1; x < nn; ++x) {
-      // partition by reachability to uss[x]
-      for (const int u : uss[x]) parting[u] = 1;
-      for (int e = 0; e < a; ++e) {
-        vector<int> ys;
-        for (const int u : uss[x]) for (const int v : from[u][e]) {
-          const int y = ids[v];
-          if (!app[y]) {
-            app[y] = 1;
-            ys.push_back(y);
-          }
-        }
-        for (const int y : ys) {
-          vector<int> vss[2];
-          for (const int v : uss[y]) vss[parting[to[v][e]]].push_back(v);
-          if (!vss[0].empty()) {
-            if (vss[0].size() < vss[1].size()) vss[0].swap(vss[1]);
-            const int z = nn++;
-            for (const int v : vss[1]) ids[v] = z;
-            uss[y].swap(vss[0]);
-            uss[z].swap(vss[1]);
-          }
-        }
-        for (const int y : ys) app[y] = 0;
+    {
+      int xm = 0;
+      for (int x = 1; x < nn; ++x) if (uss[xm].size() < uss[x].size()) xm = x;
+      uss[0].swap(uss[xm]);
+    }
+    vector<int> where(n, -1);
+    for (int x = 0; x < nn; ++x) {
+      for (int i = 0; i < static_cast<int>(uss[x].size()); ++i) {
+        const int u = uss[x][i];
+        ids[u] = x;
+        where[u] = i;
       }
-      for (const int u : uss[x]) parting[u] = 0;
+    }
+    {
+      vector<int> ys;
+      vector<vector<int>> vss(n);
+      for (int x = 1; x < nn; ++x) {
+        // partition by reachability to us
+        const auto us = uss[x];  // copy
+        // partition by reachability to uss[x]
+        for (int e = 0; e < a; ++e) {
+          ys.clear();
+          for (const int u : us) for (const int v : from[u][e]) {
+            const int y = ids[v];
+            if (!vss[y].size()) ys.push_back(y);
+            // move v from uss[y] to vss[y]
+            where[uss[y].back()] = where[v];
+            swap(uss[y].back(), uss[y][where[v]]);
+            uss[y].pop_back();
+            where[v] = vss[y].size();
+            vss[y].push_back(v);
+          }
+          for (const int y : ys) {
+            // O(|vss[y]|) time
+            if (uss[y].size()) {
+              const int z = nn++;
+              uss[z].swap(vss[y]);
+              if (uss[y].size() < uss[z].size()) uss[y].swap(uss[z]);
+              for (const int u : uss[z]) ids[u] = z;
+            } else {
+              uss[y].swap(vss[y]);
+            }
+          }
+        }
+      }
     }
     uss.resize(nn);
     // to make the output unique
+    for (auto &us : uss) std::sort(us.begin(), us.end());
     std::sort(uss.begin(), uss.end());
-    for (int x = 0; x < nn; ++x) {
-      std::sort(uss[x].begin(), uss[x].end());
-      for (const int u : uss[x]) ids[u] = x;
-    }
+    for (int x = 0; x < nn; ++x) for (const int u : uss[x]) ids[u] = x;
     // make new DFA
     Dfa dfa(nn, ids[s], a);
     for (int x = 0; x < nn; ++x) {
@@ -108,7 +123,7 @@ struct Dfa {
     }
     return dfa;
   }
-};
+};  // Dfa
 
 // Checks if reachable parts are isomorphic.
 bool isIsomorphic(const Dfa &dfa0, const Dfa &dfa1) {
@@ -204,7 +219,7 @@ struct Nfa {
     for (int x = 0; x < dfa.n; ++x) for (const int u : uss[x]) if (ac[u]) dfa.ac[x] = 1;
     return dfa;
   }
-};
+};  // Nfa
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -277,6 +292,20 @@ void unittest_Dfa() {
     for (int x = 0; x < m; ++x) for (int e = 0; e < b; ++e) assert(minDfa.to[x][e] == (x * b + e) % m);
     assert(static_cast<int>(minDfa.ac.size()) == m);
     for (int x = 0; x < m; ++x) assert(minDfa.ac[x] == x);
+  }
+  // 0 -> 1 -> ... -> N-2 -> N-1
+  {
+    constexpr int N = 100'000;
+    Dfa dfa(N, 0, 1);
+    for (int u = 0; u < N - 1; ++u) dfa.to[u][0] = u + 1;
+    dfa.to[N - 1][0] = N - 1;
+    dfa.ac[N - 1] = 1;
+    const Dfa minDfa = dfa.minimize();
+    assert(minDfa.n == N);
+    assert(minDfa.s == 0);
+    assert(minDfa.a == 1);
+    assert(minDfa.to == dfa.to);
+    assert(minDfa.ac == dfa.ac);
   }
 }
 
