@@ -1,3 +1,4 @@
+// TODO: minimize() has broken complexity?
 // TODO: update as C++
 
 class Dfa {

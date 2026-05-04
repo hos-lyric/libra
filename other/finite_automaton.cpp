@@ -1,3 +1,5 @@
+// TODO: minimize() has broken complexity?
+
 #include <assert.h>
 #include <algorithm>
 #include <map>
